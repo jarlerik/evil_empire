@@ -12,3 +12,5 @@ jobs:
       # test to see if done correctly - should echo "value"
       - run: echo ${{ steps.read_template.outputs }}
       - run: gh issue create --title "From template" --body "${{ steps.read_template.outputs }}"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
