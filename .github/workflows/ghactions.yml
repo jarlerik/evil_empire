@@ -9,7 +9,7 @@ jobs:
         uses: actions/checkout@v3
         id: "read_template"
         run: |
-          echo "{content}={$(cat ./.github/ISSUE_TEMPLATE/custom.md)}" >> $GITHUB_OUTPUT
+          echo "{content}={$(cat .github/ISSUE_TEMPLATE/custom.md)}" >> $GITHUB_OUTPUT
       # test to see if done correctly - should echo "value"
       # echo "{name}={value}" >> $GITHUB_OUTPUT
       - run: echo ${{ steps.read_template.outputs.content }}
