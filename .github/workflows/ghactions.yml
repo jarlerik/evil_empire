@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          input="../ISSUE_TEMPLATE/custom.md"
+          input="./github/ISSUE_TEMPLATE/custom.md"
           while IFS= read -r line
           do
               content=$line
