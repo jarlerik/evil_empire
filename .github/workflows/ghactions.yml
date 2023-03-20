@@ -14,5 +14,5 @@ jobs:
               echo ::set-output name=issue_content::$content
           done < "$input"
       # test to see if done correctly - should echo "value"
-      - run: echo "${​​​​{​​​​​​​​ steps.output_test.outputs.template_text }​​​​​​​​​​​}​​​​​​​​​​​​​​​"
-      - run: gh issue create --title "Created issue from file template" -F "../.github/ISSUE_TEMPLATE/custom.md​​​​​​​​​​​​​"
+      - run: echo ${{ steps.output_test.outputs.new_value }}
+      - run: gh issue create --title "From template" --body "${{ steps.output_test.outputs.new_value }}"
