@@ -8,9 +8,10 @@ jobs:
       - name: "Read template"
         id: "read_template"
         run: |
-          echo "$(cat .github/ISSUE_TEMPLATE/custom.md)" >> $GITHUB_OUTPUT
+          echo "{content}={$(cat .github/ISSUE_TEMPLATE/custom.md)}" >> $GITHUB_OUTPUT
       # test to see if done correctly - should echo "value"
-      - run: echo ${{ steps.read_template.outputs }}
-      - run: gh issue create --title "From template" --body "${{ steps.read_template.outputs }}"
+      # echo "{name}={value}" >> $GITHUB_OUTPUT
+      - run: echo ${{ steps.read_template.outputs.content }}
+      - run: gh issue create --title "From template" --body "${{ steps.read_template.outputs.content }}"
         env:
           GH_TOKEN: ${{ github.GH_TOKEN }}
