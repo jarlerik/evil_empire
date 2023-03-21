@@ -19,3 +19,4 @@ jobs:
           labels: ${{ steps.extract.outputs.labels }}
           title: ${{ steps.extract.outputs.title }}
           body: ${{ steps.extract.outputs.body }}
+          token: ${{ secrets.GH_TOKEN }}
