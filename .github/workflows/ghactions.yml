@@ -20,4 +20,4 @@ jobs:
           title: ${{ steps.extract.outputs.title }}
           body: ${{ steps.extract.outputs.body }}
           token: ${{ secrets.GH_TOKEN }}
-          project: 1
+          project-v2-path: "users/jarlerik/projects/1"
