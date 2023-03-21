@@ -20,3 +20,4 @@ jobs:
           title: ${{ steps.extract.outputs.title }}
           body: ${{ steps.extract.outputs.body }}
           token: ${{ secrets.GH_TOKEN }}
+          project: 1
