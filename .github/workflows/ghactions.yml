@@ -12,7 +12,7 @@ jobs:
         run: echo "date=$(date --date="1 week ago")" >> "$GITHUB_OUTPUT"
 
       - id: end-date
-        run: echo "date=$(date)" >> "$GITHUB_OUTPUT"
+        run: echo "date=$(date  --date="1 day ago")" >> "$GITHUB_OUTPUT"
 
       - uses: imjohnbo/extract-issue-template-fields@v1
         id: extract
