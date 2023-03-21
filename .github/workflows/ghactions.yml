@@ -9,7 +9,7 @@ jobs:
       end-date: ${{ steps.end-date.outputs.date }}
     steps:
       - id: start-date
-        run: echo "date=$(date +"%d" --date="1 week ago")" >> "$GITHUB_OUTPUT"
+        run: echo "date=$(date +"%d." --date="1 week ago")" >> "$GITHUB_OUTPUT"
 
       - id: end-date
         run: echo "date=$(date +" %d.%m.%Y"  --date="1 day ago")" >> "$GITHUB_OUTPUT"
@@ -22,7 +22,7 @@ jobs:
       - uses: imjohnbo/issue-bot@v3
         with:
           labels: ${{ steps.extract.outputs.labels }}
-          title: "${{ steps.start-date.outputs.date }}. - ${{ steps.end-date.outputs.date}}"
+          title: "Tarkistus ajalle ${{ steps.start-date.outputs.date }}-${{ steps.end-date.outputs.date}}"
           body: ${{ steps.extract.outputs.body }}
           token: ${{ secrets.GH_TOKEN }}
           project-v2-path: "users/jarlerik/projects/1"
