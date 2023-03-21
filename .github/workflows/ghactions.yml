@@ -2,19 +2,20 @@ name: GitHub Actions
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
-  read-template:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      # Get the title, labels, assignees, and body of the issue template at the path,
+      # .github/ISSUE_TEMPLATE/my_template.md, if available.
+      - uses: imjohnbo/extract-issue-template-fields@v1
+        id: extract
+        with:
+          path: .github/ISSUE_TEMPLATE/custom.md
 
-      - name: Read template
-        id: "read_template"
-        run: |
-          echo "{content}={$(cat .github/ISSUE_TEMPLATE/custom.md)}" >> $GITHUB_OUTPUT
-      # test to see if done correctly - should echo "value"
-      # echo "{name}={value}" >> $GITHUB_OUTPUT
-      - run: echo ${{ steps.read_template.outputs.content }}
-      - run: gh issue create --title "From template" --body "${{ steps.read_template.outputs.content }}"
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # Create new issue with assignees, labels, title, and body
+      - uses: imjohnbo/issue-bot@v3
+        with:
+          assignees: ${{ steps.extract.outputs.assignees }}
+          labels: ${{ steps.extract.outputs.labels }}
+          title: ${{ steps.extract.outputs.title }}
+          body: ${{ steps.extract.outputs.body }}
