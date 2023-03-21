@@ -4,20 +4,25 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      start-date: ${{ steps.start-date.outputs.date }}
+      end-date: ${{ steps.end-date.outputs.date }}
     steps:
-      # Get the title, labels, assignees, and body of the issue template at the path,
-      # .github/ISSUE_TEMPLATE/my_template.md, if available.
+      - id: start-date
+        run: echo "date=${(date)}" >> "$GITHUB_OUTPUT"
+
+      - id: end-date
+        run: echo "date=${(date)}" >> "$GITHUB_OUTPUT"
+
       - uses: imjohnbo/extract-issue-template-fields@v1
         id: extract
         with:
           path: .github/ISSUE_TEMPLATE/custom.md
 
-      # Create new issue with assignees, labels, title, and body
       - uses: imjohnbo/issue-bot@v3
         with:
-          assignees: ${{ steps.extract.outputs.assignees }}
           labels: ${{ steps.extract.outputs.labels }}
-          title: ${{ steps.extract.outputs.title }}
+          title: "${{ steps.start-date.outputs.date }} - ${{ steps.end-date.outputs.date}}"
           body: ${{ steps.extract.outputs.body }}
           token: ${{ secrets.GH_TOKEN }}
           project-v2-path: "users/jarlerik/projects/1"
