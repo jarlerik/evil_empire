@@ -5,8 +5,10 @@ jobs:
   read-template:
     runs-on: ubuntu-latest
     steps:
-      - name: "Read template"
+      - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Read template
         id: "read_template"
         run: |
           echo "{content}={$(cat .github/ISSUE_TEMPLATE/custom.md)}" >> $GITHUB_OUTPUT
