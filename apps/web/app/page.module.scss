@@ -1,0 +1,19 @@
+.root {
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--coal);
+  background-image: repeating-linear-gradient(
+      to right,
+      var(--charcoal),
+      var(--charcoal) 1px,
+      transparent 1px,
+      transparent 30px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--charcoal),
+      var(--charcoal) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+}
