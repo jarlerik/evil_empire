@@ -1,7 +1,7 @@
 import styles from "./page.module.scss";
 import * as contentful from "contentful";
-import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
 import Title from "./components/Title";
+import Text from "./components/Text";
 
 type AuthorReferenceType = {
   contentTypeId: "author";
@@ -43,13 +43,13 @@ export default async function Home() {
         {posts.posts.map((post) => {
           const {
             sys: { id },
-            fields: { title },
+            fields: { title, text },
           } = post;
 
           return (
             <div key={id}>
               <Title value={title} />
-              {/* <Text value={post.fields.text} /> */}
+              <Text value={text} />
             </div>
           );
         })}

@@ -1,16 +1,11 @@
 import React from "react";
-import * as contentful from "contentful";
-import { documentToHtmlString } from "@contentful/rich-text-html-renderer";
-
+import { documentToReactComponents } from "@contentful/rich-text-react-renderer";
+import { Document } from "@contentful/rich-text-types";
 type Props = {
-  value: contentful.EntryFieldTypes.RichText;
+  value: Document;
 };
 const Text = ({ value }: Props) => {
-  return (
-    <div>
-      <p>{"value"}</p>
-    </div>
-  );
+  return <div>{documentToReactComponents(value)}</div>;
 };
 
 export default Text;
