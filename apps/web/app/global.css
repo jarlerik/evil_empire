@@ -37,3 +37,7 @@ p {
   padding: 0;
   color: white;
 }
+
+a {
+  text-decoration-color: #dc5858;
+}

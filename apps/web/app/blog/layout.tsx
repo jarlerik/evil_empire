@@ -1,5 +1,6 @@
-import "./global.css";
+import "../global.css";
 import { Georama } from "next/font/google";
+import styles from "./layout.module.scss";
 
 const georama = Georama({
   subsets: ["latin"],
@@ -17,7 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={georama.className}>{children}</body>
+      <body className={georama.className}>
+        <div className={styles.root}>{children}</div>
+      </body>
     </html>
   );
 }
