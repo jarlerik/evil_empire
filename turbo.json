@@ -4,7 +4,7 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**"],
     },
     "lint": {
       "outputs": []
@@ -12,5 +12,6 @@
     "dev": {
       "cache": false
     }
-  }
+  },
+  "globalEnv": ["CONTENTFUL_SPACE", "CONTENTFUL_ACCESS_TOKEN"]
 }
