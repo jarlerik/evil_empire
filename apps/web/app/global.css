@@ -39,5 +39,10 @@ p {
 }
 
 a {
-  text-decoration-color: #dc5858;
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: #dc5858;
+  }
+  text-decoration: none;
+  color: white;
 }

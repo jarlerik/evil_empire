@@ -5,11 +5,7 @@ type Props = {
 };
 
 const Title = ({ value }: Props) => {
-  return (
-    <div>
-      <h1>{value}</h1>
-    </div>
-  );
+  return <h1>{value}</h1>;
 };
 
 export default Title;

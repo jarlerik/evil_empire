@@ -1,5 +1,4 @@
 import Title from "../components/Title";
-import Text from "../components/Text";
 import Link from "next/link";
 import { getPosts } from "../service";
 
@@ -12,15 +11,12 @@ export default async function Blog() {
       <h1>Blog</h1>
       <div>
         {posts.map((post) => {
-          const { id, title, text } = post;
+          const { id, title } = post;
 
           return (
-            <div key={id}>
-              <Link href={`/blog/${post.slug}`}>
-                <Title value={title} />
-              </Link>
-              <Text value={text} />
-            </div>
+            <Link key={id} href={`/blog/${post.slug}`}>
+              <Title value={title} />
+            </Link>
           );
         })}
       </div>

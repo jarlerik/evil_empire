@@ -24,3 +24,34 @@ export type Post = {
   text: Document;
   slug: string;
 };
+
+export type ContentfulPage = {
+  contentTypeId: "page";
+  fields: {
+    id: contentful.EntryFieldTypes.Text;
+    content: contentful.EntryFieldTypes.RichText;
+    route: contentful.EntryFieldTypes.Text;
+  };
+};
+
+export type Page = {
+  id: string;
+  content: Document;
+  route: string;
+};
+
+export type ContentfulHeader = {
+  contentTypeId: "headerItem";
+  fields: {
+    id: contentful.EntryFieldTypes.Text;
+    text: contentful.EntryFieldTypes.Text;
+    link: contentful.EntryFieldTypes.Text;
+    order: contentful.EntryFieldTypes.Number;
+  };
+};
+
+export type Header = {
+  id: string;
+  text: string;
+  link: string;
+};
