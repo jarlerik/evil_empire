@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import '../styles/app.scss';
 </script>
 
 <div class="layout">
@@ -11,6 +12,7 @@
 			</div>
 
 			<div class="nav-links">
+				<a href="/" class:active={$page.url.pathname === '/'}> Home </a>
 				<a href="/logout" class="logout-link">Logout</a>
 			</div>
 		</div>
@@ -64,10 +66,6 @@
 	}
 
 	.nav-links a:hover {
-		color: #4f46e5;
-	}
-
-	.nav-links a.active {
 		color: #4f46e5;
 	}
 

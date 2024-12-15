@@ -1,0 +1,87 @@
+.todo {
+	&-form {
+		margin-bottom: 1.5rem;
+	}
+
+	&-input {
+		flex: 1;
+		padding: 0.5rem 1rem;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+	}
+
+	&-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	&-item {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+	}
+
+	&-checkbox {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+
+	&-text {
+		flex: 1;
+
+		&.completed {
+			text-decoration: line-through;
+		}
+	}
+
+	&-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.5rem;
+		width: 100%;
+		text-align: left;
+
+		&:hover {
+			background-color: #f3f4f6;
+		}
+	}
+}
+
+.form-group {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.add-button {
+	padding: 0.5rem 1rem;
+	background-color: #3b82f6;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+
+	&:hover {
+		background-color: #2563eb;
+	}
+}
+
+.delete-button {
+	padding: 0.25rem 0.5rem;
+	color: #ef4444;
+	border: none;
+	background: none;
+	cursor: pointer;
+
+	&:hover {
+		color: #b91c1c;
+	}
+}
