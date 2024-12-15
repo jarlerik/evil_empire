@@ -32,9 +32,7 @@ export async function register({ email, password, name }: RegisterData) {
       createdAt: new Date(),
       updatedAt: new Date()
     });
-
-    console.log('register: newUser', newUser);
-
+ 
     return {
       success: true,
       user: newUser
