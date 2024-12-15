@@ -22,31 +22,29 @@ export const actions: Actions = {
 	default: async ({ cookies, request }) => {
 		const formData = Object.fromEntries(await request.formData());
 
-			const { email, password } = loginSchema.parse(formData);
+		const { email, password } = loginSchema.parse(formData);
 
-			const user = await db.query.userTable.findFirst({
-				where: (users, { eq }) => eq(users.email, email),
+		const user = await db.query.userTable.findFirst({
+			where: (users, { eq }) => eq(users.email, email)
+		});
+
+		if (!user) {
+			return fail(400, {
+				error: 'Invalid credentials'
 			});
-
-			if (!user) {
-				return fail(400, {
-					error: 'Invalid credentials'
-				});
-			}
-
-			const validPassword = await bcrypt.compare(password, user.password);
-			if (!validPassword) {
-				return fail(400, {
-					error: 'Invalid credentials'
-				});
-			}
-
-			const token = generateSessionToken();
-			const session = await createSession(token, user.id);	
-			setSessionTokenCookie(cookies, token, session.expiresAt )
-
-
-			redirect(302, '/');
 		}
-		
+
+		const validPassword = await bcrypt.compare(password, user.password);
+		if (!validPassword) {
+			return fail(400, {
+				error: 'Invalid credentials'
+			});
+		}
+
+		const token = generateSessionToken();
+		const session = await createSession(token, user.id);
+		setSessionTokenCookie(cookies, token, session.expiresAt);
+
+		redirect(302, '/');
+	}
 };

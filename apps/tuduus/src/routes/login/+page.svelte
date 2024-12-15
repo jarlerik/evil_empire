@@ -14,23 +14,11 @@
 			<div class="form-group">
 				<div>
 					<label for="email">Email address</label>
-					<input
-						id="email"
-						name="email"
-						type="email"
-						required
-						placeholder="Email address"
-					/>
+					<input id="email" name="email" type="email" required placeholder="Email address" />
 				</div>
 				<div>
 					<label for="password">Password</label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						required
-						placeholder="Password"
-					/>
+					<input id="password" name="password" type="password" required placeholder="Password" />
 				</div>
 			</div>
 
@@ -39,9 +27,7 @@
 			{/if}
 
 			<div>
-				<button type="submit">
-					Sign in
-				</button>
+				<button type="submit"> Sign in </button>
 			</div>
 		</form>
 	</div>

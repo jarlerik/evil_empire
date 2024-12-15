@@ -1,9 +1,9 @@
-import type { Session, User } from "./db/schema";
-import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
+import type { Session, User } from './db/schema';
+import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
 import { db } from '$lib/server/db';
-import { sessionTable, userTable } from "./db/schema";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeHexLowerCase } from "@oslojs/encoding";
+import { sessionTable, userTable } from './db/schema';
+import { sha256 } from '@oslojs/crypto/sha2';
+import { encodeHexLowerCase } from '@oslojs/encoding';
 import { eq } from 'drizzle-orm';
 
 export function generateSessionToken(): string {
