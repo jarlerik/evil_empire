@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { LogOut, Plus } from 'lucide-svelte';
 	import '../../styles/app.scss';
+
+	let { children } = $props();
 </script>
 
 <div class="layout">
@@ -18,7 +20,7 @@
 	</aside>
 
 	<main class="main-content">
-		<slot />
+		{@render children()}
 	</main>
 </div>
 
