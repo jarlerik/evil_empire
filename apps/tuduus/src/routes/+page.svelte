@@ -1,6 +1,6 @@
 <!-- +page.svelte -->
 <script lang="ts">
-	import { Pause } from 'lucide-svelte';
+	import { Pause, MoreVertical, Trash2, Edit, Play } from 'lucide-svelte';
 	import type { Todo } from '$lib/server/db/schema';
 	import { enhance } from '$app/forms';
 
@@ -8,7 +8,22 @@
 	export let data: { todos: Todo[] };
 
 	let newTodoTitle = '';
+	let openMenuId: number | null = null;
+
+	function toggleMenu(todoId: number, event: MouseEvent) {
+		event.stopPropagation(); // Prevent click from bubbling up
+		openMenuId = openMenuId === todoId ? null : todoId;
+	}
+
+	// Close menu when clicking outside
+	function handleClickOutside(event: MouseEvent) {
+		if (openMenuId !== null) {
+			openMenuId = null;
+		}
+	}
 </script>
+
+<svelte:window on:click={handleClickOutside} />
 
 <div class="grid-container">
 	<div class="task-bucket">
@@ -30,7 +45,7 @@
 			<input
 				name="title"
 				type="text"
-				placeholder="Add a new task..."
+				placeholder="Write title of new task and press enter..."
 				class="todo-input"
 				bind:value={newTodoTitle}
 			/>
@@ -41,6 +56,27 @@
 					<label class="todo-label">
 						<span class="todo-title">{todo.title}</span>
 					</label>
+					<div class="menu-container">
+						<button class="menu-button" on:click|stopPropagation={(e) => toggleMenu(todo.id, e)}>
+							<MoreVertical size={18} />
+						</button>
+						{#if openMenuId === todo.id}
+							<div class="popup-menu">
+								<button class="menu-item">
+									<Play size={16} />
+									Add to daily todos
+								</button>
+								<button class="menu-item">
+									<Edit size={16} />
+									Edit
+								</button>
+								<button class="menu-item delete">
+									<Trash2 size={16} />
+									Delete
+								</button>
+							</div>
+						{/if}
+					</div>
 				</li>
 			{/each}
 		</ul>
@@ -164,6 +200,9 @@
 
 	.todo-item {
 		padding: 0.5rem 0;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 
 	.todo-item:last-child {
@@ -215,5 +254,64 @@
 
 	.todo-input:focus {
 		outline: 2px solid #ffffff33;
+	}
+
+	.menu-button {
+		background: none;
+		border: none;
+		color: #ffffff;
+		opacity: 0.6;
+		cursor: pointer;
+		padding: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+	}
+
+	.menu-button:hover {
+		opacity: 1;
+		background-color: #ffffff1a;
+	}
+
+	.menu-container {
+		position: relative;
+	}
+
+	.popup-menu {
+		position: absolute;
+		right: 0;
+		top: 100%;
+		background-color: var(--zinc-900);
+		border-radius: 4px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		min-width: 10rem;
+		z-index: 10;
+	}
+
+	.menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 8px 12px;
+		border: none;
+		background: none;
+		color: #ffffff;
+		cursor: pointer;
+		text-align: left;
+		font-size: 14px;
+	}
+
+	.menu-item:hover {
+		background-color: #ffffff1a;
+	}
+
+	.menu-item.delete {
+		color: #ff6b6b;
+	}
+
+	.menu-item.delete:hover {
+		background-color: #ff6b6b1a;
 	}
 </style>
