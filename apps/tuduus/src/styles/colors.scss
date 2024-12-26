@@ -1,0 +1,27 @@
+// Zinc color palette
+$zinc-50: hsl(0, 0%, 98%);
+$zinc-100: hsl(240, 5%, 96%);
+$zinc-200: hsl(240, 6%, 90%);
+$zinc-300: hsl(240, 5%, 84%);
+$zinc-400: hsl(240, 5%, 65%);
+$zinc-500: hsl(240, 4%, 46%);
+$zinc-600: hsl(240, 5%, 34%);
+$zinc-700: hsl(240, 5%, 26%);
+$zinc-800: hsl(240, 4%, 16%);
+$zinc-900: hsl(240, 6%, 10%);
+$zinc-950: hsl(240, 10%, 4%);
+
+// CSS Custom Properties (variables) for use in components
+:root {
+	--zinc-50: #{$zinc-50};
+	--zinc-100: #{$zinc-100};
+	--zinc-200: #{$zinc-200};
+	--zinc-300: #{$zinc-300};
+	--zinc-400: #{$zinc-400};
+	--zinc-500: #{$zinc-500};
+	--zinc-600: #{$zinc-600};
+	--zinc-700: #{$zinc-700};
+	--zinc-800: #{$zinc-800};
+	--zinc-900: #{$zinc-900};
+	--zinc-950: #{$zinc-950};
+}

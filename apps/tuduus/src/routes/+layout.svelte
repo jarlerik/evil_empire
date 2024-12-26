@@ -1,89 +1,76 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { LogOut, Plus } from 'lucide-svelte';
 	import '../styles/app.scss';
+
+	let { children } = $props();
 </script>
 
 <div class="layout">
-	<nav>
-		<div class="nav-content">
-			<div class="logo">
-				<a href="/">Tuduus</a>
-			</div>
-
-			<div class="nav-links">
-				<a href="/" class:active={$page.url.pathname === '/'}> Home </a>
-				<a href="/logout" class="logout-link">Logout</a>
-			</div>
+	<aside class="sidebar">
+		<div class="sidebar-top">
+			<button class="icon-button">
+				<Plus size={24} />
+			</button>
 		</div>
-	</nav>
+		<div class="sidebar-bottom">
+			<a href="/logout" class="icon-button">
+				<LogOut size={24} />
+			</a>
+		</div>
+	</aside>
 
-	<main>
-		<slot />
+	<main class="main-content">
+		{@render children()}
 	</main>
 </div>
 
 <style>
 	.layout {
+		display: flex;
 		min-height: 100vh;
+		background-color: #1a1a1a;
+		color: #ffffff;
+	}
+
+	.sidebar {
+		width: 64px;
+		background-color: #242424;
+		border-right: 1px solid #333333;
 		display: flex;
 		flex-direction: column;
+		justify-content: space-evenly;
+		padding: 1rem 0;
 	}
 
-	nav {
-		background-color: #ffffff;
-		border-bottom: 1px solid #e5e7eb;
-		padding: 1rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	.sidebar-top,
+	.sidebar-bottom {
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 
-	.nav-content {
-		max-width: 1200px;
+	.icon-button {
+		width: 40px;
+		height: 40px;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		margin: 0 auto;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: #ffffff;
+		transition: all 0.2s;
 	}
 
-	.logo a {
-		font-size: 1.5rem;
-		font-weight: bold;
-		color: #4f46e5;
-		text-decoration: none;
+	.icon-button:hover {
+		background-color: #333333;
+		color: #ffffff;
 	}
 
-	.nav-links {
-		display: flex;
-		gap: 2rem;
-		align-items: center;
-	}
-
-	.nav-links a {
-		color: #4b5563;
-		text-decoration: none;
-		font-weight: 500;
-		transition: color 0.2s;
-	}
-
-	.nav-links a:hover {
-		color: #4f46e5;
-	}
-
-	.logout-link {
-		color: #ef4444 !important;
-		font-weight: 500;
-		transition: color 0.2s;
-	}
-
-	.logout-link:hover {
-		color: #dc2626 !important;
-	}
-
-	main {
+	.main-content {
 		flex: 1;
 		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
-		width: 100%;
 	}
 </style>

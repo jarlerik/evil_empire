@@ -1,89 +1,219 @@
+<!-- +page.svelte -->
 <script lang="ts">
+	import { Pause } from 'lucide-svelte';
+	import type { Todo } from '$lib/server/db/schema';
 	import { enhance } from '$app/forms';
-	import type { PageData } from './$types';
 
-	export let data: PageData;
-	let newTodoText = '';
-	$: todos = data.todos;
+	// This data will come from the +page.server.ts load function
+	export let data: { todos: Todo[] };
 
-	function resetForm(form: HTMLFormElement) {
-		form.reset();
-		newTodoText = '';
-	}
+	let newTodoTitle = '';
 </script>
 
-<div class="container">
-	<main class="main">
-		<h1>Todo List</h1>
-
+<div class="grid-container">
+	<div class="task-bucket">
+		<h1>Task bucket</h1>
 		<form
+			class="add-todo-form"
 			method="POST"
 			action="?/create"
-			class="todo-form"
 			use:enhance={() => {
-				return async ({ update }) => {
-					await update();
-					newTodoText = '';
+				return ({ result }) => {
+					if (result.type === 'success') {
+						// Add the new todo to the list
+						data.todos = [...data.todos, result.data.todo];
+						newTodoTitle = ''; // Clear input on success
+					}
 				};
 			}}
 		>
-			<div class="form-group">
-				<input
-					name="title"
-					type="text"
-					bind:value={newTodoText}
-					placeholder="Add a new todo..."
-					class="todo-input"
-				/>
-				<button type="submit" class="add-button"> Add Todo </button>
-			</div>
+			<input
+				name="title"
+				type="text"
+				placeholder="Add a new task..."
+				class="todo-input"
+				bind:value={newTodoTitle}
+			/>
 		</form>
-
 		<ul class="todo-list">
-			{#each todos as todo (todo.id)}
+			{#each data.todos as todo}
 				<li class="todo-item">
-					<form
-						method="POST"
-						action="?/toggle"
-						use:enhance={({ formElement }) => {
-							const formData = new FormData(formElement);
-							return async ({ update }) => {
-								await update();
-							};
-						}}
-					>
-						<input type="hidden" name="id" value={todo.id} />
-						<input type="hidden" name="completed" value={todo.completed ? 'false' : 'true'} />
-						<button type="submit" class="todo-toggle">
-							<label class="todo-label">
-								<input
-									type="checkbox"
-									checked={todo.completed}
-									class="todo-checkbox"
-									readonly
-									aria-label="Toggle todo completion"
-								/>
-								<span class="todo-text" class:completed={todo.completed}>
-									{todo.title}
-								</span>
-							</label>
-						</button>
-					</form>
-
-					<form method="POST" action="?/delete" use:enhance>
-						<input type="hidden" name="id" value={todo.id} />
-						<button type="submit" class="delete-button"> Delete </button>
-					</form>
+					<label class="todo-label">
+						<span class="todo-title">{todo.title}</span>
+					</label>
 				</li>
 			{/each}
 		</ul>
-	</main>
+	</div>
+	<div class="right-panel">
+		<div class="current-task">
+			<h1>Working on: <span class="current-task-title">task #1 title lorem ipsum</span></h1>
+			<div class="timer-section">
+				<div class="timer-container">
+					<div class="timer">
+						<span class="time">12:20</span>
+					</div>
+				</div>
+				<button class="pause-button">
+					<Pause size={24} />
+				</button>
+			</div>
+		</div>
+		<div class="daily-tasks">
+			<h1>Daily todo</h1>
+			<!-- Daily tasks list will go here -->
+		</div>
+	</div>
 </div>
 
-<style lang="scss">
-	.container {
-		h1 {
-			color: var(--primary-color);
-		}
+<style>
+	.grid-container {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2rem;
+		height: 100%;
+	}
+
+	.task-bucket {
+		background-color: #242424;
+		border-radius: 8px;
+		padding: 1.5rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	}
+
+	.right-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+	}
+
+	.current-task {
+		background-color: #242424;
+		border-radius: 8px;
+		padding: 1.5rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	}
+
+	.current-task-title {
+		font-weight: 400;
+	}
+
+	.timer-section {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		justify-content: center;
+		margin-top: 1rem;
+	}
+
+	.timer-container {
+		background-color: #ff000033;
+		border-radius: 8px;
+		padding: 1rem;
+		width: 33%;
+		border: 2px solid #ffffff;
+		display: flex;
+		justify-content: center;
+	}
+
+	.timer {
+		display: flex;
+		align-items: center;
+	}
+
+	.time {
+		font-size: 2rem;
+		font-weight: bold;
+		color: #ffffff;
+	}
+
+	.pause-button {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: #ffffff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.daily-tasks {
+		background-color: #242424;
+		border-radius: 8px;
+		padding: 1.5rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	}
+
+	h1 {
+		font-size: 1.5rem;
+		color: #ffffff;
+		margin: 0;
+	}
+
+	h2 {
+		font-size: 1.25rem;
+		color: #ffffff;
+		margin: 0 0 1rem 0;
+	}
+
+	.todo-list {
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0 0;
+	}
+
+	.todo-item {
+		padding: 0.5rem 0;
+	}
+
+	.todo-item:last-child {
+		border-bottom: none;
+	}
+
+	.todo-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+	}
+
+	.todo-checkbox {
+		width: 1.2rem;
+		height: 1.2rem;
+		border-radius: 4px;
+		border: 2px solid #ffffff;
+		appearance: none;
+		background: none;
+		cursor: pointer;
+	}
+
+	.todo-checkbox:checked {
+		background-color: #ffffff;
+		position: relative;
+	}
+
+	.todo-title {
+		color: #ffffff;
+	}
+
+	.add-todo-form {
+		margin-top: 1rem;
+	}
+
+	.todo-input {
+		width: 100%;
+		padding: 0.5rem;
+		border: none;
+		border-radius: 4px;
+		background-color: #333333;
+		color: #ffffff;
+	}
+
+	.todo-input::placeholder {
+		color: #888888;
+	}
+
+	.todo-input:focus {
+		outline: 2px solid #ffffff33;
 	}
 </style>
