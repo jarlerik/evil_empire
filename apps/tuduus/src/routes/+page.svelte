@@ -21,6 +21,22 @@
 			openMenuId = null;
 		}
 	}
+
+	async function handleDelete(todoId: number) {
+		const formData = new FormData();
+		formData.append('id', todoId.toString());
+
+		const response = await fetch('?/delete', {
+			method: 'POST',
+			body: formData
+		});
+
+		if (response.ok) {
+			// Remove the todo from the list
+			data.todos = data.todos.filter((t) => t.id !== todoId);
+			openMenuId = null; // Close menu after deletion
+		}
+	}
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -70,7 +86,7 @@
 									<Edit size={16} />
 									Edit
 								</button>
-								<button class="menu-item delete">
+								<button class="menu-item delete" on:click={() => handleDelete(todo.id)}>
 									<Trash2 size={16} />
 									Delete
 								</button>
