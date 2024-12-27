@@ -5,13 +5,17 @@
 	import { enhance } from '$app/forms';
 
 	// This data will come from the +page.server.ts load function
-	export let data: { todos: Todo[] };
+	const { data } = $props();
 
-	let newTodoTitle = '';
-	let openMenuId: number | null = null;
+	let todos = $state(data.todos);
+
+	let newTodoTitle = $state('');
+	let openMenuId = $state(null); //number | null = null;
+	let currentTodoId: string = '';
+	let currentState: string = '';
 
 	function toggleMenu(todoId: number, event: MouseEvent) {
-		event.stopPropagation(); // Prevent click from bubbling up
+		event.stopPropagation(); // Prevent click from bubbling upx
 		openMenuId = openMenuId === todoId ? null : todoId;
 	}
 
@@ -33,9 +37,23 @@
 
 		if (response.ok) {
 			// Remove the todo from the list
-			data.todos = data.todos.filter((t) => t.id !== todoId);
+			todos = todos.filter((t) => t.id !== todoId);
 			openMenuId = null; // Close menu after deletion
 		}
+	}
+
+	async function addToDailyTodos(todoId: number) {
+		const formData = new FormData();
+		formData.append('id', todoId.toString());
+		await fetch('?/addToDailyTodos', { method: 'POST', body: formData });
+		todos = todos.map((todo) => (todo.id === todoId ? { ...todo, state: 'DOING' } : todo));
+	}
+
+	async function removeFromDailyTodos(todoId: number) {
+		const formData = new FormData();
+		formData.append('id', todoId.toString());
+		await fetch('?/removeFromDailyTodos', { method: 'POST', body: formData });
+		todos = todos.map((todo) => (todo.id === todoId ? { ...todo, state: 'UNDONE' } : todo));
 	}
 </script>
 
@@ -52,7 +70,7 @@
 				return ({ result }) => {
 					if (result.type === 'success') {
 						// Add the new todo to the list
-						data.todos = [...data.todos, result.data.todo];
+						todos.push(result.data.todo);
 						newTodoTitle = ''; // Clear input on success
 					}
 				};
@@ -67,7 +85,7 @@
 			/>
 		</form>
 		<ul class="todo-list">
-			{#each data.todos as todo}
+			{#each todos.filter((todo) => todo.state !== 'DOING') as todo}
 				<li class="todo-item">
 					<label class="todo-label">
 						<span class="todo-title">{todo.title}</span>
@@ -78,7 +96,7 @@
 						</button>
 						{#if openMenuId === todo.id}
 							<div class="popup-menu">
-								<button class="menu-item">
+								<button class="menu-item" on:click={() => addToDailyTodos(todo.id)}>
 									<Play size={16} />
 									Add to daily todos
 								</button>
@@ -113,7 +131,28 @@
 		</div>
 		<div class="daily-tasks">
 			<h1>Daily todo</h1>
-			<!-- Daily tasks list will go here -->
+			<ul class="todo-list">
+				{#each todos.filter((todo) => todo.state === 'DOING') as todo}
+					<li class="todo-item">
+						<label class="todo-label">
+							<span class="todo-title">{todo.title}</span>
+						</label>
+						<div class="menu-container">
+							<button class="menu-button" on:click|stopPropagation={(e) => toggleMenu(todo.id, e)}>
+								<MoreVertical size={18} />
+							</button>
+							{#if openMenuId === todo.id}
+								<div class="popup-menu">
+									<button class="menu-item" on:click={() => removeFromDailyTodos(todo.id)}>
+										<Play size={16} />
+										Move to task bucket
+									</button>
+								</div>
+							{/if}
+						</div>
+					</li>
+				{/each}
+			</ul>
 		</div>
 	</div>
 </div>
@@ -292,17 +331,18 @@
 
 	.menu-container {
 		position: relative;
+		z-index: 10;
 	}
 
 	.popup-menu {
 		position: absolute;
 		right: 0;
 		top: 100%;
-		background-color: var(--zinc-900);
+		background-color: #18181b;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 		min-width: 10rem;
-		z-index: 10;
+		z-index: 100;
 	}
 
 	.menu-item {

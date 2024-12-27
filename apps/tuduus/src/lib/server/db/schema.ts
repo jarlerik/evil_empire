@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { type InferSelectModel } from 'drizzle-orm';
 
 export const userTable = pgTable('users', {
@@ -21,10 +21,12 @@ export const sessionTable = pgTable('session', {
 	}).notNull()
 });
 
+export type TodoState = 'undone' | 'doing' | 'done';
+
 export const todoTable = pgTable('todos', {
 	id: serial('id').primaryKey(),
 	title: varchar('title', { length: 255 }).notNull(),
-	completed: boolean('completed').default(false).notNull(),
+	state: varchar('state', { length: 10 }).notNull().default('undone'),
 	userId: integer('user_id')
 		.notNull()
 		.references(() => userTable.id),
