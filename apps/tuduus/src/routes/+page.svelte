@@ -3,6 +3,7 @@
 	import { Pause, MoreVertical, Trash2, Edit, Play } from 'lucide-svelte';
 	import type { Todo } from '$lib/server/db/schema';
 	import { enhance } from '$app/forms';
+	import CurrentTask from '$lib/components/CurrentTask.svelte';
 
 	// This data will come from the +page.server.ts load function
 	const { data } = $props();
@@ -116,19 +117,7 @@
 		</ul>
 	</div>
 	<div class="right-panel">
-		<div class="current-task">
-			<h1>Working on: <span class="current-task-title">task #1 title lorem ipsum</span></h1>
-			<div class="timer-section">
-				<div class="timer-container">
-					<div class="timer">
-						<span class="time">12:20</span>
-					</div>
-				</div>
-				<button class="pause-button">
-					<Pause size={24} />
-				</button>
-			</div>
-		</div>
+		<CurrentTask title="task #1 title lorem ipsum" />
 		<div class="daily-tasks">
 			<h1>Daily todo</h1>
 			<ul class="todo-list">
