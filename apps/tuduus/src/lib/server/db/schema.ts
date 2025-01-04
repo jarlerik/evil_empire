@@ -21,12 +21,14 @@ export const sessionTable = pgTable('session', {
 	}).notNull()
 });
 
-export type TodoState = 'undone' | 'doing' | 'done';
+export type TodoState = 'undone' | 'doing' | 'done' | 'working';
 
 export const todoTable = pgTable('todos', {
 	id: serial('id').primaryKey(),
 	title: varchar('title', { length: 255 }).notNull(),
-	state: varchar('state', { length: 10 }).notNull().default('undone'),
+	state: varchar('state', { length: 10 })
+		.notNull()
+		.default('undone' satisfies TodoState),
 	userId: integer('user_id')
 		.notNull()
 		.references(() => userTable.id),

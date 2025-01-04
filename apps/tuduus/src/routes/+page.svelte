@@ -1,9 +1,10 @@
 <!-- +page.svelte -->
 <script lang="ts">
-	import { Pause, MoreVertical, Trash2, Edit, Play, Plus, Minus } from 'lucide-svelte';
 	import type { Todo } from '$lib/server/db/schema';
 	import { enhance } from '$app/forms';
 	import CurrentTask from '$lib/components/CurrentTask.svelte';
+	import TodoList from '$lib/components/TodoList.svelte';
+	import { getTaskBucketMenuItems, getDailyTodoMenuItems } from '$lib/config/menuItems';
 
 	// This data will come from the +page.server.ts load function
 	const { data } = $props();
@@ -62,6 +63,9 @@
 		currentTask = todo;
 		openMenuId = null; // Close menu after selection
 	}
+
+	const taskBucketMenuItems = getTaskBucketMenuItems(addToDailyTodos, handleDelete);
+	const dailyTodoMenuItems = getDailyTodoMenuItems(setCurrentTask, removeFromDailyTodos, todos);
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -91,67 +95,19 @@
 				bind:value={newTodoTitle}
 			/>
 		</form>
-		<ul class="todo-list">
-			{#each todos.filter((todo) => todo.state !== 'DOING') as todo}
-				<li class="todo-item">
-					<label class="todo-label">
-						<span class="todo-title">{todo.title}</span>
-					</label>
-					<div class="menu-container">
-						<button class="menu-button" on:click|stopPropagation={(e) => toggleMenu(todo.id, e)}>
-							<MoreVertical size={18} />
-						</button>
-						{#if openMenuId === todo.id}
-							<div class="popup-menu">
-								<button class="menu-item" on:click={() => addToDailyTodos(todo.id)}>
-									<Plus size={16} />
-									Add to daily todos
-								</button>
-								<button class="menu-item">
-									<Edit size={16} />
-									Edit
-								</button>
-								<button class="menu-item delete" on:click={() => handleDelete(todo.id)}>
-									<Trash2 size={16} />
-									Delete
-								</button>
-							</div>
-						{/if}
-					</div>
-				</li>
-			{/each}
-		</ul>
+		<TodoList
+			todos={todos.filter((todo) => todo.state !== 'DOING')}
+			menuItems={taskBucketMenuItems}
+		/>
 	</div>
 	<div class="right-panel">
 		<CurrentTask title={currentTask?.title ?? ''} />
 		<div class="daily-tasks">
 			<h1>Daily todo</h1>
-			<ul class="todo-list">
-				{#each todos.filter((todo) => todo.state === 'DOING') as todo}
-					<li class="todo-item">
-						<label class="todo-label">
-							<span class="todo-title">{todo.title}</span>
-						</label>
-						<div class="menu-container">
-							<button class="menu-button" on:click|stopPropagation={(e) => toggleMenu(todo.id, e)}>
-								<MoreVertical size={18} />
-							</button>
-							{#if openMenuId === todo.id}
-								<div class="popup-menu">
-									<button class="menu-item" on:click={() => setCurrentTask(todo)}>
-										<Play size={16} />
-										Start task
-									</button>
-									<button class="menu-item" on:click={() => removeFromDailyTodos(todo.id)}>
-										<Minus size={16} />
-										Move to task bucket
-									</button>
-								</div>
-							{/if}
-						</div>
-					</li>
-				{/each}
-			</ul>
+			<TodoList
+				todos={todos.filter((todo) => todo.state === 'DOING')}
+				menuItems={dailyTodoMenuItems}
+			/>
 		</div>
 	</div>
 </div>
