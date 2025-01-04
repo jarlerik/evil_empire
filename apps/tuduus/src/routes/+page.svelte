@@ -1,6 +1,6 @@
 <!-- +page.svelte -->
 <script lang="ts">
-	import { Pause, MoreVertical, Trash2, Edit, Play } from 'lucide-svelte';
+	import { Pause, MoreVertical, Trash2, Edit, Play, Plus, Minus } from 'lucide-svelte';
 	import type { Todo } from '$lib/server/db/schema';
 	import { enhance } from '$app/forms';
 	import CurrentTask from '$lib/components/CurrentTask.svelte';
@@ -14,6 +14,7 @@
 	let openMenuId = $state(null); //number | null = null;
 	let currentTodoId: string = '';
 	let currentState: string = '';
+	let currentTask = $state<Todo | null>(null);
 
 	function toggleMenu(todoId: number, event: MouseEvent) {
 		event.stopPropagation(); // Prevent click from bubbling upx
@@ -55,6 +56,11 @@
 		formData.append('id', todoId.toString());
 		await fetch('?/removeFromDailyTodos', { method: 'POST', body: formData });
 		todos = todos.map((todo) => (todo.id === todoId ? { ...todo, state: 'UNDONE' } : todo));
+	}
+
+	async function setCurrentTask(todo: Todo) {
+		currentTask = todo;
+		openMenuId = null; // Close menu after selection
 	}
 </script>
 
@@ -98,7 +104,7 @@
 						{#if openMenuId === todo.id}
 							<div class="popup-menu">
 								<button class="menu-item" on:click={() => addToDailyTodos(todo.id)}>
-									<Play size={16} />
+									<Plus size={16} />
 									Add to daily todos
 								</button>
 								<button class="menu-item">
@@ -117,7 +123,7 @@
 		</ul>
 	</div>
 	<div class="right-panel">
-		<CurrentTask title="task #1 title lorem ipsum" />
+		<CurrentTask title={currentTask?.title ?? ''} />
 		<div class="daily-tasks">
 			<h1>Daily todo</h1>
 			<ul class="todo-list">
@@ -132,8 +138,12 @@
 							</button>
 							{#if openMenuId === todo.id}
 								<div class="popup-menu">
-									<button class="menu-item" on:click={() => removeFromDailyTodos(todo.id)}>
+									<button class="menu-item" on:click={() => setCurrentTask(todo)}>
 										<Play size={16} />
+										Start task
+									</button>
+									<button class="menu-item" on:click={() => removeFromDailyTodos(todo.id)}>
+										<Minus size={16} />
 										Move to task bucket
 									</button>
 								</div>
@@ -330,7 +340,7 @@
 		background-color: #18181b;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-		min-width: 10rem;
+		min-width: 12rem;
 		z-index: 100;
 	}
 
