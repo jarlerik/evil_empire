@@ -8,6 +8,14 @@
 	let timeLeft = $state(25 * 60); // Make timeLeft reactive with $state
 	let intervalId: NodeJS.Timeout | null = null;
 
+	// Watch for changes in title and restart timer
+	$effect(() => {
+		if (title) {
+			stopTimer();
+			startTimer();
+		}
+	});
+
 	// Format seconds to MM:SS
 	function formatTime(seconds: number): string {
 		const minutes = Math.floor(seconds / 60);

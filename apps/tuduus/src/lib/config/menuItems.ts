@@ -35,7 +35,12 @@ export function getDailyTodoMenuItems(
 		{
 			icon: Play,
 			label: 'Work on task',
-			onClick: (id) => setCurrentTask(todos.find((t) => t.id === id)!)
+			onClick: (id) => {
+				const todo = todos.find((t) => t.id === id);
+				if (todo) {
+					setCurrentTask(todo);
+				}
+			}
 		},
 		{
 			icon: Minus,
