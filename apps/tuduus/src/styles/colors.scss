@@ -11,6 +11,28 @@ $zinc-800: hsl(240, 4%, 16%);
 $zinc-900: hsl(240, 6%, 10%);
 $zinc-950: hsl(240, 10%, 4%);
 
+// Red color palette
+$red-50: hsl(355, 100%, 98%);
+$red-100: hsl(355, 100%, 96%);
+$red-200: hsl(355, 100%, 90%);
+$red-300: hsl(355, 100%, 84%);
+$red-400: hsl(355, 100%, 65%);
+$red-500: hsl(355, 100%, 46%);
+$red-600: hsl(355, 100%, 34%);
+$red-700: hsl(355, 100%, 26%);
+$red-800: hsl(355, 85%, 65%);
+$red-900: hsl(355, 85%, 55%);
+$red-950: hsl(355, 85%, 45%);
+
+$orange-800: hsl(35, 85%, 65%);
+$orange-900: hsl(35, 85%, 55%);
+$orange-950: hsl(35, 85%, 45%);
+
+$green-500: hsl(142, 76%, 43%);
+$green-800: hsl(142, 76%, 33%);
+$green-900: hsl(142, 76%, 27%);
+$green-950: hsl(142, 76%, 21%);
+
 // CSS Custom Properties (variables) for use in components
 :root {
 	--zinc-50: #{$zinc-50};
@@ -24,4 +46,25 @@ $zinc-950: hsl(240, 10%, 4%);
 	--zinc-800: #{$zinc-800};
 	--zinc-900: #{$zinc-900};
 	--zinc-950: #{$zinc-950};
+
+	--red-50: #{$red-50};
+	--red-100: #{$red-100};
+	--red-200: #{$red-200};
+	--red-300: #{$red-300};
+	--red-400: #{$red-400};
+	--red-500: #{$red-500};
+	--red-600: #{$red-600};
+	--red-700: #{$red-700};
+	--red-800: #{$red-800};
+	--red-900: #{$red-900};
+	--red-950: #{$red-950};
+
+	--orange-800: #{$orange-800};
+	--orange-900: #{$orange-900};
+	--orange-950: #{$orange-950};
+
+	--green-500: #{$green-500};
+	--green-800: #{$green-800};
+	--green-900: #{$green-900};
+	--green-950: #{$green-950};
 }

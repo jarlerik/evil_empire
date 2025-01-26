@@ -1,4 +1,5 @@
 import { persisted } from 'svelte-persisted-store';
+import { WORK_TIME } from '$lib/config/timerConfig';
 
 export interface Todo {
     id: string;
@@ -16,7 +17,7 @@ interface TimerState {
 
 const initialState: TimerState = {
     currentTodo: null,
-    timeLeft: 25 * 60,
+    timeLeft: WORK_TIME,
     isPaused: true
 };
 
