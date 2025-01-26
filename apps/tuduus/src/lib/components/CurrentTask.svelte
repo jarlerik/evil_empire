@@ -70,14 +70,19 @@
 </script>
 
 <div class="current-task">
-	<h1>Working on: <span class="current-task-title">{title}</span></h1>
+	<h1>Working on: <span class="current-task-title">{title || 'No task selected'}</span></h1>
 	<div class="timer-section">
 		<div class="timer-container">
 			<div class="timer">
 				<span class="time">{formatTime(timeLeft)}</span>
 			</div>
 		</div>
-		<button class="pause-button" on:click={toggleTimer}>
+		<button 
+			class="pause-button" 
+			on:click={toggleTimer} 
+			disabled={!title}
+			title={!title ? 'Add task from Daily todo' : ''}
+		>
 			{#if isPaused}
 				<Play size={24} />
 			{:else}
@@ -140,5 +145,10 @@
 
 	.pause-button:hover {
 		opacity: 0.8;
+	}
+
+	.pause-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 </style>
