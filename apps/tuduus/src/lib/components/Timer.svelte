@@ -31,7 +31,8 @@
 	function toggleMode() {
 		timerStore.update(state => ({
 			...state,
-			isRest: !state.isRest
+			isRest: !state.isRest,
+			currentSession: !state.isRest ? state.currentSession : state.currentSession + 1
 		}));
 		timeLeft = $timerStore.isRest ? REST_TIME : WORK_TIME;
 		// Don't pause when switching modes
@@ -94,6 +95,11 @@
 </script>
 
 <div class="timer-section">
+    <!-- Session container -->
+    <div class="session-container">
+        <span class="session-count">{$timerStore.currentSession} / 12 sessions</span>
+    </div>
+    <!-- Timer container -->
 	<div class="timer-container" class:rest={$timerStore.isRest}>
 		<div class="timer">
 			<span class="time">{formatTime(timeLeft)}</span>
@@ -176,5 +182,19 @@
 	.pause-button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.session-container {
+
+		border-radius: 8px;
+		padding: 0.5rem 1rem;
+		border: 2px solid #ffffff;
+		margin-bottom: 0.5rem;
+	}
+
+	.session-count {
+		color: #ffffff;
+		font-size: 0.875rem;
+		font-weight: 500;
 	}
 </style> 

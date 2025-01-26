@@ -13,12 +13,16 @@ interface TimerState {
     currentTodo: Todo | null;
     timeLeft: number;
     isPaused: boolean;
+    isRest: boolean;
+    currentSession: number;
 }
 
 const initialState: TimerState = {
     currentTodo: null,
     timeLeft: WORK_TIME,
-    isPaused: true
+    isPaused: true,
+    isRest: false,
+    currentSession: 0
 };
 
 export const timerStore = persisted('timer-state', initialState); 
