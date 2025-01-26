@@ -78,6 +78,9 @@ importers:
       postgres:
         specifier: ^3.4.4
         version: 3.4.4
+      svelte-persisted-store:
+        specifier: ^0.12.0
+        version: 0.12.0(svelte@5.0.0)
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -5547,6 +5550,15 @@ packages:
       postcss-scss: 4.0.9(postcss@8.4.49)
       svelte: 5.0.0
     dev: true
+
+  /svelte-persisted-store@0.12.0(svelte@5.0.0):
+    resolution: {integrity: sha512-BdBQr2SGSJ+rDWH8/aEV5GthBJDapVP0GP3fuUCA7TjYG5ctcB+O9Mj9ZC0+Jo1oJMfZUd1y9H68NFRR5MyIJA==}
+    engines: {node: '>=0.14'}
+    peerDependencies:
+      svelte: ^3.48.0 || ^4 || ^5
+    dependencies:
+      svelte: 5.0.0
+    dev: false
 
   /svelte@5.0.0:
     resolution: {integrity: sha512-jv2IvTtakG58DqZMo6fY3T6HFmGV4iDQH2lSUyfmCEYaoa+aCNcF+9rERbdDvT4XDF0nQBg6TEoJn0dirED8VQ==}

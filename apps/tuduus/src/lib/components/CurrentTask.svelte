@@ -1,19 +1,34 @@
 <script lang="ts">
 	import { Pause, Play } from 'lucide-svelte';
 	import { onDestroy } from 'svelte';
+	import { timerStore } from '$lib/stores/timerStore';
+	import type { Todo } from '$lib/stores/timerStore';
 
-	const { title = '' } = $props();
+	const { todo = null } = $props<{ todo: Todo | null }>();
 
-	let isPaused = $state(true);
-	let timeLeft = $state(25 * 60); // Make timeLeft reactive with $state
+	let isPaused = $state($timerStore.isPaused);
+	let timeLeft = $state($timerStore.timeLeft);
 	let intervalId: NodeJS.Timeout | null = null;
 
-	// Watch for changes in title and restart timer
+	// Watch for changes in todo and update store
 	$effect(() => {
-		if (title) {
+		if (todo) {
 			stopTimer();
+			timerStore.update(state => ({
+				...state,
+				currentTodo: todo
+			}));
 			startTimer();
 		}
+	});
+
+	// Update store when timer state changes
+	$effect(() => {
+		timerStore.update(state => ({
+			...state,
+			timeLeft,
+			isPaused
+		}));
 	});
 
 	// Format seconds to MM:SS
@@ -61,6 +76,18 @@
 		}
 	}
 
+	// Initialize from store if there's a saved task
+	$effect(() => {
+		const savedTodo = $timerStore.currentTodo;
+		if (savedTodo && !todo) {
+			timeLeft = $timerStore.timeLeft;
+			isPaused = $timerStore.isPaused;
+			if (!isPaused) {
+				startTimer();
+			}
+		}
+	});
+
 	// Cleanup interval on component destruction
 	onDestroy(() => {
 		if (intervalId) {
@@ -70,7 +97,7 @@
 </script>
 
 <div class="current-task">
-	<h1>Working on: <span class="current-task-title">{title || 'No task selected'}</span></h1>
+	<h1>Working on: <span class="current-task-title">{$timerStore.currentTodo?.title || 'No task selected'}</span></h1>
 	<div class="timer-section">
 		<div class="timer-container">
 			<div class="timer">
@@ -80,8 +107,8 @@
 		<button 
 			class="pause-button" 
 			on:click={toggleTimer} 
-			disabled={!title}
-			title={!title ? 'Add task from Daily todo' : ''}
+			disabled={!$timerStore.currentTodo}
+			title={!$timerStore.currentTodo ? 'Add task from Daily todo' : ''}
 		>
 			{#if isPaused}
 				<Play size={24} />

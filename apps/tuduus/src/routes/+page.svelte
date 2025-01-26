@@ -101,7 +101,7 @@
 		/>
 	</div>
 	<div class="right-panel">
-		<CurrentTask title={currentTask?.title ?? ''} />
+		<CurrentTask todo={currentTask} />
 		<div class="daily-tasks">
 			<h1>Daily todo</h1>
 			<TodoList
