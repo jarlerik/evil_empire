@@ -15,5 +15,13 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "workspaces": {
+    "packages": ["apps/*", "packages/*"]
+  },
+  "pnpm": {
+    "overrides": {
+      "react-native": "latest"
+    }
   }
 }
