@@ -12,14 +12,11 @@ export default function AddExercises() {
 	// Handle edited exercise when returning from edit screen
 	useEffect(() => {
 		if (editedExercise && editedIndex) {
-			const index = parseInt(editedIndex as string, 10);
-			if (!isNaN(index) && index >= 0 && index < exercises.length) {
-				const updatedExercises = [...exercises];
-				updatedExercises[index] = editedExercise as string;
-				setExercises(updatedExercises);
-			}
+			const newExercises = [...exercises];
+			newExercises[Number(editedIndex)] = editedExercise;
+			setExercises(newExercises);
 		}
-	}, [editedExercise, editedIndex]);
+	}, [editedExercise, editedIndex, exercises]);
 
 	const handleAddExercise = () => {
 		if (exerciseName.trim()) {
@@ -33,8 +30,8 @@ export default function AddExercises() {
 			pathname: '/edit-exercise',
 			params: {
 				exercise: exercises[index],
-				index: index.toString()
-			}
+				index: index.toString(),
+			},
 		});
 	};
 
@@ -80,26 +77,27 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#000',
-		padding: 20
+		padding: 20,
 	},
 	backButton: {
-		marginTop: 20
+		marginTop: 20,
 	},
 	backButtonText: {
 		color: '#fff',
-		fontSize: 24
+		fontSize: 24,
 	},
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
-		marginTop: 20
+		marginTop: 20,
+		marginBottom: 40,
 	},
 	subtitle: {
 		fontSize: 16,
 		color: '#666',
 		marginTop: 8,
-		marginBottom: 40
+		marginBottom: 40,
 	},
 	input: {
 		backgroundColor: '#111',
@@ -107,17 +105,20 @@ const styles = StyleSheet.create({
 		padding: 15,
 		borderRadius: 8,
 		fontSize: 16,
-		marginBottom: 20
+		marginBottom: 20,
 	},
 	button: {
 		backgroundColor: '#333',
 		padding: 15,
 		borderRadius: 8,
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	buttonText: {
 		color: '#fff',
 		fontSize: 16,
-		fontWeight: '600'
-	}
+		fontWeight: '600',
+	},
+	exerciseList: {
+		marginTop: 20,
+	},
 });

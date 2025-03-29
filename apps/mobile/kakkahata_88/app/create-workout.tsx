@@ -10,7 +10,7 @@ export default function CreateWorkout() {
 			// Navigate to add exercises screen with the workout name
 			router.push({
 				pathname: 'add-exercises',
-				params: { workoutName }
+				params: { workoutName },
 			});
 		}
 	};
@@ -39,19 +39,19 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#000',
-		padding: 20
+		padding: 20,
 	},
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
-		marginTop: 40
+		marginTop: 40,
 	},
 	subtitle: {
 		fontSize: 16,
 		color: '#666',
 		marginTop: 8,
-		marginBottom: 40
+		marginBottom: 40,
 	},
 	input: {
 		backgroundColor: '#111',
@@ -59,17 +59,17 @@ const styles = StyleSheet.create({
 		padding: 15,
 		borderRadius: 8,
 		fontSize: 16,
-		marginBottom: 20
+		marginBottom: 20,
 	},
 	button: {
 		backgroundColor: '#333',
 		padding: 15,
 		borderRadius: 8,
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	buttonText: {
 		color: '#fff',
 		fontSize: 16,
-		fontWeight: '600'
-	}
+		fontWeight: '600',
+	},
 });

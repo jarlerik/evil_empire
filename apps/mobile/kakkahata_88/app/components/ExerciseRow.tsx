@@ -31,18 +31,18 @@ const styles = StyleSheet.create({
 		backgroundColor: '#111',
 		padding: 15,
 		borderRadius: 8,
-		marginBottom: 10
+		marginBottom: 10,
 	},
 	exerciseName: {
 		color: '#fff',
 		fontSize: 16,
-		flex: 1
+		flex: 1,
 	},
 	actions: {
 		flexDirection: 'row',
-		gap: 15
+		gap: 15,
 	},
 	actionButton: {
-		padding: 5
-	}
+		padding: 5,
+	},
 });
