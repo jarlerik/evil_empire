@@ -9,6 +9,7 @@ export default function Layout() {
 				<Stack.Screen name="index" />
 				<Stack.Screen name="create-workout" />
 				<Stack.Screen name="add-exercises" />
+				<Stack.Screen name="edit-exercise" />
 			</Stack>
 			<StatusBar style="light" />
 		</View>

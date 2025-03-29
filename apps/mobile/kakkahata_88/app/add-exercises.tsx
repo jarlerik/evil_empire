@@ -1,17 +1,46 @@
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
+import { ExerciseRow } from './components/ExerciseRow';
 
 export default function AddExercises() {
-	const { workoutName } = useLocalSearchParams();
+	const params = useLocalSearchParams();
+	const { workoutName, editedExercise, editedIndex } = params;
 	const [exerciseName, setExerciseName] = useState('');
 	const [exercises, setExercises] = useState<string[]>([]);
+
+	// Handle edited exercise when returning from edit screen
+	useEffect(() => {
+		if (editedExercise && editedIndex) {
+			const index = parseInt(editedIndex as string, 10);
+			if (!isNaN(index) && index >= 0 && index < exercises.length) {
+				const updatedExercises = [...exercises];
+				updatedExercises[index] = editedExercise as string;
+				setExercises(updatedExercises);
+			}
+		}
+	}, [editedExercise, editedIndex]);
 
 	const handleAddExercise = () => {
 		if (exerciseName.trim()) {
 			setExercises([...exercises, exerciseName.trim()]);
 			setExerciseName('');
 		}
+	};
+
+	const handleEditExercise = (index: number) => {
+		router.push({
+			pathname: '/edit-exercise',
+			params: {
+				exercise: exercises[index],
+				index: index.toString()
+			}
+		});
+	};
+
+	const handleDeleteExercise = (index: number) => {
+		const updatedExercises = exercises.filter((_, i) => i !== index);
+		setExercises(updatedExercises);
 	};
 
 	return (
@@ -24,9 +53,12 @@ export default function AddExercises() {
 			<Text style={styles.subtitle}>add exercises</Text>
 
 			{exercises.map((exercise, index) => (
-				<View key={index} style={styles.exerciseItem}>
-					<Text style={styles.exerciseText}>{exercise}</Text>
-				</View>
+				<ExerciseRow
+					key={index}
+					exercise={exercise}
+					onEdit={() => handleEditExercise(index)}
+					onDelete={() => handleDeleteExercise(index)}
+				/>
 			))}
 
 			<TextInput
@@ -68,16 +100,6 @@ const styles = StyleSheet.create({
 		color: '#666',
 		marginTop: 8,
 		marginBottom: 40
-	},
-	exerciseItem: {
-		backgroundColor: '#111',
-		padding: 15,
-		borderRadius: 8,
-		marginBottom: 10
-	},
-	exerciseText: {
-		color: '#fff',
-		fontSize: 16
 	},
 	input: {
 		backgroundColor: '#111',

@@ -58,7 +58,7 @@ importers:
         specifier: ^9.0.17
         version: 9.0.17
       '@expo/vector-icons':
-        specifier: ^14.0.2
+        specifier: ^14.0.4
         version: 14.0.4
       '@expo/webpack-config':
         specifier: ^19.0.1

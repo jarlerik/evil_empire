@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@expo/config-plugins": "^9.0.17",
-    "@expo/vector-icons": "^14.0.2",
+    "@expo/vector-icons": "^14.0.4",
     "@expo/webpack-config": "^19.0.1",
     "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/nativewind-utils": "^1.0.26",
