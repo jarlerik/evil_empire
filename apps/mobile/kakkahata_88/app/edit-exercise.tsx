@@ -15,7 +15,7 @@ export default function EditExercise() {
 	const [reps, setReps] = useState('');
 	const [weight, setWeight] = useState('');
 	const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>(
-		existingSets ? JSON.parse(existingSets as string) : []
+		existingSets ? JSON.parse(existingSets as string) : [],
 	);
 
 	const handleAddSet = () => {
@@ -32,7 +32,7 @@ export default function EditExercise() {
 			router.setParams({
 				editedExercise: exerciseName.trim(),
 				editedIndex: index,
-				editedSets: JSON.stringify(exerciseSets)
+				editedSets: JSON.stringify(exerciseSets),
 			});
 		}
 	};
@@ -119,27 +119,27 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#000',
-		padding: 20
+		padding: 20,
 	},
 	backButton: {
-		marginTop: 20
+		marginTop: 20,
 	},
 	backButtonText: {
 		color: '#fff',
-		fontSize: 24
+		fontSize: 24,
 	},
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
 		marginTop: 20,
-		marginBottom: 40
+		marginBottom: 40,
 	},
 	subtitle: {
 		fontSize: 18,
 		color: '#fff',
 		marginTop: 20,
-		marginBottom: 10
+		marginBottom: 10,
 	},
 	input: {
 		backgroundColor: '#111',
@@ -147,26 +147,26 @@ const styles = StyleSheet.create({
 		padding: 15,
 		borderRadius: 8,
 		fontSize: 16,
-		marginBottom: 20
+		marginBottom: 20,
 	},
 	setInputContainer: {
 		backgroundColor: '#111',
 		borderRadius: 8,
 		padding: 15,
-		marginBottom: 20
+		marginBottom: 20,
 	},
 	inputRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		justifyContent: 'space-between'
+		justifyContent: 'space-between',
 	},
 	inputWrapper: {
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	label: {
 		color: '#666',
 		fontSize: 12,
-		marginBottom: 4
+		marginBottom: 4,
 	},
 	numberInput: {
 		backgroundColor: '#222',
@@ -175,17 +175,17 @@ const styles = StyleSheet.create({
 		padding: 8,
 		width: 50,
 		textAlign: 'center',
-		fontSize: 16
+		fontSize: 16,
 	},
 	separator: {
 		color: '#666',
 		fontSize: 16,
-		marginHorizontal: 8
+		marginHorizontal: 8,
 	},
 	unit: {
 		color: '#666',
 		fontSize: 16,
-		marginLeft: 8
+		marginLeft: 8,
 	},
 	addButton: {
 		borderWidth: 3,
@@ -196,11 +196,11 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		alignSelf: 'center',
-		marginTop: 15
+		marginTop: 15,
 	},
 	addButtonText: {
 		color: '#fff',
-		fontSize: 24
+		fontSize: 24,
 	},
 	setDisplay: {
 		color: '#fff',
@@ -208,20 +208,20 @@ const styles = StyleSheet.create({
 		backgroundColor: '#222',
 		padding: 10,
 		borderRadius: 8,
-		marginBottom: 10
+		marginBottom: 10,
 	},
 	footer: {
-		marginTop: 'auto'
+		marginTop: 'auto',
 	},
 	button: {
 		backgroundColor: '#333',
 		padding: 15,
 		borderRadius: 8,
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	buttonText: {
 		color: '#fff',
 		fontSize: 16,
-		fontWeight: '600'
-	}
+		fontWeight: '600',
+	},
 });

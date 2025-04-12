@@ -1,15 +1,20 @@
-import reactPlugin from 'eslint-plugin-react';
-import reactHooksPlugin from 'eslint-plugin-react-hooks';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
-import rnConfig from '@react-native-community/eslint-config';
-import eslintCommentsPlugin from 'eslint-plugin-eslint-comments';
-import reactNativePlugin from 'eslint-plugin-react-native';
-import jestPlugin from 'eslint-plugin-jest';
+const reactPlugin = require('eslint-plugin-react');
+const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+const rnConfig = require('@react-native-community/eslint-config');
+const eslintCommentsPlugin = require('eslint-plugin-eslint-comments');
+const reactNativePlugin = require('eslint-plugin-react-native');
+const jestPlugin = require('eslint-plugin-jest');
+const importPlugin = require('eslint-plugin-import');
 
-export default [
+module.exports = [
 	{
-		ignores: ['node_modules/**', 'dist/**']
+		ignores: [
+			'node_modules/**',
+			'dist/**',
+			'.expo/**'
+		]
 	},
 	{
 		files: ['**/*.{ts,tsx}'],
@@ -18,7 +23,14 @@ export default [
 			parserOptions: {
 				ecmaFeatures: {
 					jsx: true
-				}
+				},
+				ecmaVersion: 'latest',
+				sourceType: 'module',
+				project: './tsconfig.json'
+			},
+			globals: {
+				React: 'readonly',
+				JSX: 'readonly'
 			}
 		},
 		plugins: {
@@ -27,13 +39,22 @@ export default [
 			'react-hooks': reactHooksPlugin,
 			'eslint-comments': eslintCommentsPlugin,
 			'react-native': reactNativePlugin,
-			'jest': jestPlugin
+			'jest': jestPlugin,
+			'import': importPlugin
 		},
 		rules: {
 			...rnConfig.rules,
 			'react/react-in-jsx-scope': 'off',
 			'@typescript-eslint/no-explicit-any': 'warn',
-			'@typescript-eslint/explicit-function-return-type': 'off'
+			'@typescript-eslint/explicit-function-return-type': 'off',
+			'@typescript-eslint/no-unused-vars': ['warn', { 
+				argsIgnorePattern: '^_',
+				varsIgnorePattern: '^_'
+			}],
+			'no-unused-vars': 'off',
+			'@typescript-eslint/ban-types': 'off',
+			'import/export': 'off',
+			'react-native/no-inline-styles': 'warn'
 		},
 		settings: {
 			react: {

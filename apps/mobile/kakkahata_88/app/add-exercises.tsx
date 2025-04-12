@@ -27,7 +27,7 @@ export default function AddExercises() {
 			const parsedSets = editedSets ? JSON.parse(editedSets as string) : [];
 			newExercises[Number(editedIndex)] = {
 				name: editedExercise as string,
-				sets: parsedSets
+				sets: parsedSets,
 			};
 			setExercises(newExercises);
 		}
@@ -46,8 +46,8 @@ export default function AddExercises() {
 			params: {
 				exercise: exercises[index].name,
 				index: index.toString(),
-				existingSets: JSON.stringify(exercises[index].sets)
-			}
+				existingSets: JSON.stringify(exercises[index].sets),
+			},
 		});
 	};
 
@@ -94,27 +94,27 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#000',
-		padding: 20
+		padding: 20,
 	},
 	backButton: {
-		marginTop: 20
+		marginTop: 20,
 	},
 	backButtonText: {
 		color: '#fff',
-		fontSize: 24
+		fontSize: 24,
 	},
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
 		marginTop: 20,
-		marginBottom: 40
+		marginBottom: 40,
 	},
 	subtitle: {
 		fontSize: 16,
 		color: '#666',
 		marginTop: 8,
-		marginBottom: 40
+		marginBottom: 40,
 	},
 	input: {
 		backgroundColor: '#111',
@@ -122,20 +122,20 @@ const styles = StyleSheet.create({
 		padding: 15,
 		borderRadius: 8,
 		fontSize: 16,
-		marginBottom: 20
+		marginBottom: 20,
 	},
 	button: {
 		backgroundColor: '#333',
 		padding: 15,
 		borderRadius: 8,
-		alignItems: 'center'
+		alignItems: 'center',
 	},
 	buttonText: {
 		color: '#fff',
 		fontSize: 16,
-		fontWeight: '600'
+		fontWeight: '600',
 	},
 	exerciseList: {
-		marginTop: 20
-	}
+		marginTop: 20,
+	},
 });
