@@ -22,7 +22,7 @@ config.resolver.extraNodeModules = new Proxy(
   {
     get: (target, name) => {
       if (name === 'expo-router') {
-        return path.resolve(workspaceRoot, 'node_modules/expo-router');
+        return path.resolve(projectRoot, 'node_modules/expo-router');
       }
       return path.join(workspaceRoot, `node_modules/${name}`);
     },
@@ -35,6 +35,9 @@ config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx', 'cjs', 'mjs'];
 
 // 5. Additional configuration
 config.resolver.disableHierarchicalLookup = true;
-config.resolver.resolverMainFields = ['browser', 'main'];
+config.resolver.resolverMainFields = ['browser', 'main', 'module'];
+
+// 6. Enable symlinks
+config.resolver.enableSymlinks = true;
 
 module.exports = config;

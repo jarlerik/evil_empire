@@ -23,7 +23,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "origin": "https://kakkahata-88.vercel.app"
+        }
+      ],
       [
         "expo-splash-screen",
         {
