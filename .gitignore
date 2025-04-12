@@ -1,40 +1,38 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Dependencies
-node_modules
-.pnp
-.pnp.js
+# dependencies
+node_modules/
 
-# Local env files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# Testing
-coverage
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# Turbo
-.turbo
+# Metro
+.metro-health-check*
 
-# Vercel
-.vercel
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
-# Build Outputs
-.next/
-out/
-build
-dist
-
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Misc
+# macOS
 .DS_Store
 *.pem
 
-.codegpt
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
