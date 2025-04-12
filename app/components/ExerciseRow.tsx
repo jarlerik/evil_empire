@@ -31,7 +31,7 @@ export default function ExerciseRow({ exercise, sets, onEdit, onDelete }: Exerci
 					<Ionicons name="pencil" size={20} color="#fff" />
 				</Pressable>
 				<Pressable onPress={onDelete} style={styles.actionButton}>
-					<Ionicons name="trash-outline" size={20} color="#ff4444" />
+					<Ionicons name="trash-outline" size={20} color="#fff" />
 				</Pressable>
 			</View>
 		</View>
