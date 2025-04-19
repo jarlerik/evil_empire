@@ -9,7 +9,7 @@ export default function CreateWorkout() {
 		if (workoutName.trim()) {
 			// Navigate to add exercises screen with the workout name
 			router.push({
-				pathname: 'add-exercises',
+				pathname: '/add-exercises',
 				params: { workoutName },
 			});
 		}
