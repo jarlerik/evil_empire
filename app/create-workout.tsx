@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 
@@ -16,22 +16,26 @@ export default function CreateWorkout() {
 	};
 
 	return (
-		<View style={styles.container}>
-			<Text style={styles.title}>Create{'\n'}a workout</Text>
-			<Text style={styles.subtitle}>for today</Text>
+		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+			<View style={styles.container}>
+				<Text style={styles.title}>Create{'\n'}a workout</Text>
+				<Text style={styles.subtitle}>for today</Text>
 
-			<TextInput
-				style={styles.input}
-				value={workoutName}
-				onChangeText={setWorkoutName}
-				placeholder="Workout name"
-				placeholderTextColor="#666"
-			/>
+				<TextInput
+					style={styles.input}
+					value={workoutName}
+					onChangeText={setWorkoutName}
+					placeholder="Workout name"
+					placeholderTextColor="#666"
+					returnKeyType="done"
+					onSubmitEditing={handleCreateWorkout}
+				/>
 
-			<Pressable style={styles.button} onPress={handleCreateWorkout}>
-				<Text style={styles.buttonText}>Create</Text>
-			</Pressable>
-		</View>
+				<Pressable style={styles.button} onPress={handleCreateWorkout}>
+					<Text style={styles.buttonText}>Create</Text>
+				</Pressable>
+			</View>
+		</TouchableWithoutFeedback>
 	);
 }
 

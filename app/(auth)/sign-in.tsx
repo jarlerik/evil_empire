@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -10,6 +10,7 @@ export default function SignIn() {
   const [showResend, setShowResend] = useState(false);
   const router = useRouter();
   const { signIn, resendVerificationEmail } = useAuth();
+  const passwordInputRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -63,57 +64,65 @@ export default function SignIn() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#666"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!isLoading}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#666"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!isLoading}
-        />
-        <TouchableOpacity 
-          style={[styles.button, isLoading && styles.buttonDisabled]} 
-          onPress={handleSignIn}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
-        
-        {showResend && (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#666"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!isLoading}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+          />
+          <TextInput
+            ref={passwordInputRef}
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#666"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!isLoading}
+            returnKeyType="done"
+            onSubmitEditing={handleSignIn}
+          />
           <TouchableOpacity 
-            style={[styles.resendButton, isLoading && styles.buttonDisabled]}
-            onPress={handleResendVerification}
+            style={[styles.button, isLoading && styles.buttonDisabled]} 
+            onPress={handleSignIn}
             disabled={isLoading}
           >
-            <Text style={styles.resendButtonText}>Resend Verification Email</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
-        )}
+          
+          {showResend && (
+            <TouchableOpacity 
+              style={[styles.resendButton, isLoading && styles.buttonDisabled]}
+              onPress={handleResendVerification}
+              disabled={isLoading}
+            >
+              <Text style={styles.resendButtonText}>Resend Verification Email</Text>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity 
-          onPress={() => router.push('/sign-up')}
-          disabled={isLoading}
-        >
-          <Text style={styles.link}>Don't have an account? Sign Up</Text>
-        </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => router.push('/sign-up')}
+            disabled={isLoading}
+          >
+            <Text style={styles.link}>Don't have an account? Sign Up</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
@@ -55,90 +55,94 @@ export default function Index() {
 	}
 
 	return (
-		<View style={styles.container}>
-			<Text style={styles.headerTitle}>Settings</Text>
-			<View style={styles.settings}>
-				<View style={styles.email}>
-					<Text style={styles.title}>Email</Text>
-					<Text style={styles.subtitle}>{user?.email}</Text>
+		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+			<View style={styles.container}>
+				<Text style={styles.headerTitle}>Settings</Text>
+				<View style={styles.settings}>
+					<View style={styles.email}>
+						<Text style={styles.title}>Email</Text>
+						<Text style={styles.subtitle}>{user?.email}</Text>
+					</View>
+					<View style={styles.units}>
+					</View>
+				
+					<Text style={styles.title}>Units</Text>
+					<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
+						<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
+						<Text style={styles.dropdownArrow}>▼</Text>
+					</Pressable>
+					<Modal
+						visible={isEditingUnit}
+						transparent={true}
+						animationType="slide"
+						onRequestClose={() => setIsEditingUnit(false)}
+					>
+						<View style={styles.modalContainer}>
+							<View style={styles.modalContent}>
+								<Text style={styles.modalTitle}>Select Weight Unit</Text>
+								<Pressable
+									style={styles.unitOption}
+									onPress={() => handleUnitSelect('kg')}
+								>
+									<Text style={[
+										styles.unitOptionText,
+										settings?.weight_unit === 'kg' && styles.selectedUnit
+									]}>Kilograms (kg)</Text>
+								</Pressable>
+								<Pressable
+									style={styles.unitOption}
+									onPress={() => handleUnitSelect('lbs')}
+								>
+									<Text style={[
+										styles.unitOptionText,
+										settings?.weight_unit === 'lbs' && styles.selectedUnit
+									]}>Pounds (lbs)</Text>
+								</Pressable>
+								<Pressable
+									style={styles.closeButton}
+									onPress={() => setIsEditingUnit(false)}
+								>
+									<Text style={styles.closeButtonText}>Cancel</Text>
+								</Pressable>
+							</View>
+						</View>
+					</Modal>
+					
 				</View>
-				<View style={styles.units}>
-				</View>
-			
-				<Text style={styles.title}>Units</Text>
-				<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
-					<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
-					<Text style={styles.dropdownArrow}>▼</Text>
-				</Pressable>
-				<Modal
-					visible={isEditingUnit}
-					transparent={true}
-					animationType="slide"
-					onRequestClose={() => setIsEditingUnit(false)}
-				>
-					<View style={styles.modalContainer}>
-						<View style={styles.modalContent}>
-							<Text style={styles.modalTitle}>Select Weight Unit</Text>
-							<Pressable
-								style={styles.unitOption}
-								onPress={() => handleUnitSelect('kg')}
-							>
-								<Text style={[
-									styles.unitOptionText,
-									settings?.weight_unit === 'kg' && styles.selectedUnit
-								]}>Kilograms (kg)</Text>
-							</Pressable>
-							<Pressable
-								style={styles.unitOption}
-								onPress={() => handleUnitSelect('lbs')}
-							>
-								<Text style={[
-									styles.unitOptionText,
-									settings?.weight_unit === 'lbs' && styles.selectedUnit
-								]}>Pounds (lbs)</Text>
-							</Pressable>
-							<Pressable
-								style={styles.closeButton}
-								onPress={() => setIsEditingUnit(false)}
-							>
-								<Text style={styles.closeButtonText}>Cancel</Text>
+				<View style={styles.weightContainer}>
+					<Text style={styles.weightTitle}>Weight</Text>
+					{isEditingWeight ? (
+						<View style={styles.weightEditContainer}>
+							<TextInput
+								style={styles.weightInput}
+								value={tempWeight}
+								onChangeText={setTempWeight}
+								keyboardType="numeric"
+								maxLength={5}
+								returnKeyType="done"
+								onSubmitEditing={Keyboard.dismiss}
+							/>
+							<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
+							<Pressable style={styles.saveButton} onPress={handleWeightSave}>
+								<Text style={styles.saveButtonText}>Save</Text>
 							</Pressable>
 						</View>
-					</View>
-				</Modal>
-				
+					) : (
+						<View style={styles.weightEditContainer}>
+							<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
+							<Pressable onPress={handleWeightEdit}>
+								<Text style={styles.editWeightButton}>Change your weight</Text>
+							</Pressable>
+						</View>
+					)}
+				</View>
+				<View style={styles.footer}>
+					<Pressable style={styles.button} onPress={handleCreateWorkout}>
+						<Text style={styles.buttonText}>Start workout</Text>
+					</Pressable>
+				</View>
 			</View>
-			<View style={styles.weightContainer}>
-				<Text style={styles.weightTitle}>Weight</Text>
-				{isEditingWeight ? (
-					<View style={styles.weightEditContainer}>
-						<TextInput
-							style={styles.weightInput}
-							value={tempWeight}
-							onChangeText={setTempWeight}
-							keyboardType="numeric"
-							maxLength={5}
-						/>
-						<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
-						<Pressable style={styles.saveButton} onPress={handleWeightSave}>
-							<Text style={styles.saveButtonText}>Save</Text>
-						</Pressable>
-					</View>
-				) : (
-					<View style={styles.weightEditContainer}>
-						<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
-						<Pressable onPress={handleWeightEdit}>
-							<Text style={styles.editWeightButton}>Change your weight</Text>
-						</Pressable>
-					</View>
-				)}
-			</View>
-			<View style={styles.footer}>
-				<Pressable style={styles.button} onPress={handleCreateWorkout}>
-					<Text style={styles.buttonText}>Start workout</Text>
-				</Pressable>
-			</View>
-		</View>
+		</TouchableWithoutFeedback>
 	);
 }
 

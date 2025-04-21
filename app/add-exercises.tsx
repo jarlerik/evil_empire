@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import ExerciseRow from './components/ExerciseRow';
@@ -57,36 +57,40 @@ export default function AddExercises() {
 	};
 
 	return (
-		<View style={styles.container}>
-			<Pressable onPress={() => router.back()} style={styles.backButton}>
-				<Text style={styles.backButtonText}>←</Text>
-			</Pressable>
+		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+			<View style={styles.container}>
+				<Pressable onPress={() => router.back()} style={styles.backButton}>
+					<Text style={styles.backButtonText}>←</Text>
+				</Pressable>
 
-			<Text style={styles.title}>{workoutName}</Text>
-			<Text style={styles.subtitle}>add exercises</Text>
+				<Text style={styles.title}>{workoutName}</Text>
+				<Text style={styles.subtitle}>add exercises</Text>
 
-			{exercises.map((exercise, index) => (
-				<ExerciseRow
-					key={index}
-					exercise={exercise.name}
-					sets={exercise.sets}
-					onEdit={() => handleEditExercise(index)}
-					onDelete={() => handleDeleteExercise(index)}
+				{exercises.map((exercise, index) => (
+					<ExerciseRow
+						key={index}
+						exercise={exercise.name}
+						sets={exercise.sets}
+						onEdit={() => handleEditExercise(index)}
+						onDelete={() => handleDeleteExercise(index)}
+					/>
+				))}
+
+				<TextInput
+					style={styles.input}
+					value={exerciseName}
+					onChangeText={setExerciseName}
+					placeholder="Exercise name"
+					placeholderTextColor="#666"
+					returnKeyType="done"
+					onSubmitEditing={handleAddExercise}
 				/>
-			))}
 
-			<TextInput
-				style={styles.input}
-				value={exerciseName}
-				onChangeText={setExerciseName}
-				placeholder="Exercise name"
-				placeholderTextColor="#666"
-			/>
-
-			<Pressable style={styles.button} onPress={handleAddExercise}>
-				<Text style={styles.buttonText}>Add exercise</Text>
-			</Pressable>
-		</View>
+				<Pressable style={styles.button} onPress={handleAddExercise}>
+					<Text style={styles.buttonText}>Add exercise</Text>
+				</Pressable>
+			</View>
+		</TouchableWithoutFeedback>
 	);
 }
 
