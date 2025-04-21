@@ -2,46 +2,51 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 export default function Index() {
-	const { user, loading } = useAuth();
+	const { user, loading: authLoading } = useAuth();
+	const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
 	const router = useRouter();
 	const [isEditingWeight, setIsEditingWeight] = useState(false);
-	const [weight, setWeight] = useState('85');
-	const [tempWeight, setTempWeight] = useState(weight);
-	const [weightUnit, setWeightUnit] = useState('kg');
+	const [tempWeight, setTempWeight] = useState(settings?.user_weight || '85');
 	const [isEditingUnit, setIsEditingUnit] = useState(false);
 
 	useEffect(() => {
-		if (!loading && !user) {
+		if (!authLoading && !user) {
 			router.replace('/(auth)/sign-in');
 		}
-	}, [user, loading]);
+	}, [user, authLoading]);
 
 	const handleCreateWorkout = () => {
 		router.push('/create-workout');
 	};
 
 	const handleWeightEdit = () => {
+		if (!settings) return;
 		setIsEditingWeight(true);
-		setTempWeight(weight);
+		setTempWeight(settings.user_weight);
 	};
 
-	const handleWeightSave = () => {
-		setWeight(tempWeight);
-		setIsEditingWeight(false);
+	const handleWeightSave = async () => {
+		try {
+			await updateSettings({ user_weight: tempWeight });
+			setIsEditingWeight(false);
+		} catch (error) {
+			console.error('Error saving weight:', error);
+		}
 	};
 
-	const handleUnitEdit = () => {
-		setIsEditingUnit(true);
+	const handleUnitSelect = async (unit: 'kg' | 'lbs') => {
+		try {
+			await updateSettings({ weight_unit: unit });
+			setIsEditingUnit(false);
+		} catch (error) {
+			console.error('Error updating weight unit:', error);
+		}
 	};
 
-	const handleUnitSelect = (unit: string) => {
-		setWeightUnit(unit);
-		setIsEditingUnit(false);
-	};
-
-	if (loading) {
+	if (authLoading || settingsLoading) {
 		return (
 			<View style={styles.container}>
 				<Text style={styles.title}>Loading...</Text>
@@ -61,8 +66,8 @@ export default function Index() {
 				</View>
 			
 				<Text style={styles.title}>Units</Text>
-				<Pressable onPress={handleUnitEdit} style={styles.dropdownButton}>
-					<Text style={styles.dropdownText}>{weightUnit}</Text>
+				<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
+					<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
 					<Text style={styles.dropdownArrow}>▼</Text>
 				</Pressable>
 				<Modal
@@ -80,7 +85,7 @@ export default function Index() {
 							>
 								<Text style={[
 									styles.unitOptionText,
-									weightUnit === 'kg' && styles.selectedUnit
+									settings?.weight_unit === 'kg' && styles.selectedUnit
 								]}>Kilograms (kg)</Text>
 							</Pressable>
 							<Pressable
@@ -89,7 +94,7 @@ export default function Index() {
 							>
 								<Text style={[
 									styles.unitOptionText,
-									weightUnit === 'lbs' && styles.selectedUnit
+									settings?.weight_unit === 'lbs' && styles.selectedUnit
 								]}>Pounds (lbs)</Text>
 							</Pressable>
 							<Pressable
@@ -114,14 +119,14 @@ export default function Index() {
 							keyboardType="numeric"
 							maxLength={5}
 						/>
-						<Text style={styles.weightUnit}>{weightUnit}</Text>
+						<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
 						<Pressable style={styles.saveButton} onPress={handleWeightSave}>
 							<Text style={styles.saveButtonText}>Save</Text>
 						</Pressable>
 					</View>
 				) : (
 					<View style={styles.weightEditContainer}>
-						<Text style={styles.weightValue}>{weight} {weightUnit}</Text>
+						<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
 						<Pressable onPress={handleWeightEdit}>
 							<Text style={styles.editWeightButton}>Change your weight</Text>
 						</Pressable>
