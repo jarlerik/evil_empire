@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,10 +9,11 @@ export default function Index() {
 	const [isEditingWeight, setIsEditingWeight] = useState(false);
 	const [weight, setWeight] = useState('85');
 	const [tempWeight, setTempWeight] = useState(weight);
+	const [weightUnit, setWeightUnit] = useState('kg');
+	const [isEditingUnit, setIsEditingUnit] = useState(false);
 
 	useEffect(() => {
 		if (!loading && !user) {
-			// Redirect to sign in if user is not authenticated
 			router.replace('/(auth)/sign-in');
 		}
 	}, [user, loading]);
@@ -31,6 +32,15 @@ export default function Index() {
 		setIsEditingWeight(false);
 	};
 
+	const handleUnitEdit = () => {
+		setIsEditingUnit(true);
+	};
+
+	const handleUnitSelect = (unit: string) => {
+		setWeightUnit(unit);
+		setIsEditingUnit(false);
+	};
+
 	if (loading) {
 		return (
 			<View style={styles.container}>
@@ -39,17 +49,61 @@ export default function Index() {
 		);
 	}
 
-	// Your authenticated app content here
 	return (
 		<View style={styles.container}>
-			<View style={styles.email}>
-				<Text style={styles.title}>Email</Text>
-				<Text style={styles.subtitle}>{user?.email}</Text>
-			</View>
-			<View style={styles.weight}>
-				<Pressable onPress={handleWeightEdit}>
-					<Text style={styles.editWeightButton}>Edit</Text>
+			<Text style={styles.headerTitle}>Settings</Text>
+			<View style={styles.settings}>
+				<View style={styles.email}>
+					<Text style={styles.title}>Email</Text>
+					<Text style={styles.subtitle}>{user?.email}</Text>
+				</View>
+				<View style={styles.units}>
+				</View>
+			
+				<Text style={styles.title}>Units</Text>
+				<Pressable onPress={handleUnitEdit} style={styles.dropdownButton}>
+					<Text style={styles.dropdownText}>{weightUnit}</Text>
+					<Text style={styles.dropdownArrow}>▼</Text>
 				</Pressable>
+				<Modal
+					visible={isEditingUnit}
+					transparent={true}
+					animationType="slide"
+					onRequestClose={() => setIsEditingUnit(false)}
+				>
+					<View style={styles.modalContainer}>
+						<View style={styles.modalContent}>
+							<Text style={styles.modalTitle}>Select Weight Unit</Text>
+							<Pressable
+								style={styles.unitOption}
+								onPress={() => handleUnitSelect('kg')}
+							>
+								<Text style={[
+									styles.unitOptionText,
+									weightUnit === 'kg' && styles.selectedUnit
+								]}>Kilograms (kg)</Text>
+							</Pressable>
+							<Pressable
+								style={styles.unitOption}
+								onPress={() => handleUnitSelect('lbs')}
+							>
+								<Text style={[
+									styles.unitOptionText,
+									weightUnit === 'lbs' && styles.selectedUnit
+								]}>Pounds (lbs)</Text>
+							</Pressable>
+							<Pressable
+								style={styles.closeButton}
+								onPress={() => setIsEditingUnit(false)}
+							>
+								<Text style={styles.closeButtonText}>Cancel</Text>
+							</Pressable>
+						</View>
+					</View>
+				</Modal>
+				
+			</View>
+			<View style={styles.weightContainer}>
 				<Text style={styles.weightTitle}>Weight</Text>
 				{isEditingWeight ? (
 					<View style={styles.weightEditContainer}>
@@ -60,16 +114,20 @@ export default function Index() {
 							keyboardType="numeric"
 							maxLength={5}
 						/>
-						<Text style={styles.weightUnit}>kg</Text>
+						<Text style={styles.weightUnit}>{weightUnit}</Text>
 						<Pressable style={styles.saveButton} onPress={handleWeightSave}>
 							<Text style={styles.saveButtonText}>Save</Text>
 						</Pressable>
 					</View>
 				) : (
-					<Text style={styles.weightValue}>{weight} kg</Text>
+					<View style={styles.weightEditContainer}>
+						<Text style={styles.weightValue}>{weight} {weightUnit}</Text>
+						<Pressable onPress={handleWeightEdit}>
+							<Text style={styles.editWeightButton}>Change your weight</Text>
+						</Pressable>
+					</View>
 				)}
 			</View>
-
 			<View style={styles.footer}>
 				<Pressable style={styles.button} onPress={handleCreateWorkout}>
 					<Text style={styles.buttonText}>Start workout</Text>
@@ -85,21 +143,43 @@ const styles = StyleSheet.create({
 		backgroundColor: '#000',
 		padding: 20,
 	},
+	settings: {},
+	header: {
+		flex: 1,
+	},
+	headerTitle: {
+		fontSize: 36,
+		fontWeight: 'bold',
+		color: '#fff',
+	},
 	email: {
 		flex: 1,
 	},
-	weight: {
-		flex: 2,
+	units: {
+		flex: 1,
 	},
-	editWeightButton: {
+	weightContainer: {
+		flex: 1,
+		justifyContent: 'center',
+	},
+	weight: {
+		flex: 1,
+	},
+	changeUnit: {
 		fontSize: 12,
 		color: '#fff',
 		textAlign: 'center',
 		marginBottom: 10,
 		textDecorationLine: 'underline',
-
 	},
-
+	editWeightButton: {
+		fontSize: 12,
+		color: '#fff',
+		textAlign: 'center',
+		marginTop: 10,
+		marginBottom: 10,
+		textDecorationLine: 'underline',
+	},
 	weightTitle: {
 		fontSize: 48,
 		fontWeight: 'bold',
@@ -114,7 +194,6 @@ const styles = StyleSheet.create({
 		marginTop: 5,
 		textAlign: 'center',
 	},
-	
 	footer: {
 		marginTop: 'auto',
 	},
@@ -171,5 +250,73 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: '600',
+	},
+	modalContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+	},
+	modalContent: {
+		backgroundColor: '#1a1a1a',
+		padding: 20,
+		borderRadius: 12,
+		width: '80%',
+		alignItems: 'center',
+	},
+	modalTitle: {
+		fontSize: 20,
+		fontWeight: 'bold',
+		color: '#fff',
+		marginBottom: 20,
+	},
+	unitOption: {
+		paddingVertical: 15,
+		paddingHorizontal: 20,
+		width: '100%',
+		borderRadius: 8,
+		marginBottom: 10,
+	},
+	unitOptionText: {
+		color: '#fff',
+		fontSize: 16,
+		textAlign: 'center',
+	},
+	selectedUnit: {
+		color: '#007AFF',
+		fontWeight: 'bold',
+	},
+	closeButton: {
+		marginTop: 10,
+		paddingVertical: 10,
+		paddingHorizontal: 20,
+		borderRadius: 8,
+		backgroundColor: '#333',
+	},
+	closeButtonText: {
+		color: '#fff',
+		fontSize: 16,
+		fontWeight: '600',
+	},
+	dropdownButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: '#333',
+		paddingVertical: 8,
+		paddingHorizontal: 16,
+		borderRadius: 8,
+		marginTop: 8,
+		marginBottom: 40,
+	},
+	dropdownText: {
+		fontSize: 16,
+		color: '#fff',
+		marginRight: 8,
+	},
+	dropdownArrow: {
+		fontSize: 12,
+		color: '#fff',
+		opacity: 0.7,
 	},
 });
