@@ -4,17 +4,6 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
-interface ExerciseSet {
-	sets: string;
-	reps: string;
-	weight: string;
-}
-
-interface Exercise {
-	name: string;
-	sets: ExerciseSet[];
-}
-
 interface ExerciseDB {
 	id: string;
 	name: string;

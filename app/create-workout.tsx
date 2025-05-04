@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { addDays, startOfWeek, format, isToday } from 'date-fns';
 
 interface Workout {
 	id: string;
@@ -19,6 +20,7 @@ export default function CreateWorkout() {
 	const { user } = useAuth();
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
 	useEffect(() => {
 		if (!user || !supabase) return;
@@ -48,7 +50,7 @@ export default function CreateWorkout() {
 		setError(null);
 		const { error: insertError } = await supabase
 			.from('workouts')
-			.insert([{ name: workoutName.trim(), user_id: user.id }]);
+			.insert([{ name: workoutName.trim(), user_id: user.id, workout_date: format(selectedDate, 'yyyy-MM-dd') }]);
 		setIsLoading(false);
 		if (insertError) {
 			setError('Failed to create workout. Please try again.');
@@ -90,7 +92,36 @@ export default function CreateWorkout() {
 			>
 				<View style={styles.container}>
 					<Text style={styles.title}>{'Create\na workout'}</Text>
-					<Text style={styles.subtitle}>for today</Text>
+
+					{/* Week Day Selector */}
+					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
+						{Array.from({ length: 7 }).map((_, i) => {
+							const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
+							const day = addDays(weekStart, i);
+							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+							return (
+								<Pressable
+									key={i}
+									onPress={() => setSelectedDate(day)}
+									style={{
+										alignItems: 'center',
+										flex: 1,
+										paddingVertical: 8,
+										backgroundColor: isSelected ? '#FF6F61' : 'transparent',
+										borderRadius: 20,
+										marginHorizontal: 2,
+									}}
+								>
+									<Text style={{ color: isSelected ? '#fff' : '#666', fontWeight: isSelected ? 'bold' : 'normal' }}>
+										{format(day, 'EEE').toUpperCase()}
+									</Text>
+									<Text style={{ color: isSelected ? '#fff' : '#fff', fontSize: 18, fontWeight: 'bold' }}>
+										{format(day, 'd')}
+									</Text>
+								</Pressable>
+							);
+						})}
+					</View>
 
 					<TextInput
 						style={styles.input}
