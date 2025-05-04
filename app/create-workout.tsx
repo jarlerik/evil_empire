@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, startOfWeek, format, isToday } from 'date-fns';
+import { addDays, startOfWeek, format, isToday, getISOWeek, isSameWeek } from 'date-fns';
+import { Picker } from '@react-native-picker/picker';
 
 interface Workout {
 	id: string;
@@ -21,6 +22,29 @@ export default function CreateWorkout() {
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+	// Helper to get week options
+	const weekOptions = Array.from({ length: 12 }).map((_, i) => {
+		const weekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i * 7);
+		return {
+			label: `Week ${getISOWeek(weekStart)}`,
+			value: format(weekStart, 'yyyy-MM-dd'),
+			weekStart,
+		};
+	});
+
+	// When week changes, update selectedDate
+	const handleWeekChange = (weekStartStr: string) => {
+		const weekStart = new Date(weekStartStr);
+		setSelectedWeekStart(weekStart);
+		// If current week, highlight today; else, highlight Monday
+		if (isSameWeek(new Date(), weekStart, { weekStartsOn: 1 })) {
+			setSelectedDate(new Date());
+		} else {
+			setSelectedDate(weekStart);
+		}
+	};
 
 	useEffect(() => {
 		if (!user || !supabase) return;
@@ -93,11 +117,28 @@ export default function CreateWorkout() {
 				<View style={styles.container}>
 					<Text style={styles.title}>{'Create\na workout'}</Text>
 
+					{/* Week Selector Dropdown */}
+					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+						<View style={{ width: 140 }}>
+							<Picker
+								selectedValue={format(selectedWeekStart, 'yyyy-MM-dd')}
+								onValueChange={handleWeekChange}
+								style={{ color: '#fff', backgroundColor: 'transparent', height: 36 }}
+								dropdownIconColor="#fff"
+								itemStyle={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}
+								mode="dropdown"
+							>
+								{weekOptions.map((opt) => (
+									<Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+								))}
+							</Picker>
+						</View>
+					</View>
+
 					{/* Week Day Selector */}
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
 						{Array.from({ length: 7 }).map((_, i) => {
-							const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
-							const day = addDays(weekStart, i);
+							const day = addDays(selectedWeekStart, i);
 							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
 							return (
 								<Pressable
@@ -106,18 +147,30 @@ export default function CreateWorkout() {
 									style={{
 										alignItems: 'center',
 										flex: 1,
-										paddingVertical: 8,
-										backgroundColor: isSelected ? '#fff' : 'transparent',
-										borderRadius: 20,
-										marginHorizontal: 2,
+										paddingVertical: 4,
 									}}
 								>
-									<Text style={{ color: isSelected ? '#000' : '#666', fontWeight: isSelected ? 'bold' : 'normal' }}>
+									<Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13, letterSpacing: 1, textAlign: 'center' }}>
 										{format(day, 'EEE').toUpperCase()}
 									</Text>
-									<Text style={{ color: isSelected ? '#000' : '#fff', fontSize: 18, fontWeight: 'bold' }}>
-										{format(day, 'd')}
-									</Text>
+									<View style={{
+										backgroundColor: isSelected ? '#fff' : 'transparent',
+										borderRadius: 20,
+										width: 40,
+										height: 40,
+										alignItems: 'center',
+										justifyContent: 'center',
+										marginTop: 2,
+									}}>
+										<Text style={{
+											color: isSelected ? '#000' : '#fff',
+											fontWeight: 'bold',
+											fontSize: 20,
+											textAlign: 'center',
+										}}>
+											{format(day, 'd')}
+										</Text>
+									</View>
 								</Pressable>
 							);
 						})}
