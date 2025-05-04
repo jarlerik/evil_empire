@@ -1,7 +1,7 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import ExerciseRow from './components/ExerciseRow';
+import { supabase } from '../lib/supabase';
 
 interface ExerciseSet {
 	sets: string;
@@ -14,46 +14,63 @@ interface Exercise {
 	sets: ExerciseSet[];
 }
 
+interface ExerciseDB {
+	id: string;
+	name: string;
+	workout_id: string;
+	created_at?: string;
+}
+
 export default function AddExercises() {
 	const params = useLocalSearchParams();
-	const { workoutName, editedExercise, editedIndex, editedSets } = params;
+	const { workoutName, workoutId } = params;
 	const [exerciseName, setExerciseName] = useState('');
-	const [exercises, setExercises] = useState<Exercise[]>([]);
+	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
 
-	// Handle edited exercise when returning from edit screen
 	useEffect(() => {
-		if (editedExercise && editedIndex) {
-			const newExercises = [...exercises];
-			const parsedSets = editedSets ? JSON.parse(editedSets as string) : [];
-			newExercises[Number(editedIndex)] = {
-				name: editedExercise as string,
-				sets: parsedSets,
-			};
-			setExercises(newExercises);
-		}
-	}, [editedExercise, editedIndex, editedSets, exercises]);
+		if (!workoutId || !supabase) return;
+		const fetchExercises = async () => {
+			if (!supabase) return;
+			const { data, error } = await supabase
+				.from('exercises')
+				.select('*')
+				.eq('workout_id', workoutId)
+				.order('created_at', { ascending: false });
+			if (!error && data) setExercises(data);
+		};
+		fetchExercises();
+	}, [workoutId]);
 
-	const handleAddExercise = () => {
-		if (exerciseName.trim()) {
-			setExercises([...exercises, { name: exerciseName.trim(), sets: [] }]);
-			setExerciseName('');
-		}
+	const handleAddExercise = async () => {
+		if (!exerciseName.trim() || !workoutId || !supabase) return;
+		setIsLoading(true);
+		await supabase.from('exercises').insert([{ name: exerciseName.trim(), workout_id: workoutId }]);
+		setExerciseName('');
+		setIsLoading(false);
+		// Refetch exercises
+		const { data, error } = await supabase
+			.from('exercises')
+			.select('*')
+			.eq('workout_id', workoutId)
+			.order('created_at', { ascending: false });
+		if (!error && data) setExercises(data);
 	};
 
-	const handleEditExercise = (index: number) => {
-		router.push({
-			pathname: '/edit-exercise',
-			params: {
-				exercise: exercises[index].name,
-				index: index.toString(),
-				existingSets: JSON.stringify(exercises[index].sets),
-			},
-		});
-	};
-
-	const handleDeleteExercise = (index: number) => {
-		const updatedExercises = exercises.filter((_, i) => i !== index);
-		setExercises(updatedExercises);
+	const handleDeleteExercise = async (id: string) => {
+		if (!supabase) return;
+		setDeletingId(id);
+		await supabase.from('exercises').delete().eq('id', id);
+		setDeletingId(null);
+		// Refetch exercises
+		if (!workoutId) return;
+		const { data, error } = await supabase
+			.from('exercises')
+			.select('*')
+			.eq('workout_id', workoutId)
+			.order('created_at', { ascending: false });
+		if (!error && data) setExercises(data);
 	};
 
 	return (
@@ -73,14 +90,16 @@ export default function AddExercises() {
 					<Text style={styles.title}>{workoutName}</Text>
 					<Text style={styles.subtitle}>add exercises</Text>
 
-					{exercises.map((exercise, index) => (
-						<ExerciseRow
-							key={index}
-							exercise={exercise.name}
-							sets={exercise.sets}
-							onEdit={() => handleEditExercise(index)}
-							onDelete={() => handleDeleteExercise(index)}
-						/>
+					{exercises.map((exercise) => (
+						<View key={exercise.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+							<View style={{ flex: 1 }}>
+								<Text style={{ color: '#fff', fontSize: 16 }}>{exercise.name}</Text>
+								<Text style={{ color: '#666', fontSize: 12 }}>{exercise.created_at ? new Date(exercise.created_at).toLocaleString() : ''}</Text>
+							</View>
+							<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8, marginLeft: 8 }}>
+								<Text style={{ color: deletingId === exercise.id ? '#666' : '#fff', fontSize: 18 }}>🗑️</Text>
+							</Pressable>
+						</View>
 					))}
 
 					<TextInput
@@ -91,10 +110,11 @@ export default function AddExercises() {
 						placeholderTextColor="#666"
 						returnKeyType="done"
 						onSubmitEditing={handleAddExercise}
+						editable={!isLoading}
 					/>
 
-					<Pressable style={styles.button} onPress={handleAddExercise}>
-						<Text style={styles.buttonText}>Add exercise</Text>
+					<Pressable style={styles.button} onPress={handleAddExercise} disabled={isLoading}>
+						<Text style={styles.buttonText}>{isLoading ? 'Adding...' : 'Add exercise'}</Text>
 					</Pressable>
 				</View>
 			</ScrollView>
