@@ -116,14 +116,19 @@ export default function CreateWorkout() {
 							<Text style={{ color: '#666' }}>No workouts yet.</Text>
 						) : (
 							workouts.map((w) => (
-								<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-									<View>
+								<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+									<View style={{ flex: 1 }}>
 										<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
 										<Text style={{ color: '#666', fontSize: 12 }}>{w.created_at ? new Date(w.created_at).toLocaleString() : ''}</Text>
 									</View>
-									<Pressable onPress={() => handleDeleteWorkout(w.id)} disabled={deletingId === w.id} style={{ padding: 8 }}>
-										<Ionicons name="trash-outline" size={22} color={deletingId === w.id ? '#666' : '#fff'} />
-									</Pressable>
+									<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
+										<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8, marginRight: 8 }}>
+											<Ionicons name="pencil" size={22} color="#fff" />
+										</Pressable>
+										<Pressable onPress={() => handleDeleteWorkout(w.id)} disabled={deletingId === w.id} style={{ padding: 8 }}>
+											<Ionicons name="trash-outline" size={22} color={deletingId === w.id ? '#666' : '#fff'} />
+										</Pressable>
+									</View>
 								</View>
 							))
 						)}
