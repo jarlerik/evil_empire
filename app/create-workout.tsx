@@ -1,18 +1,65 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+
+interface Workout {
+	id: string;
+	name: string;
+	user_id: string;
+	created_at?: string;
+}
 
 export default function CreateWorkout() {
 	const [workoutName, setWorkoutName] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const { user } = useAuth();
+	const [workouts, setWorkouts] = useState<Workout[]>([]);
 
-	const handleCreateWorkout = () => {
-		if (workoutName.trim()) {
-			// Navigate to add exercises screen with the workout name
-			router.push({
-				pathname: '/add-exercises',
-				params: { workoutName },
-			});
+	useEffect(() => {
+		if (!user || !supabase) return;
+		const fetchWorkouts = async () => {
+			if (!supabase) return;
+			const { data, error } = await supabase
+				.from('workouts')
+				.select('*')
+				.eq('user_id', user.id)
+				.order('created_at', { ascending: false });
+			if (!error && data) setWorkouts(data);
+		};
+		fetchWorkouts();
+	}, [supabase, user]);
+
+	const handleCreateWorkout = async () => {
+		if (!workoutName.trim()) return;
+		if (!supabase) {
+			setError('Database not available.');
+			return;
 		}
+		if (!user) {
+			setError('You must be signed in to create a workout.');
+			return;
+		}
+		setIsLoading(true);
+		setError(null);
+		const { error: insertError } = await supabase
+			.from('workouts')
+			.insert([{ name: workoutName.trim(), user_id: user.id }]);
+		setIsLoading(false);
+		if (insertError) {
+			setError('Failed to create workout. Please try again.');
+			return;
+		}
+		setWorkoutName('');
+		// Refetch workouts after creation
+		const { data, error } = await supabase
+			.from('workouts')
+			.select('*')
+			.eq('user_id', user.id)
+			.order('created_at', { ascending: false });
+		if (!error && data) setWorkouts(data);
 	};
 
 	return (
@@ -36,11 +83,29 @@ export default function CreateWorkout() {
 						placeholderTextColor="#666"
 						returnKeyType="done"
 						onSubmitEditing={handleCreateWorkout}
+						editable={!isLoading}
 					/>
 
-					<Pressable style={styles.button} onPress={handleCreateWorkout}>
-						<Text style={styles.buttonText}>Create</Text>
+					{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+
+					<Pressable style={styles.button} onPress={handleCreateWorkout} disabled={isLoading}>
+						<Text style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create'}</Text>
 					</Pressable>
+
+					{/* List of created workouts */}
+					<View style={{ marginTop: 32 }}>
+						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Your Workouts</Text>
+						{workouts.length === 0 ? (
+							<Text style={{ color: '#666' }}>No workouts yet.</Text>
+						) : (
+							workouts.map((w) => (
+								<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12 }}>
+									<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
+									<Text style={{ color: '#666', fontSize: 12 }}>{w.created_at ? new Date(w.created_at).toLocaleString() : ''}</Text>
+								</View>
+							))
+						)}
+					</View>
 				</View>
 			</ScrollView>
 		</KeyboardAvoidingView>
