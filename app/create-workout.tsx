@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Workout {
 	id: string;
@@ -17,6 +18,7 @@ export default function CreateWorkout() {
 	const [error, setError] = useState<string | null>(null);
 	const { user } = useAuth();
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!user || !supabase) return;
@@ -62,6 +64,21 @@ export default function CreateWorkout() {
 		if (!error && data) setWorkouts(data);
 	};
 
+	const handleDeleteWorkout = async (id: string) => {
+		if (!supabase) return;
+		setDeletingId(id);
+		await supabase.from('workouts').delete().eq('id', id);
+		setDeletingId(null);
+		// Refetch workouts after deletion
+		if (!user) return;
+		const { data, error } = await supabase
+			.from('workouts')
+			.select('*')
+			.eq('user_id', user.id)
+			.order('created_at', { ascending: false });
+		if (!error && data) setWorkouts(data);
+	};
+
 	return (
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
@@ -99,9 +116,14 @@ export default function CreateWorkout() {
 							<Text style={{ color: '#666' }}>No workouts yet.</Text>
 						) : (
 							workouts.map((w) => (
-								<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12 }}>
-									<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
-									<Text style={{ color: '#666', fontSize: 12 }}>{w.created_at ? new Date(w.created_at).toLocaleString() : ''}</Text>
+								<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+									<View>
+										<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
+										<Text style={{ color: '#666', fontSize: 12 }}>{w.created_at ? new Date(w.created_at).toLocaleString() : ''}</Text>
+									</View>
+									<Pressable onPress={() => handleDeleteWorkout(w.id)} disabled={deletingId === w.id} style={{ padding: 8 }}>
+										<Ionicons name="trash-outline" size={22} color={deletingId === w.id ? '#666' : '#fff'} />
+									</Pressable>
 								</View>
 							))
 						)}
