@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
@@ -55,7 +55,7 @@ export default function Index() {
 	}
 
 	return (
-		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+		<Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
 			<View style={styles.container}>
 				<Text style={styles.headerTitle}>Settings</Text>
 				<View style={styles.settings}>
@@ -142,7 +142,7 @@ export default function Index() {
 					</Pressable>
 				</View>
 			</View>
-		</TouchableWithoutFeedback>
+		</Pressable>
 	);
 }
 

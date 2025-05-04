@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 
@@ -16,26 +16,34 @@ export default function CreateWorkout() {
 	};
 
 	return (
-		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-			<View style={styles.container}>
-				<Text style={styles.title}>Create{'\n'}a workout</Text>
-				<Text style={styles.subtitle}>for today</Text>
+		<KeyboardAvoidingView
+			style={{ flex: 1 }}
+			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+		>
+			<ScrollView
+				contentContainerStyle={{ flex: 1 }}
+				keyboardShouldPersistTaps="handled"
+			>
+				<View style={styles.container}>
+					<Text style={styles.title}>{'Create\na workout'}</Text>
+					<Text style={styles.subtitle}>for today</Text>
 
-				<TextInput
-					style={styles.input}
-					value={workoutName}
-					onChangeText={setWorkoutName}
-					placeholder="Workout name"
-					placeholderTextColor="#666"
-					returnKeyType="done"
-					onSubmitEditing={handleCreateWorkout}
-				/>
+					<TextInput
+						style={styles.input}
+						value={workoutName}
+						onChangeText={setWorkoutName}
+						placeholder="Workout name"
+						placeholderTextColor="#666"
+						returnKeyType="done"
+						onSubmitEditing={handleCreateWorkout}
+					/>
 
-				<Pressable style={styles.button} onPress={handleCreateWorkout}>
-					<Text style={styles.buttonText}>Create</Text>
-				</Pressable>
-			</View>
-		</TouchableWithoutFeedback>
+					<Pressable style={styles.button} onPress={handleCreateWorkout}>
+						<Text style={styles.buttonText}>Create</Text>
+					</Pressable>
+				</View>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 }
 

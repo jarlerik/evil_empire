@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -64,7 +64,7 @@ export default function SignIn() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
       <View style={styles.container}>
         <View style={styles.form}>
           <TextInput
@@ -122,7 +122,7 @@ export default function SignIn() {
           </TouchableOpacity>
         </View>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
@@ -41,94 +41,102 @@ export default function EditExercise() {
 	};
 
 	return (
-		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-			<View style={styles.container}>
-				<Pressable onPress={() => router.back()} style={styles.backButton}>
-					<Text style={styles.backButtonText}>←</Text>
-				</Pressable>
+		<KeyboardAvoidingView
+			style={{ flex: 1 }}
+			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+		>
+			<ScrollView
+				contentContainerStyle={{ flex: 1 }}
+				keyboardShouldPersistTaps="handled"
+			>
+				<View style={styles.container}>
+					<Pressable onPress={() => router.back()} style={styles.backButton}>
+						<Text style={styles.backButtonText}>←</Text>
+					</Pressable>
 
-				<Text style={styles.title}>Edit exercise</Text>
+					<Text style={styles.title}>Edit exercise</Text>
 
-				<TextInput
-					style={styles.input}
-					value={exerciseName}
-					onChangeText={setExerciseName}
-					placeholder="Exercise name"
-					placeholderTextColor="#666"
-					autoFocus
-					returnKeyType="done"
-					onSubmitEditing={Keyboard.dismiss}
-				/>
+					<TextInput
+						style={styles.input}
+						value={exerciseName}
+						onChangeText={setExerciseName}
+						placeholder="Exercise name"
+						placeholderTextColor="#666"
+						autoFocus
+						returnKeyType="done"
+						onSubmitEditing={Keyboard.dismiss}
+					/>
 
-				<Text style={styles.subtitle}>Add sets & reps</Text>
+					<Text style={styles.subtitle}>Add sets & reps</Text>
 
-				<View style={styles.setInputContainer}>
-					<View style={styles.inputRow}>
-						<View style={styles.inputWrapper}>
-							<Text style={styles.label}>Sets</Text>
-							<TextInput
-								style={styles.numberInput}
-								value={sets}
-								onChangeText={setSets}
-								placeholder="3"
-								placeholderTextColor="#666"
-								keyboardType="numeric"
-								returnKeyType="next"
-								blurOnSubmit={false}
-								onSubmitEditing={() => repsInputRef.current?.focus()}
-							/>
+					<View style={styles.setInputContainer}>
+						<View style={styles.inputRow}>
+							<View style={styles.inputWrapper}>
+								<Text style={styles.label}>Sets</Text>
+								<TextInput
+									style={styles.numberInput}
+									value={sets}
+									onChangeText={setSets}
+									placeholder="3"
+									placeholderTextColor="#666"
+									keyboardType="numeric"
+									returnKeyType="next"
+									blurOnSubmit={false}
+									onSubmitEditing={() => repsInputRef.current?.focus()}
+								/>
+							</View>
+							<Text style={styles.separator}>x</Text>
+							<View style={styles.inputWrapper}>
+								<Text style={styles.label}>Reps</Text>
+								<TextInput
+									ref={repsInputRef}
+									style={styles.numberInput}
+									value={reps}
+									onChangeText={setReps}
+									placeholder="5"
+									placeholderTextColor="#666"
+									keyboardType="numeric"
+									returnKeyType="next"
+									blurOnSubmit={false}
+									onSubmitEditing={() => weightInputRef.current?.focus()}
+								/>
+							</View>
+							<Text style={styles.separator}>@</Text>
+							<View style={styles.inputWrapper}>
+								<Text style={styles.label}>Weight</Text>
+								<TextInput
+									ref={weightInputRef}
+									style={styles.numberInput}
+									value={weight}
+									onChangeText={setWeight}
+									placeholder="75"
+									placeholderTextColor="#666"
+									keyboardType="numeric"
+									returnKeyType="done"
+									onSubmitEditing={handleAddSet}
+								/>
+							</View>
+							<Text style={styles.unit}>KG</Text>
+							<Pressable style={styles.addButton} onPress={handleAddSet}>
+								<Text style={styles.addButtonText}>+</Text>
+							</Pressable>
 						</View>
-						<Text style={styles.separator}>x</Text>
-						<View style={styles.inputWrapper}>
-							<Text style={styles.label}>Reps</Text>
-							<TextInput
-								ref={repsInputRef}
-								style={styles.numberInput}
-								value={reps}
-								onChangeText={setReps}
-								placeholder="5"
-								placeholderTextColor="#666"
-								keyboardType="numeric"
-								returnKeyType="next"
-								blurOnSubmit={false}
-								onSubmitEditing={() => weightInputRef.current?.focus()}
-							/>
-						</View>
-						<Text style={styles.separator}>@</Text>
-						<View style={styles.inputWrapper}>
-							<Text style={styles.label}>Weight</Text>
-							<TextInput
-								ref={weightInputRef}
-								style={styles.numberInput}
-								value={weight}
-								onChangeText={setWeight}
-								placeholder="75"
-								placeholderTextColor="#666"
-								keyboardType="numeric"
-								returnKeyType="done"
-								onSubmitEditing={handleAddSet}
-							/>
-						</View>
-						<Text style={styles.unit}>KG</Text>
-						<Pressable style={styles.addButton} onPress={handleAddSet}>
-							<Text style={styles.addButtonText}>+</Text>
+					</View>
+
+					{exerciseSets.map((set, idx) => (
+						<Text key={idx} style={styles.setDisplay}>
+							{set.sets} x {set.reps} @{set.weight}kg
+						</Text>
+					))}
+
+					<View style={styles.footer}>
+						<Pressable style={styles.button} onPress={handleSave}>
+							<Text style={styles.buttonText}>Save</Text>
 						</Pressable>
 					</View>
 				</View>
-
-				{exerciseSets.map((set, idx) => (
-					<Text key={idx} style={styles.setDisplay}>
-						{set.sets} x {set.reps} @{set.weight}kg
-					</Text>
-				))}
-
-				<View style={styles.footer}>
-					<Pressable style={styles.button} onPress={handleSave}>
-						<Text style={styles.buttonText}>Save</Text>
-					</Pressable>
-				</View>
-			</View>
-		</TouchableWithoutFeedback>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 }
 
