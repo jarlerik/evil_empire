@@ -2,6 +2,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ExerciseSet {
 	sets: string;
@@ -97,7 +98,7 @@ export default function AddExercises() {
 								<Text style={{ color: '#666', fontSize: 12 }}>{exercise.created_at ? new Date(exercise.created_at).toLocaleString() : ''}</Text>
 							</View>
 							<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8, marginLeft: 8 }}>
-								<Text style={{ color: deletingId === exercise.id ? '#666' : '#fff', fontSize: 18 }}>🗑️</Text>
+								<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
 							</Pressable>
 						</View>
 					))}
