@@ -107,15 +107,15 @@ export default function CreateWorkout() {
 										alignItems: 'center',
 										flex: 1,
 										paddingVertical: 8,
-										backgroundColor: isSelected ? '#FF6F61' : 'transparent',
+										backgroundColor: isSelected ? '#fff' : 'transparent',
 										borderRadius: 20,
 										marginHorizontal: 2,
 									}}
 								>
-									<Text style={{ color: isSelected ? '#fff' : '#666', fontWeight: isSelected ? 'bold' : 'normal' }}>
+									<Text style={{ color: isSelected ? '#000' : '#666', fontWeight: isSelected ? 'bold' : 'normal' }}>
 										{format(day, 'EEE').toUpperCase()}
 									</Text>
-									<Text style={{ color: isSelected ? '#fff' : '#fff', fontSize: 18, fontWeight: 'bold' }}>
+									<Text style={{ color: isSelected ? '#000' : '#fff', fontSize: 18, fontWeight: 'bold' }}>
 										{format(day, 'd')}
 									</Text>
 								</Pressable>
