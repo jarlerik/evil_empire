@@ -9,13 +9,14 @@ interface ExerciseSet {
 }
 
 export default function EditExercise() {
-	const { exercise, index, existingSets } = useLocalSearchParams();
-	const [exerciseName, setExerciseName] = useState(exercise as string);
+	const params = useLocalSearchParams();
+	const { exerciseId, exerciseName: initialExerciseName } = params;
+	const [exerciseName, setExerciseName] = useState(initialExerciseName as string);
 	const [sets, setSets] = useState('');
 	const [reps, setReps] = useState('');
 	const [weight, setWeight] = useState('');
 	const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>(
-		existingSets ? JSON.parse(existingSets as string) : [],
+		params.existingSets ? JSON.parse(params.existingSets as string) : [],
 	);
 
 	const repsInputRef = useRef<TextInput>(null);
@@ -34,7 +35,7 @@ export default function EditExercise() {
 		if (exerciseName.trim()) {
 			router.setParams({
 				editedExercise: exerciseName.trim(),
-				editedIndex: index,
+				editedIndex: params.index,
 				editedSets: JSON.stringify(exerciseSets),
 			});
 		}
