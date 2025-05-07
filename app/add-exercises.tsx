@@ -86,7 +86,10 @@ export default function AddExercises() {
 								<Text style={{ color: '#fff', fontSize: 16 }}>{exercise.name}</Text>
 								<Text style={{ color: '#666', fontSize: 12 }}>{exercise.created_at ? new Date(exercise.created_at).toLocaleString() : ''}</Text>
 							</View>
-							<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8, marginLeft: 8 }}>
+							<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={{ padding: 8, marginRight: 8 }}>
+								<Ionicons name="pencil-outline" size={22} color="#fff" />
+							</Pressable>
+							<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8 }}>
 								<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
 							</Pressable>
 						</View>
