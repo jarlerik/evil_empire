@@ -1,11 +1,15 @@
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
-interface ExerciseSet {
-	sets: string;
-	reps: string;
-	weight: string;
+interface ExercisePhase {
+	id: string;
+	exercise_id: string;
+	sets: number;
+	repetitions: number;
+	weight: number;
+	created_at: string;
 }
 
 export default function EditExercise() {
@@ -15,19 +19,61 @@ export default function EditExercise() {
 	const [sets, setSets] = useState('');
 	const [reps, setReps] = useState('');
 	const [weight, setWeight] = useState('');
-	const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>(
-		params.existingSets ? JSON.parse(params.existingSets as string) : [],
-	);
+	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
+	const [isLoading, setIsLoading] = useState(false);
 
 	const repsInputRef = useRef<TextInput>(null);
 	const weightInputRef = useRef<TextInput>(null);
 
-	const handleAddSet = () => {
-		if (sets && reps && weight) {
-			setExerciseSets([...exerciseSets, { sets, reps, weight }]);
+	useEffect(() => {
+		if (!exerciseId || !supabase) return;
+		fetchExercisePhases();
+	}, [exerciseId]);
+
+	const fetchExercisePhases = async () => {
+		if (!supabase || !exerciseId) return;
+		const { data, error } = await supabase
+			.from('exercise_phases')
+			.select('*')
+			.eq('exercise_id', exerciseId)
+			.order('created_at', { ascending: false });
+		
+		if (!error && data) {
+			setExercisePhases(data);
+		}
+	};
+
+	const handleAddSet = async () => {
+		if (!sets || !reps || !weight || !exerciseId || !supabase) return;
+		setIsLoading(true);
+
+		const { error } = await supabase
+			.from('exercise_phases')
+			.insert([{
+				exercise_id: exerciseId,
+				sets: parseInt(sets),
+				repetitions: parseInt(reps),
+				weight: parseFloat(weight)
+			}]);
+
+		if (!error) {
 			setSets('');
 			setReps('');
 			setWeight('');
+			fetchExercisePhases();
+		}
+		setIsLoading(false);
+	};
+
+	const handleDeletePhase = async (phaseId: string) => {
+		if (!supabase) return;
+		const { error } = await supabase
+			.from('exercise_phases')
+			.delete()
+			.eq('id', phaseId);
+
+		if (!error) {
+			fetchExercisePhases();
 		}
 	};
 
@@ -36,7 +82,6 @@ export default function EditExercise() {
 			router.setParams({
 				editedExercise: exerciseName.trim(),
 				editedIndex: params.index,
-				editedSets: JSON.stringify(exerciseSets),
 			});
 		}
 	};
@@ -118,16 +163,30 @@ export default function EditExercise() {
 								/>
 							</View>
 							<Text style={styles.unit}>KG</Text>
-							<Pressable style={styles.addButton} onPress={handleAddSet}>
-								<Text style={styles.addButtonText}>+</Text>
+							<Pressable 
+								style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
+								onPress={handleAddSet}
+								disabled={isLoading}
+							>
+								<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
+									{isLoading ? '...' : '+'}
+								</Text>
 							</Pressable>
 						</View>
 					</View>
 
-					{exerciseSets.map((set, idx) => (
-						<Text key={idx} style={styles.setDisplay}>
-							{set.sets} x {set.reps} @{set.weight}kg
-						</Text>
+					{exercisePhases.map((phase) => (
+						<View key={phase.id} style={styles.phaseContainer}>
+							<Text style={styles.phaseText}>
+								{phase.sets} x {phase.repetitions} @{phase.weight}kg
+							</Text>
+							<Pressable 
+								onPress={() => handleDeletePhase(phase.id)}
+								style={styles.deleteButton}
+							>
+								<Text style={styles.deleteButtonText}>×</Text>
+							</Pressable>
+						</View>
 					))}
 
 					<View style={styles.footer}>
@@ -224,17 +283,35 @@ const styles = StyleSheet.create({
 		alignSelf: 'center',
 		marginTop: 15,
 	},
+	addButtonDisabled: {
+		borderColor: '#666',
+	},
 	addButtonText: {
 		color: '#fff',
 		fontSize: 24,
 	},
-	setDisplay: {
-		color: '#fff',
-		fontSize: 16,
+	addButtonTextDisabled: {
+		color: '#666',
+	},
+	phaseContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
 		backgroundColor: '#222',
-		padding: 10,
+		padding: 15,
 		borderRadius: 8,
 		marginBottom: 10,
+	},
+	phaseText: {
+		color: '#fff',
+		fontSize: 16,
+	},
+	deleteButton: {
+		padding: 8,
+	},
+	deleteButtonText: {
+		color: '#666',
+		fontSize: 24,
 	},
 	footer: {
 		marginTop: 'auto',
