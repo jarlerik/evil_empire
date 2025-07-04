@@ -217,15 +217,11 @@ export default function CreateWorkout() {
 					{/* List of created workouts */}
 					<View style={{ marginTop: 32 }}>
 						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Workout for today</Text>
-						{workouts.length === 0 ? (
+						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
 							<Text style={{ color: '#666' }}>No workout yet.</Text>
 						) : (
 							workouts
-								.filter(w => w.workout_date)
-								.sort((a, b) => {
-									if (!a.workout_date || !b.workout_date) return 0;
-									return new Date(a.workout_date).getTime() - new Date(b.workout_date).getTime();
-								})
+								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
 								.map((w) => (
 									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
 										<View style={{ flex: 1 }}>
