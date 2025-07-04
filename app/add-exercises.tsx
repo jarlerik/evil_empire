@@ -1,8 +1,9 @@
+import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface ExerciseDB {
 	id: string;
@@ -19,19 +20,21 @@ export default function AddExercises() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 
-	useEffect(() => {
+	const fetchExercises = async () => {
 		if (!workoutId || !supabase) return;
-		const fetchExercises = async () => {
-			if (!supabase) return;
-			const { data, error } = await supabase
-				.from('exercises')
-				.select('*')
-				.eq('workout_id', workoutId)
-				.order('created_at', { ascending: false });
-			if (!error && data) setExercises(data);
-		};
-		fetchExercises();
-	}, [workoutId]);
+		const { data, error } = await supabase
+			.from('exercises')
+			.select('*')
+			.eq('workout_id', workoutId)
+			.order('created_at', { ascending: false });
+		if (!error && data) setExercises(data);
+	};
+
+	useFocusEffect(
+		useCallback(() => {
+			fetchExercises();
+		}, [workoutId])
+	);
 
 	const handleAddExercise = async () => {
 		if (!exerciseName.trim() || !workoutId || !supabase) return;

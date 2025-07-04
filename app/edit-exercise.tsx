@@ -1,5 +1,5 @@
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
@@ -77,12 +77,22 @@ export default function EditExercise() {
 		}
 	};
 
-	const handleSave = () => {
-		if (exerciseName.trim()) {
+	const handleSave = async () => {
+		if (!exerciseName.trim() || !exerciseId || !supabase) return;
+		// Update the exercise name in the database
+		const { error } = await supabase
+			.from('exercises')
+			.update({ name: exerciseName.trim() })
+			.eq('id', exerciseId);
+
+		if (!error) {
 			router.setParams({
 				editedExercise: exerciseName.trim(),
 				editedIndex: params.index,
 			});
+			// Optionally, show a success message or navigate back
+		} else {
+			// Optionally, handle error (e.g., show a message)
 		}
 	};
 
