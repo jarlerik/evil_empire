@@ -116,7 +116,7 @@ export default function CreateWorkout() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
-					<Text style={styles.title}>{'Create\na workout'}</Text>
+					<Text style={styles.title}>{'Workouts'}</Text>
 
 					{/* Week Selector Dropdown */}
 					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
@@ -141,34 +141,50 @@ export default function CreateWorkout() {
 						{Array.from({ length: 7 }).map((_, i) => {
 							const day = addDays(selectedWeekStart, i);
 							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+							const isPast = day < new Date(new Date().setHours(0, 0, 0, 0)); // compare to today at midnight
+
 							return (
 								<Pressable
 									key={i}
-									onPress={() => setSelectedDate(day)}
+									onPress={isPast ? undefined : () => setSelectedDate(day)}
+									disabled={isPast}
 									style={{
 										alignItems: 'center',
 										flex: 1,
 										paddingVertical: 4,
+										opacity: isPast ? 0.5 : 1, // visually indicate disabled
 									}}
 								>
-									<Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13, letterSpacing: 1, textAlign: 'center' }}>
+									<Text
+										style={{
+											color: isPast ? '#ccc' : '#fff',
+											fontWeight: 'bold',
+											fontSize: 13,
+											letterSpacing: 1,
+											textAlign: 'center',
+										}}
+									>
 										{format(day, 'EEE').toUpperCase()}
 									</Text>
-									<View style={{
-										backgroundColor: isSelected ? '#fff' : 'transparent',
-										borderRadius: 20,
-										width: 40,
-										height: 40,
-										alignItems: 'center',
-										justifyContent: 'center',
-										marginTop: 2,
-									}}>
-										<Text style={{
-											color: isSelected ? '#000' : '#fff',
-											fontWeight: 'bold',
-											fontSize: 20,
-											textAlign: 'center',
-										}}>
+									<View
+										style={{
+											backgroundColor: isSelected ? '#fff' : 'transparent',
+											borderRadius: 20,
+											width: 40,
+											height: 40,
+											alignItems: 'center',
+											justifyContent: 'center',
+											marginTop: 2,
+										}}
+									>
+										<Text
+											style={{
+												color: isPast ? '#ccc' : isSelected ? '#000' : '#fff',
+												fontWeight: 'bold',
+												fontSize: 20,
+												textAlign: 'center',
+											}}
+										>
 											{format(day, 'd')}
 										</Text>
 									</View>
@@ -196,9 +212,9 @@ export default function CreateWorkout() {
 
 					{/* List of created workouts */}
 					<View style={{ marginTop: 32 }}>
-						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Your Workouts</Text>
+						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Workout for today</Text>
 						{workouts.length === 0 ? (
-							<Text style={{ color: '#666' }}>No workouts yet.</Text>
+							<Text style={{ color: '#666' }}>No workout yet.</Text>
 						) : (
 							workouts
 								.filter(w => w.workout_date)
@@ -242,7 +258,9 @@ const styles = StyleSheet.create({
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
-		marginTop: 40,
+		marginTop: 8,
+		marginBottom: 16,
+		textAlign: 'center',
 	},
 	subtitle: {
 		fontSize: 16,
