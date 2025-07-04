@@ -196,27 +196,11 @@ export default function CreateWorkout() {
 							);
 						})}
 					</View>
-
-					<TextInput
-						style={styles.input}
-						value={workoutName}
-						onChangeText={setWorkoutName}
-						placeholder="Workout name"
-						placeholderTextColor="#666"
-						returnKeyType="done"
-						onSubmitEditing={handleCreateWorkout}
-						editable={!isLoading}
-					/>
-
-					{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
-
-					<Pressable style={styles.button} onPress={handleCreateWorkout} disabled={isLoading}>
-						<Text style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create'}</Text>
-					</Pressable>
-
 					{/* List of created workouts */}
 					<View style={{ marginTop: 32 }}>
-						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Workout for today</Text>
+						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+							Workout for {format(selectedDate, 'EEEE, LLLL d')}
+						</Text>
 						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
 							<Text style={{ color: '#666' }}>No workout yet.</Text>
 						) : (
@@ -226,9 +210,6 @@ export default function CreateWorkout() {
 									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
 										<View style={{ flex: 1 }}>
 											<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
-											<Text style={{ color: '#666', fontSize: 12 }}>
-												{w.workout_date ? w.workout_date : ''}
-											</Text>
 										</View>
 										<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
 											<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8, marginRight: 8 }}>
@@ -241,6 +222,22 @@ export default function CreateWorkout() {
 									</View>
 								))
 						)}
+					</View>
+					<View style={{ marginTop: 'auto' }}>
+						<TextInput
+							style={styles.input}
+							value={workoutName}
+							onChangeText={setWorkoutName}
+							placeholder="Workout name"
+							placeholderTextColor="#666"
+							returnKeyType="done"
+							onSubmitEditing={handleCreateWorkout}
+							editable={!isLoading}
+						/>
+						{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+						<Pressable style={styles.button} onPress={handleCreateWorkout} disabled={isLoading}>
+							<Text style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create'}</Text>
+						</Pressable>
 					</View>
 				</View>
 			</ScrollView>
