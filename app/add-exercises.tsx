@@ -80,35 +80,37 @@ export default function AddExercises() {
 					<Text style={styles.title}>{workoutName}</Text>
 					<Text style={styles.subtitle}>add exercises</Text>
 
-					{exercises.map((exercise) => (
-						<View key={exercise.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-							<View style={{ flex: 1 }}>
-								<Text style={{ color: '#fff', fontSize: 16 }}>{exercise.name}</Text>
-								<Text style={{ color: '#666', fontSize: 12 }}>{exercise.created_at ? new Date(exercise.created_at).toLocaleString() : ''}</Text>
+					{[...exercises]
+						.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
+						.map((exercise) => (
+							<View key={exercise.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+								<View style={{ flex: 1 }}>
+									<Text style={{ color: '#fff', fontSize: 16 }}>{exercise.name}</Text>
+								</View>
+								<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={{ padding: 8, marginRight: 8 }}>
+									<Ionicons name="pencil-outline" size={22} color="#fff" />
+								</Pressable>
+								<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8 }}>
+									<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
+								</Pressable>
 							</View>
-							<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={{ padding: 8, marginRight: 8 }}>
-								<Ionicons name="pencil-outline" size={22} color="#fff" />
-							</Pressable>
-							<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8 }}>
-								<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
-							</Pressable>
-						</View>
-					))}
+						))}
 
-					<TextInput
-						style={styles.input}
-						value={exerciseName}
-						onChangeText={setExerciseName}
-						placeholder="Exercise name"
-						placeholderTextColor="#666"
-						returnKeyType="done"
-						onSubmitEditing={handleAddExercise}
-						editable={!isLoading}
-					/>
-
-					<Pressable style={styles.button} onPress={handleAddExercise} disabled={isLoading}>
-						<Text style={styles.buttonText}>{isLoading ? 'Adding...' : 'Add exercise'}</Text>
-					</Pressable>
+					<View style={{ marginTop: 'auto' }}>
+						<TextInput
+							style={styles.input}
+							value={exerciseName}
+							onChangeText={setExerciseName}
+							placeholder="Exercise name"
+							placeholderTextColor="#666"
+							returnKeyType="done"
+							onSubmitEditing={handleAddExercise}
+							editable={!isLoading}
+						/>
+						<Pressable style={styles.button} onPress={handleAddExercise} disabled={isLoading}>
+							<Text style={styles.buttonText}>{isLoading ? 'Adding...' : 'Add exercise'}</Text>
+						</Pressable>
+					</View>
 				</View>
 			</ScrollView>
 		</KeyboardAvoidingView>
