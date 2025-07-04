@@ -118,6 +118,10 @@ export default function CreateWorkout() {
 				<View style={styles.container}>
 					<Text style={styles.title}>{'Workouts'}</Text>
 
+					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+						{format(selectedDate, 'LLLL')}
+					</Text>
+
 					{/* Week Selector Dropdown */}
 					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
 						<View style={{ width: 140 }}>
