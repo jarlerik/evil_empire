@@ -81,7 +81,6 @@ export default function AddExercises() {
 					</Pressable>
 
 					<Text style={styles.title}>{workoutName}</Text>
-					<Text style={styles.subtitle}>add exercises</Text>
 
 					{[...exercises]
 						.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
