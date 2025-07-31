@@ -69,11 +69,11 @@ export default function AddExercises() {
 	const formatExercisePhase = (phase: ExercisePhase) => {
 		if (phase.compound_reps && phase.compound_reps.length > 0) {
 			const compoundRepsStr = phase.compound_reps.join(' + ');
-			const weightStr = phase.weights ? phase.weights.join(' ') : phase.weight;
-			return `${phase.sets}×${compoundRepsStr} @ ${weightStr}kg`;
+			const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
+			return `${phase.sets}×${compoundRepsStr} @ ${weightStr}`;
 		}
-		const weightStr = phase.weights ? phase.weights.join(' ') : phase.weight;
-		return `${phase.sets}×${phase.repetitions} @ ${weightStr}kg`;
+		const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
+		return `${phase.sets}×${phase.repetitions} @ ${weightStr}`;
 	};
 
 	useFocusEffect(
