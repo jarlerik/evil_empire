@@ -89,6 +89,18 @@ export default function EditExercise() {
 		}
 	};
 
+	const handleDeleteExercise = async () => {
+		if (!exerciseId || !supabase) return;
+		const { error } = await supabase
+			.from('exercises')
+			.delete()
+			.eq('id', exerciseId);
+
+		if (!error) {
+			router.back();
+		}
+	};
+
 	const handleSave = async () => {
 		if (!exerciseName.trim() || !exerciseId || !supabase) return;
 		// Update the exercise name in the database
@@ -126,6 +138,12 @@ export default function EditExercise() {
 
 					<View style={styles.exerciseNameContainer}>
 						<Text style={styles.exerciseName}>{exerciseName}</Text>
+						<Pressable 
+							onPress={() => handleDeleteExercise()}
+							style={styles.deleteExerciseButton}
+						>
+							<Text style={styles.deleteExerciseButtonText}>×</Text>
+						</Pressable>
 					</View>
 
 					<View style={styles.setsSection}>
@@ -319,6 +337,9 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		padding: 15,
 		marginBottom: 20,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
 	},
 	exerciseName: {
 		color: '#fff',
@@ -336,5 +357,12 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		alignItems: 'center',
 		marginBottom: 10,
+	},
+	deleteExerciseButton: {
+		padding: 8,
+	},
+	deleteExerciseButtonText: {
+		color: '#666',
+		fontSize: 24,
 	},
 });

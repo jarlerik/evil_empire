@@ -118,6 +118,18 @@ export default function AddExercises() {
 		}
 	};
 
+	const handleDeleteWorkout = async () => {
+		if (!workoutId || !supabase) return;
+		const { error } = await supabase
+			.from('workouts')
+			.delete()
+			.eq('id', workoutId);
+
+		if (!error) {
+			router.back();
+		}
+	};
+
 	return (
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
@@ -132,7 +144,15 @@ export default function AddExercises() {
 						<Text style={styles.backButtonText}>←</Text>
 					</Pressable>
 
-					<Text style={styles.title}>{workoutName}</Text>
+					<View style={styles.workoutHeader}>
+						<Text style={styles.title}>{workoutName}</Text>
+						<Pressable 
+							onPress={handleDeleteWorkout}
+							style={styles.deleteWorkoutButton}
+						>
+							<Text style={styles.deleteWorkoutButtonText}>×</Text>
+						</Pressable>
+					</View>
 					<Text style={styles.subtitle}>Exercises</Text>
 
 					{[...exercises]
@@ -146,9 +166,6 @@ export default function AddExercises() {
 									<View style={styles.exerciseButtons}>
 										<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={styles.editButton}>
 											<Ionicons name="pencil-outline" size={22} color="#fff" />
-										</Pressable>
-										<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={styles.deleteButton}>
-											<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
 										</Pressable>
 									</View>
 								</View>
@@ -202,8 +219,7 @@ const styles = StyleSheet.create({
 		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
-		marginTop: 20,
-		marginBottom: 40,
+		flex: 1,
 	},
 	subtitle: {
 		fontSize: 16,
@@ -271,5 +287,20 @@ const styles = StyleSheet.create({
 		color: '#666',
 		fontSize: 14,
 		marginTop: 4,
+	},
+	workoutHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 40,
+	},
+	deleteWorkoutButton: {
+		padding: 8,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	deleteWorkoutButtonText: {
+		color: '#666',
+		fontSize: 24,
+		lineHeight: 32,
 	},
 });

@@ -1,11 +1,12 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, startOfWeek, format, isToday, getISOWeek, isSameWeek } from 'date-fns';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Workout {
 	id: string;
@@ -47,19 +48,21 @@ export default function CreateWorkout() {
 		}
 	};
 
-	useEffect(() => {
-		if (!user || !supabase) return;
-		const fetchWorkouts = async () => {
-			if (!supabase) return;
-			const { data, error } = await supabase
-				.from('workouts')
-				.select('*')
-				.eq('user_id', user.id)
-				.order('created_at', { ascending: false });
-			if (!error && data) setWorkouts(data);
-		};
-		fetchWorkouts();
-	}, [supabase, user]);
+	useFocusEffect(
+		useCallback(() => {
+			if (!user || !supabase) return;
+			const fetchWorkouts = async () => {
+				if (!supabase) return;
+				const { data, error } = await supabase
+					.from('workouts')
+					.select('*')
+					.eq('user_id', user.id)
+					.order('created_at', { ascending: false });
+				if (!error && data) setWorkouts(data);
+			};
+			fetchWorkouts();
+		}, [supabase, user])
+	);
 
 	const handleCreateWorkout = async () => {
 		if (!workoutName.trim()) return;
@@ -212,11 +215,8 @@ export default function CreateWorkout() {
 											<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
 										</View>
 										<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
-											<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8, marginRight: 8 }}>
+											<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
 												<Ionicons name="pencil" size={22} color="#fff" />
-											</Pressable>
-											<Pressable onPress={() => handleDeleteWorkout(w.id)} disabled={deletingId === w.id} style={{ padding: 8 }}>
-												<Ionicons name="trash-outline" size={22} color={deletingId === w.id ? '#666' : '#fff'} />
 											</Pressable>
 										</View>
 									</View>
