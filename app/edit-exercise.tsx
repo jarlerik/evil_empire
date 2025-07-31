@@ -10,6 +10,7 @@ interface ExercisePhase {
 	sets: number;
 	repetitions: number;
 	weight: number;
+	compound_reps?: number[];
 	created_at: string;
 }
 
@@ -47,14 +48,21 @@ export default function EditExercise() {
 		
 		setIsLoading(true);
 
+		const insertData: any = {
+			exercise_id: exerciseId,
+			sets: parsedData.sets,
+			repetitions: parsedData.reps,
+			weight: parsedData.weight
+		};
+
+		// Add compound_reps if it's a compound exercise
+		if (parsedData.compoundReps) {
+			insertData.compound_reps = parsedData.compoundReps;
+		}
+
 		const { error } = await supabase
 			.from('exercise_phases')
-			.insert([{
-				exercise_id: exerciseId,
-				sets: parsedData.sets,
-				repetitions: parsedData.reps,
-				weight: parsedData.weight
-			}]);
+			.insert([insertData]);
 
 		if (!error) {
 			setSetInput('');
@@ -132,7 +140,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg"
+							placeholder="4 x 3 @50kg or 4 x 2 + 2@50kg"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}
@@ -142,7 +150,10 @@ export default function EditExercise() {
 					{exercisePhases.map((phase) => (
 						<View key={phase.id} style={styles.phaseContainer}>
 							<Text style={styles.phaseText}>
-								{phase.sets} x {phase.repetitions} @{phase.weight}kg
+								{phase.sets} x {phase.compound_reps ? 
+									`${phase.compound_reps[0]} + ${phase.compound_reps[1]}` : 
+									phase.repetitions
+								} @{phase.weight}kg
 							</Text>
 							<Pressable 
 								onPress={() => handleDeletePhase(phase.id)}

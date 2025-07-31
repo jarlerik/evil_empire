@@ -81,6 +81,39 @@ describe('parseSetInput', () => {
 				isValid: true
 			});
 		});
+
+		it('should parse compound exercise format', () => {
+			const result = parseSetInput('4 x 2 + 2@50kg');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 4, // Total reps (2 + 2)
+				weight: 50,
+				isValid: true,
+				compoundReps: [2, 2]
+			});
+		});
+
+		it('should parse compound exercise with different rep counts', () => {
+			const result = parseSetInput('3 x 1 + 3@75kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 4, // Total reps (1 + 3)
+				weight: 75,
+				isValid: true,
+				compoundReps: [1, 3]
+			});
+		});
+
+		it('should parse compound exercise without kg suffix', () => {
+			const result = parseSetInput('5 x 2 + 1@60');
+			expect(result).toEqual({
+				sets: 5,
+				reps: 3, // Total reps (2 + 1)
+				weight: 60,
+				isValid: true,
+				compoundReps: [2, 1]
+			});
+		});
 	});
 
 	describe('invalid inputs', () => {
@@ -157,6 +190,21 @@ describe('parseSetInput', () => {
 				weight: 50,
 				isValid: true
 			});
+		});
+
+		it('should return invalid for compound exercise with zero reps', () => {
+			const result = parseSetInput('4 x 0 + 2@50kg');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for compound exercise with missing plus', () => {
+			const result = parseSetInput('4 x 2 2@50kg');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for compound exercise with wrong order', () => {
+			const result = parseSetInput('4 x 2 + @50kg');
+			expect(result.isValid).toBe(false);
 		});
 	});
 
