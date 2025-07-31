@@ -2,6 +2,7 @@ export interface ParsedSetData {
 	sets: number;
 	reps: number;
 	weight: number;
+	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
 	isValid: boolean;
 	compoundReps?: number[]; // For compound exercises like "2 + 2"
 }
@@ -31,6 +32,30 @@ export function parseSetInput(input: string): ParsedSetData {
 			weight,
 			isValid: true
 		};
+	}
+	
+	// Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3..."
+	const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s*)+)(?:\s*kg)?$/i;
+	const multipleWeightsMatch = cleanInput.match(multipleWeightsPattern);
+	
+	if (multipleWeightsMatch) {
+		const sets = parseInt(multipleWeightsMatch[1]);
+		const reps = parseInt(multipleWeightsMatch[2]);
+		const weightsStr = multipleWeightsMatch[3];
+		
+		// Parse multiple weights
+		const weights = weightsStr.trim().split(/\s+/).map(w => parseFloat(w));
+		
+		// Validate that number of weights matches number of sets
+		if (weights.length === sets && weights.every(w => !isNaN(w))) {
+			return {
+				sets,
+				reps,
+				weight: weights[0], // Keep for backward compatibility
+				weights,
+				isValid: true
+			};
+		}
 	}
 	
 	// Pattern 2: Compound format "sets x reps1 + reps2 @weight"

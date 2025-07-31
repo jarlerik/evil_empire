@@ -114,6 +114,72 @@ describe('parseSetInput', () => {
 				compoundReps: [2, 1]
 			});
 		});
+
+		it('should parse multiple weights format', () => {
+			const result = parseSetInput('3 x 1 @50 60 70');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 50, // First weight for backward compatibility
+				weights: [50, 60, 70],
+				isValid: true
+			});
+		});
+
+		it('should parse multiple weights with kg suffix', () => {
+			const result = parseSetInput('4 x 5 @100 110 120 130kg');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 5,
+				weight: 100, // First weight for backward compatibility
+				weights: [100, 110, 120, 130],
+				isValid: true
+			});
+		});
+
+		it('should parse multiple weights with decimal values', () => {
+			const result = parseSetInput('3 x 3 @50.5 60.25 70.75kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 3,
+				weight: 50.5, // First weight for backward compatibility
+				weights: [50.5, 60.25, 70.75],
+				isValid: true
+			});
+		});
+
+		it('should parse multiple weights with extra spaces', () => {
+			const result = parseSetInput('  3  x  1  @  50  60  70  ');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 50, // First weight for backward compatibility
+				weights: [50, 60, 70],
+				isValid: true
+			});
+		});
+
+		it('should parse single weight as multiple weights format', () => {
+			const result = parseSetInput('1 x 5 @50');
+			expect(result).toEqual({
+				sets: 1,
+				reps: 5,
+				weight: 50,
+				weights: [50],
+				isValid: true
+			});
+		});
+
+		it('should parse large numbers with multiple weights', () => {
+			const result = parseSetInput('10 x 20 @100 110 120 130 140 150 160 170 180 190kg');
+			expect(result).toEqual({
+				sets: 10,
+				reps: 20,
+				weight: 100, // First weight for backward compatibility
+				weights: [100, 110, 120, 130, 140, 150, 160, 170, 180, 190],
+				isValid: true
+			});
+		});
 	});
 
 	describe('invalid inputs', () => {
@@ -206,6 +272,41 @@ describe('parseSetInput', () => {
 			const result = parseSetInput('4 x 2 + @50kg');
 			expect(result.isValid).toBe(false);
 		});
+
+		it('should return invalid for multiple weights with wrong count', () => {
+			const result = parseSetInput('3 x 1 @50 60');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with too many weights', () => {
+			const result = parseSetInput('2 x 1 @50 60 70');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with non-numeric values', () => {
+			const result = parseSetInput('3 x 1 @50 abc 70');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with negative values', () => {
+			const result = parseSetInput('3 x 1 @50 -60 70');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with zero values', () => {
+			const result = parseSetInput('3 x 1 @50 0 70');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with empty values', () => {
+			const result = parseSetInput('3 x 1 @50  70');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights with decimal values that are not numbers', () => {
+			const result = parseSetInput('3 x 1 @50.5 60.abc 70.75');
+			expect(result.isValid).toBe(false);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -248,6 +349,39 @@ describe('parseSetInput', () => {
 				isValid: true
 			});
 		});
+
+		it('should handle multiple weights with tabs and newlines', () => {
+			const result = parseSetInput('\t3\tx\t1\t@\t50\t60\t70\t');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 50, // First weight for backward compatibility
+				weights: [50, 60, 70],
+				isValid: true
+			});
+		});
+
+		it('should handle multiple weights with very large decimal values', () => {
+			const result = parseSetInput('3 x 5 @999.999 888.888 777.777kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 5,
+				weight: 999.999, // First weight for backward compatibility
+				weights: [999.999, 888.888, 777.777],
+				isValid: true
+			});
+		});
+
+		it('should handle multiple weights with mixed case kg suffix', () => {
+			const result = parseSetInput('3 x 1 @50 60 70Kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 50, // First weight for backward compatibility
+				weights: [50, 60, 70],
+				isValid: true
+			});
+		});
 	});
 
 	describe('return type validation', () => {
@@ -272,6 +406,27 @@ describe('parseSetInput', () => {
 			expect(typeof result.reps).toBe('number');
 			expect(typeof result.weight).toBe('number');
 			expect(typeof result.isValid).toBe('boolean');
+		});
+
+		it('should return weights array for multiple weights format', () => {
+			const result = parseSetInput('3 x 1 @50 60 70');
+			expect(Array.isArray(result.weights)).toBe(true);
+			expect(result.weights).toEqual([50, 60, 70]);
+		});
+
+		it('should not return weights array for single weight format', () => {
+			const result = parseSetInput('3 x 1 @50');
+			expect(result.weights).toBeUndefined();
+		});
+
+		it('should maintain backward compatibility with existing formats', () => {
+			const simpleResult = parseSetInput('4 x 3 @50kg');
+			const compoundResult = parseSetInput('4 x 2 + 2@50kg');
+			
+			expect(simpleResult.weights).toBeUndefined();
+			expect(compoundResult.weights).toBeUndefined();
+			expect(simpleResult.isValid).toBe(true);
+			expect(compoundResult.isValid).toBe(true);
 		});
 	});
 }); 

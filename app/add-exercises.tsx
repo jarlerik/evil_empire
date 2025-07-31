@@ -18,6 +18,7 @@ interface ExercisePhase {
 	sets: number;
 	repetitions: number;
 	weight: number;
+	weights?: number[];
 	compound_reps?: number[];
 	created_at: string;
 }
@@ -68,9 +69,11 @@ export default function AddExercises() {
 	const formatExercisePhase = (phase: ExercisePhase) => {
 		if (phase.compound_reps && phase.compound_reps.length > 0) {
 			const compoundRepsStr = phase.compound_reps.join(' + ');
-			return `${phase.sets}×${compoundRepsStr} @ ${phase.weight}kg`;
+			const weightStr = phase.weights ? phase.weights.join(' ') : phase.weight;
+			return `${phase.sets}×${compoundRepsStr} @ ${weightStr}kg`;
 		}
-		return `${phase.sets}×${phase.repetitions} @ ${phase.weight}kg`;
+		const weightStr = phase.weights ? phase.weights.join(' ') : phase.weight;
+		return `${phase.sets}×${phase.repetitions} @ ${weightStr}kg`;
 	};
 
 	useFocusEffect(
