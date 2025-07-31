@@ -12,11 +12,22 @@ interface ExerciseDB {
 	created_at?: string;
 }
 
+interface ExercisePhase {
+	id: string;
+	exercise_id: string;
+	sets: number;
+	repetitions: number;
+	weight: number;
+	compound_reps?: number[];
+	created_at: string;
+}
+
 export default function AddExercises() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
 	const [exerciseName, setExerciseName] = useState('');
 	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
+	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 	const [isLoading, setIsLoading] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -27,7 +38,39 @@ export default function AddExercises() {
 			.select('*')
 			.eq('workout_id', workoutId)
 			.order('created_at', { ascending: false });
-		if (!error && data) setExercises(data);
+		if (!error && data) {
+			setExercises(data);
+			// Fetch phases for each exercise
+			await fetchExercisePhases(data);
+		}
+	};
+
+	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
+		if (!supabase) return;
+		
+		const phasesMap: Record<string, ExercisePhase[]> = {};
+		
+		for (const exercise of exerciseList) {
+			const { data, error } = await supabase
+				.from('exercise_phases')
+				.select('*')
+				.eq('exercise_id', exercise.id)
+				.order('created_at', { ascending: false });
+			
+			if (!error && data) {
+				phasesMap[exercise.id] = data;
+			}
+		}
+		
+		setExercisePhases(phasesMap);
+	};
+
+	const formatExercisePhase = (phase: ExercisePhase) => {
+		if (phase.compound_reps && phase.compound_reps.length > 0) {
+			const compoundRepsStr = phase.compound_reps.join(' + ');
+			return `${phase.sets}×${compoundRepsStr} @ ${phase.weight}kg`;
+		}
+		return `${phase.sets}×${phase.repetitions} @ ${phase.weight}kg`;
 	};
 
 	useFocusEffect(
@@ -42,13 +85,16 @@ export default function AddExercises() {
 		await supabase.from('exercises').insert([{ name: exerciseName.trim(), workout_id: workoutId }]);
 		setExerciseName('');
 		setIsLoading(false);
-		// Refetch exercises
+		// Refetch exercises and phases
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
 			.eq('workout_id', workoutId)
 			.order('created_at', { ascending: false });
-		if (!error && data) setExercises(data);
+		if (!error && data) {
+			setExercises(data);
+			await fetchExercisePhases(data);
+		}
 	};
 
 	const handleDeleteExercise = async (id: string) => {
@@ -56,14 +102,17 @@ export default function AddExercises() {
 		setDeletingId(id);
 		await supabase.from('exercises').delete().eq('id', id);
 		setDeletingId(null);
-		// Refetch exercises
+		// Refetch exercises and phases
 		if (!workoutId) return;
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
 			.eq('workout_id', workoutId)
 			.order('created_at', { ascending: false });
-		if (!error && data) setExercises(data);
+		if (!error && data) {
+			setExercises(data);
+			await fetchExercisePhases(data);
+		}
 	};
 
 	return (
@@ -81,24 +130,38 @@ export default function AddExercises() {
 					</Pressable>
 
 					<Text style={styles.title}>{workoutName}</Text>
+					<Text style={styles.subtitle}>Exercises</Text>
 
 					{[...exercises]
 						.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
 						.map((exercise) => (
-							<View key={exercise.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-								<View style={{ flex: 1 }}>
-									<Text style={{ color: '#fff', fontSize: 16 }}>{exercise.name}</Text>
+							<View key={exercise.id} style={styles.exerciseItem}>
+								<View style={styles.exerciseHeader}>
+									<View style={styles.exerciseNameContainer}>
+										<Text style={styles.exerciseName}>{exercise.name}</Text>
+									</View>
+									<View style={styles.exerciseButtons}>
+										<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={styles.editButton}>
+											<Ionicons name="pencil-outline" size={22} color="#fff" />
+										</Pressable>
+										<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={styles.deleteButton}>
+											<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
+										</Pressable>
+									</View>
 								</View>
-								<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={{ padding: 8, marginRight: 8 }}>
-									<Ionicons name="pencil-outline" size={22} color="#fff" />
-								</Pressable>
-								<Pressable onPress={() => handleDeleteExercise(exercise.id)} disabled={deletingId === exercise.id} style={{ padding: 8 }}>
-									<Ionicons name="trash-outline" size={22} color={deletingId === exercise.id ? '#666' : '#fff'} />
-								</Pressable>
+								{exercisePhases[exercise.id] && exercisePhases[exercise.id].length > 0 && (
+									<View style={styles.phasesContainer}>
+										{exercisePhases[exercise.id].map((phase) => (
+											<Text key={phase.id} style={styles.phaseText}>
+												{formatExercisePhase(phase)}
+											</Text>
+										))}
+									</View>
+								)}
 							</View>
 						))}
 
-					<View style={{ marginTop: 'auto' }}>
+					<View style={styles.bottomContainer}>
 						<TextInput
 							style={styles.input}
 							value={exerciseName}
@@ -166,5 +229,44 @@ const styles = StyleSheet.create({
 	},
 	exerciseList: {
 		marginTop: 20,
+	},
+	exerciseItem: {
+		backgroundColor: '#111',
+		padding: 16,
+		borderRadius: 8,
+		marginBottom: 12,
+	},
+	exerciseHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	exerciseButtons: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	exerciseNameContainer: {
+		flex: 1,
+	},
+	exerciseName: {
+		color: '#fff',
+		fontSize: 16,
+	},
+	editButton: {
+		padding: 8,
+		marginRight: 8,
+	},
+	deleteButton: {
+		padding: 8,
+	},
+	bottomContainer: {
+		marginTop: 'auto',
+	},
+	phasesContainer: {
+		marginTop: 12,
+	},
+	phaseText: {
+		color: '#666',
+		fontSize: 14,
+		marginTop: 4,
 	},
 });
