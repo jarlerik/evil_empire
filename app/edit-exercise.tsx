@@ -2,6 +2,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidin
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
 
 interface ExercisePhase {
 	id: string;
@@ -16,19 +17,16 @@ export default function EditExercise() {
 	const params = useLocalSearchParams();
 	const { exerciseId, exerciseName: initialExerciseName } = params;
 	const [exerciseName, setExerciseName] = useState(initialExerciseName as string);
-	const [sets, setSets] = useState('');
-	const [reps, setReps] = useState('');
-	const [weight, setWeight] = useState('');
+	const [setInput, setSetInput] = useState('');
 	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
-
-	const repsInputRef = useRef<TextInput>(null);
-	const weightInputRef = useRef<TextInput>(null);
 
 	useEffect(() => {
 		if (!exerciseId || !supabase) return;
 		fetchExercisePhases();
 	}, [exerciseId]);
+
+
 
 	const fetchExercisePhases = async () => {
 		if (!supabase || !exerciseId) return;
@@ -44,22 +42,22 @@ export default function EditExercise() {
 	};
 
 	const handleAddSet = async () => {
-		if (!sets || !reps || !weight || !exerciseId || !supabase) return;
+		const parsedData = parseSetInput(setInput);
+		if (!parsedData.isValid || !exerciseId || !supabase) return;
+		
 		setIsLoading(true);
 
 		const { error } = await supabase
 			.from('exercise_phases')
 			.insert([{
 				exercise_id: exerciseId,
-				sets: parseInt(sets),
-				repetitions: parseInt(reps),
-				weight: parseFloat(weight)
+				sets: parsedData.sets,
+				repetitions: parsedData.reps,
+				weight: parsedData.weight
 			}]);
 
 		if (!error) {
-			setSets('');
-			setReps('');
-			setWeight('');
+			setSetInput('');
 			fetchExercisePhases();
 		}
 		setIsLoading(false);
@@ -110,79 +108,35 @@ export default function EditExercise() {
 						<Text style={styles.backButtonText}>←</Text>
 					</Pressable>
 
-					<Text style={styles.title}>Edit exercise</Text>
+					<Text style={styles.title}>Exercise</Text>
 
-					<TextInput
-						style={styles.input}
-						value={exerciseName}
-						onChangeText={setExerciseName}
-						placeholder="Exercise name"
-						placeholderTextColor="#666"
-						autoFocus
-						returnKeyType="done"
-						onSubmitEditing={Keyboard.dismiss}
-					/>
+					<View style={styles.exerciseNameContainer}>
+						<Text style={styles.exerciseName}>{exerciseName}</Text>
+					</View>
 
-					<Text style={styles.subtitle}>Add sets & reps</Text>
-
-					<View style={styles.setInputContainer}>
-						<View style={styles.inputRow}>
-							<View style={styles.inputWrapper}>
-								<Text style={styles.label}>Sets</Text>
-								<TextInput
-									style={styles.numberInput}
-									value={sets}
-									onChangeText={setSets}
-									placeholder="3"
-									placeholderTextColor="#666"
-									keyboardType="numeric"
-									returnKeyType="next"
-									blurOnSubmit={false}
-									onSubmitEditing={() => repsInputRef.current?.focus()}
-								/>
-							</View>
-							<Text style={styles.separator}>x</Text>
-							<View style={styles.inputWrapper}>
-								<Text style={styles.label}>Reps</Text>
-								<TextInput
-									ref={repsInputRef}
-									style={styles.numberInput}
-									value={reps}
-									onChangeText={setReps}
-									placeholder="5"
-									placeholderTextColor="#666"
-									keyboardType="numeric"
-									returnKeyType="next"
-									blurOnSubmit={false}
-									onSubmitEditing={() => weightInputRef.current?.focus()}
-								/>
-							</View>
-							<Text style={styles.separator}>@</Text>
-							<View style={styles.inputWrapper}>
-								<Text style={styles.label}>Weight</Text>
-								<TextInput
-									ref={weightInputRef}
-									style={styles.numberInput}
-									value={weight}
-									onChangeText={setWeight}
-									placeholder="75"
-									placeholderTextColor="#666"
-									keyboardType="numeric"
-									returnKeyType="done"
-									onSubmitEditing={handleAddSet}
-								/>
-							</View>
-							<Text style={styles.unit}>KG</Text>
+					<View style={styles.setsSection}>
+						<View style={styles.setsHeader}>
+							<Text style={styles.subtitle}>Sets and repetitions</Text>
 							<Pressable 
 								style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
 								onPress={handleAddSet}
 								disabled={isLoading}
 							>
 								<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
-									{isLoading ? '...' : '+'}
+									{isLoading ? '...' : 'Add'}
 								</Text>
 							</Pressable>
 						</View>
+						
+						<TextInput
+							style={styles.setInput}
+							value={setInput}
+							onChangeText={setSetInput}
+							placeholder="4 x 3 @50kg"
+							placeholderTextColor="#666"
+							returnKeyType="done"
+							onSubmitEditing={handleAddSet}
+						/>
 					</View>
 
 					{exercisePhases.map((phase) => (
@@ -272,6 +226,14 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		fontSize: 16,
 	},
+	setInput: {
+		backgroundColor: '#222',
+		color: '#fff',
+		borderRadius: 8,
+		padding: 15,
+		fontSize: 16,
+		width: '100%',
+	},
 	separator: {
 		color: '#666',
 		fontSize: 16,
@@ -283,22 +245,20 @@ const styles = StyleSheet.create({
 		marginLeft: 8,
 	},
 	addButton: {
-		borderWidth: 3,
-		borderColor: '#fff',
-		borderRadius: 20,
-		width: 40,
-		height: 40,
+		backgroundColor: '#333',
+		borderRadius: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
 		alignItems: 'center',
 		justifyContent: 'center',
-		alignSelf: 'center',
-		marginTop: 15,
 	},
 	addButtonDisabled: {
 		borderColor: '#666',
 	},
 	addButtonText: {
 		color: '#fff',
-		fontSize: 24,
+		fontSize: 14,
+		fontWeight: '600',
 	},
 	addButtonTextDisabled: {
 		color: '#666',
@@ -336,5 +296,28 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: '600',
+	},
+	exerciseNameContainer: {
+		backgroundColor: '#111',
+		borderRadius: 8,
+		padding: 15,
+		marginBottom: 20,
+	},
+	exerciseName: {
+		color: '#fff',
+		fontSize: 24,
+		fontWeight: 'bold',
+	},
+	setsSection: {
+		backgroundColor: '#111',
+		borderRadius: 8,
+		padding: 15,
+		marginBottom: 20,
+	},
+	setsHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 10,
 	},
 });
