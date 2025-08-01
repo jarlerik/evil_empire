@@ -189,7 +189,8 @@ describe('parseSetInput', () => {
 				sets: 0,
 				reps: 0,
 				weight: 0,
-				isValid: false
+				isValid: false,
+				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")'
 			});
 		});
 
@@ -199,7 +200,8 @@ describe('parseSetInput', () => {
 				sets: 0,
 				reps: 0,
 				weight: 0,
-				isValid: false
+				isValid: false,
+				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")'
 			});
 		});
 
@@ -276,6 +278,7 @@ describe('parseSetInput', () => {
 		it('should return invalid for multiple weights with wrong count', () => {
 			const result = parseSetInput('3 x 1 @50 60');
 			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Expected 3 weights for 3 sets, but got 2');
 		});
 
 		it('should return invalid for multiple weights with too many weights', () => {
@@ -286,6 +289,7 @@ describe('parseSetInput', () => {
 		it('should return invalid for multiple weights with non-numeric values', () => {
 			const result = parseSetInput('3 x 1 @50 abc 70');
 			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Invalid weight values. Please use numbers only.');
 		});
 
 		it('should return invalid for multiple weights with negative values', () => {

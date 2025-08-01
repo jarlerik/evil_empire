@@ -45,7 +45,12 @@ export default function EditExercise() {
 
 	const handleAddSet = async () => {
 		const parsedData = parseSetInput(setInput);
-		if (!parsedData.isValid || !exerciseId || !supabase) return;
+		if (!parsedData.isValid) {
+			// Show error message to user
+			alert(parsedData.errorMessage || 'Invalid input format');
+			return;
+		}
+		if (!exerciseId || !supabase) return;
 		
 		setIsLoading(true);
 

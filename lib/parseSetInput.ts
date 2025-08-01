@@ -4,6 +4,7 @@ export interface ParsedSetData {
 	weight: number;
 	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
 	isValid: boolean;
+	errorMessage?: string; // Error message when parsing fails
 	compoundReps?: number[]; // For compound exercises like "2 + 2"
 }
 
@@ -14,6 +15,17 @@ export interface ParsedSetData {
  * @returns ParsedSetData object with parsed values and validity status
  */
 export function parseSetInput(input: string): ParsedSetData {
+	// Handle empty or whitespace-only input
+	if (!input || !input.trim()) {
+		return {
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")'
+		};
+	}
+
 	// Remove any extra spaces and convert to lowercase for easier parsing
 	const cleanInput = input.trim().toLowerCase();
 	
@@ -55,6 +67,22 @@ export function parseSetInput(input: string): ParsedSetData {
 				weights,
 				isValid: true
 			};
+		} else if (weights.length !== sets) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: `Expected ${sets} weights for ${sets} sets, but got ${weights.length}`
+			};
+		} else {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Invalid weight values. Please use numbers only.'
+			};
 		}
 	}
 	
@@ -77,10 +105,12 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
+	// If we get here, none of the patterns matched
 	return {
 		sets: 0,
 		reps: 0,
 		weight: 0,
-		isValid: false
+		isValid: false,
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg") or "sets x reps @weight1 weight2..." for multiple weights'
 	};
 } 

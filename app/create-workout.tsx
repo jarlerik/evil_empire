@@ -127,13 +127,13 @@ export default function CreateWorkout() {
 
 					{/* Week Selector Dropdown */}
 					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
-						<View style={{ width: 140 }}>
+						<View style={styles.pickerContainer}>
 							<Picker
 								selectedValue={format(selectedWeekStart, 'yyyy-MM-dd')}
 								onValueChange={handleWeekChange}
-								style={{ color: '#fff', backgroundColor: 'transparent', height: 36 }}
+								style={styles.picker}
 								dropdownIconColor="#fff"
-								itemStyle={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}
+								itemStyle={styles.pickerItem}
 								mode="dropdown"
 							>
 								{weekOptions.map((opt) => (
@@ -283,5 +283,24 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: '600',
+	},
+	pickerContainer: {
+		width: 140,
+		backgroundColor: '#111',
+		borderRadius: 8,
+		overflow: 'hidden',
+	},
+	picker: {
+		color: '#fff',
+		backgroundColor: 'transparent',
+		height: 40,
+		fontSize: 16,
+		fontWeight: 'bold',
+	},
+	pickerItem: {
+		color: '#fff',
+		fontWeight: 'bold',
+		fontSize: 16,
+		backgroundColor: '#111',
 	},
 });
