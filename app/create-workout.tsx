@@ -195,7 +195,7 @@ export default function CreateWorkout() {
 									</Text>
 									<View
 										style={{
-											backgroundColor: isSelected ? '#fff' : 'transparent',
+											backgroundColor: isPast ? 'transparent' : isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
 											borderRadius: 20,
 											width: 40,
 											height: 40,
