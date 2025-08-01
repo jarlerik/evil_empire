@@ -3,6 +3,7 @@ export interface ParsedSetData {
 	reps: number;
 	weight: number;
 	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
+	wavePhases?: Array<{sets: number, reps: number, weight: number}>; // For wave exercises
 	isValid: boolean;
 	errorMessage?: string; // Error message when parsing fails
 	compoundReps?: number[]; // For compound exercises like "2 + 2"
@@ -58,32 +59,36 @@ export function parseSetInput(input: string): ParsedSetData {
 		// Parse multiple weights
 		const weights = weightsStr.trim().split(/\s+/).map(w => parseFloat(w));
 		
-		// Validate that number of weights matches number of sets
-		if (weights.length === sets && weights.every(w => !isNaN(w))) {
-			return {
-				sets,
-				reps,
-				weight: weights[0], // Keep for backward compatibility
-				weights,
-				isValid: true
-			};
-		} else if (weights.length !== sets) {
-			return {
-				sets: 0,
-				reps: 0,
-				weight: 0,
-				isValid: false,
-				errorMessage: `Expected ${sets} weights for ${sets} sets, but got ${weights.length}`
-			};
-		} else {
-			return {
-				sets: 0,
-				reps: 0,
-				weight: 0,
-				isValid: false,
-				errorMessage: 'Invalid weight values. Please use numbers only.'
-			};
+		// Only process as multiple weights if there are actually multiple weights
+		if (weights.length > 1) {
+			// Validate that number of weights matches number of sets
+			if (weights.length === sets && weights.every(w => !isNaN(w) && w > 0)) {
+				return {
+					sets,
+					reps,
+					weight: weights[0], // Keep for backward compatibility
+					weights,
+					isValid: true
+				};
+			} else if (weights.length !== sets) {
+				return {
+					sets: 0,
+					reps: 0,
+					weight: 0,
+					isValid: false,
+					errorMessage: `Expected ${sets} weights for ${sets} sets, but got ${weights.length}`
+				};
+			} else {
+				return {
+					sets: 0,
+					reps: 0,
+					weight: 0,
+					isValid: false,
+					errorMessage: 'Invalid weight values. Please use numbers only.'
+				};
+			}
 		}
+		// If only one weight, let it fall through to simple pattern
 	}
 	
 	// Pattern 2: Compound format "sets x reps1 + reps2 @weight"
@@ -105,12 +110,110 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
+	// Pattern 3: Wave format "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")
+	// More flexible pattern to handle extra spaces
+	const wavePattern = /^((?:\d+\s*\-?\s*)+)\s+(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	const waveMatch = cleanInput.match(wavePattern);
+	
+	if (waveMatch) {
+		const repsStr = waveMatch[1];
+		const weight = parseFloat(waveMatch[2]);
+		
+		// Validate weight is positive
+		if (weight <= 0) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+			};
+		}
+		
+		// Parse wave reps (split by hyphens)
+		const waveReps = repsStr.split('-').map(r => parseInt(r.trim()));
+		
+		// Validate that all reps are valid numbers
+		if (waveReps.every(r => !isNaN(r) && r > 0)) {
+			// Create individual phases for each set in the wave
+			const wavePhases = waveReps.map((reps) => ({
+				sets: 1,
+				reps,
+				weight: weight // All phases get the same weight
+			}));
+			
+			return {
+				sets: waveReps.length,
+				reps: waveReps[0], // First rep count for backward compatibility
+				weight,
+				wavePhases,
+				isValid: true
+			};
+		} else {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+			};
+		}
+	}
+	
+	// Check for multiple weights-like patterns that failed validation (check this first)
+	const multipleWeightsLikePattern = /^\d+\s*x\s*\d+\s*@\s*[\d\s]+/i;
+	if (multipleWeightsLikePattern.test(cleanInput)) {
+		return {
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Invalid weight values. Please use numbers only.'
+		};
+	}
+	
+	// Check for wave-like patterns that failed validation
+	const waveLikePattern = /^[\d\-\s]+[\d\.]+/i;
+	if (waveLikePattern.test(cleanInput)) {
+		return {
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+		};
+	}
+	
+	// Check for wave-like patterns with non-numeric characters
+	const waveWithNonNumericPattern = /^[\d\-\s]*[a-zA-Z][\d\-\s]*[\d\.]+/i;
+	if (waveWithNonNumericPattern.test(cleanInput)) {
+		return {
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+		};
+	}
+	
+	// Check for any pattern that looks like wave but failed validation
+	const anyWaveLikePattern = /^[\d\-\s]*[a-zA-Z][\d\-\s]*\d+/i;
+	if (anyWaveLikePattern.test(cleanInput)) {
+		return {
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+		};
+	}
+	
 	// If we get here, none of the patterns matched
 	return {
 		sets: 0,
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg") or "sets x reps @weight1 weight2..." for multiple weights'
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, or "reps1-reps2-reps3... weight" for wave exercises'
 	};
 } 
