@@ -125,21 +125,41 @@ export default function CreateWorkout() {
 						{format(selectedDate, 'LLLL')}
 					</Text>
 
-					{/* Week Selector Dropdown */}
+					{/* Week Selector with Navigation Arrows */}
 					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
 						<View style={styles.pickerContainer}>
-							<Picker
-								selectedValue={format(selectedWeekStart, 'yyyy-MM-dd')}
-								onValueChange={handleWeekChange}
-								style={styles.picker}
-								dropdownIconColor="#fff"
-								itemStyle={styles.pickerItem}
-								mode="dropdown"
+							<Pressable 
+								style={[
+									styles.arrowButton,
+									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowButtonDisabled
+								]}
+								onPress={() => {
+									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
+									const prevIndex = currentIndex > 0 ? currentIndex - 1 : weekOptions.length - 1;
+									handleWeekChange(weekOptions[prevIndex].value);
+								}}
+								disabled={isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 })}
 							>
-								{weekOptions.map((opt) => (
-									<Picker.Item key={opt.value} label={opt.label} value={opt.value} />
-								))}
-							</Picker>
+								<Text style={[
+									styles.arrowText,
+									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowTextDisabled
+								]}>‹</Text>
+							</Pressable>
+							
+							<Text style={styles.pickerText}>
+								{weekOptions.find(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'))?.label || 'Week 31'}
+							</Text>
+							
+							<Pressable 
+								style={styles.arrowButton}
+								onPress={() => {
+									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
+									const nextIndex = (currentIndex + 1) % weekOptions.length;
+									handleWeekChange(weekOptions[nextIndex].value);
+								}}
+							>
+								<Text style={styles.arrowText}>›</Text>
+							</Pressable>
 						</View>
 					</View>
 
@@ -285,22 +305,45 @@ const styles = StyleSheet.create({
 		fontWeight: '600',
 	},
 	pickerContainer: {
-		width: 140,
+		width: 160,
 		backgroundColor: '#111',
 		borderRadius: 8,
-		overflow: 'hidden',
-	},
-	picker: {
-		color: '#fff',
-		backgroundColor: 'transparent',
+		padding: 8,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
 		height: 40,
-		fontSize: 16,
-		fontWeight: 'bold',
 	},
-	pickerItem: {
+	pickerText: {
 		color: '#fff',
-		fontWeight: 'bold',
 		fontSize: 16,
-		backgroundColor: '#111',
+		fontWeight: 'bold',
+		lineHeight: 24,
+		textAlignVertical: 'center',
+	},
+	pickerArrow: {
+		color: '#fff',
+		fontSize: 12,
+	},
+	arrowButton: {
+		padding: 4,
+		backgroundColor: 'transparent',
+		borderRadius: 16,
+		width: 24,
+		height: 24,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	arrowText: {
+		color: '#fff',
+		fontSize: 18,
+		fontWeight: 'bold',
+		lineHeight: 24,
+	},
+	arrowButtonDisabled: {
+		opacity: 0.3,
+	},
+	arrowTextDisabled: {
+		color: '#666',
 	},
 });
