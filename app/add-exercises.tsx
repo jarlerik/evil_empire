@@ -153,7 +153,9 @@ export default function AddExercises() {
 							<Text style={styles.deleteWorkoutButtonText}>×</Text>
 						</Pressable>
 					</View>
-					<Text style={styles.subtitle}>Exercises</Text>
+					<Text style={styles.subtitle}>
+						{exercises.length === 0 ? 'No exercises yet' : 'Exercises'}
+					</Text>
 
 					{[...exercises]
 						.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
