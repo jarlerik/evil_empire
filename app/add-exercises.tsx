@@ -38,7 +38,7 @@ export default function AddExercises() {
 			.from('exercises')
 			.select('*')
 			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: false });
+			.order('created_at', { ascending: true });
 		if (!error && data) {
 			setExercises(data);
 			// Fetch phases for each exercise
@@ -93,7 +93,7 @@ export default function AddExercises() {
 			.from('exercises')
 			.select('*')
 			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: false });
+			.order('created_at', { ascending: true });
 		if (!error && data) {
 			setExercises(data);
 			await fetchExercisePhases(data);
@@ -111,7 +111,7 @@ export default function AddExercises() {
 			.from('exercises')
 			.select('*')
 			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: false });
+			.order('created_at', { ascending: true });
 		if (!error && data) {
 			setExercises(data);
 			await fetchExercisePhases(data);
@@ -157,9 +157,7 @@ export default function AddExercises() {
 						{exercises.length === 0 ? 'No exercises yet' : 'Exercises'}
 					</Text>
 
-					{[...exercises]
-						.sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
-						.map((exercise) => (
+					{exercises.map((exercise) => (
 							<View key={exercise.id} style={styles.exerciseItem}>
 								<View style={styles.exerciseHeader}>
 									<View style={styles.exerciseNameContainer}>

@@ -16,12 +16,20 @@ interface Workout {
 	workout_date?: string;
 }
 
+interface Exercise {
+	id: string;
+	name: string;
+	workout_id: string;
+	created_at?: string;
+}
+
 export default function CreateWorkout() {
 	const [workoutName, setWorkoutName] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { user } = useAuth();
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
+	const [exercises, setExercises] = useState<Record<string, Exercise[]>>({});
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -58,11 +66,35 @@ export default function CreateWorkout() {
 					.select('*')
 					.eq('user_id', user.id)
 					.order('created_at', { ascending: false });
-				if (!error && data) setWorkouts(data);
+				if (!error && data) {
+					setWorkouts(data);
+					// Fetch exercises for each workout
+					await fetchExercises(data);
+				}
 			};
 			fetchWorkouts();
 		}, [supabase, user])
 	);
+
+	const fetchExercises = async (workoutList: Workout[]) => {
+		if (!supabase) return;
+		
+		const exercisesMap: Record<string, Exercise[]> = {};
+		
+		for (const workout of workoutList) {
+			const { data, error } = await supabase
+				.from('exercises')
+				.select('*')
+				.eq('workout_id', workout.id)
+				.order('created_at', { ascending: true });
+			
+			if (!error && data) {
+				exercisesMap[workout.id] = data;
+			}
+		}
+		
+		setExercises(exercisesMap);
+	};
 
 	const handleCreateWorkout = async () => {
 		if (!workoutName.trim()) return;
@@ -85,13 +117,16 @@ export default function CreateWorkout() {
 			return;
 		}
 		setWorkoutName('');
-		// Refetch workouts after creation
+		// Refetch workouts and exercises after creation
 		const { data, error } = await supabase
 			.from('workouts')
 			.select('*')
 			.eq('user_id', user.id)
 			.order('created_at', { ascending: false });
-		if (!error && data) setWorkouts(data);
+		if (!error && data) {
+			setWorkouts(data);
+			await fetchExercises(data);
+		}
 	};
 
 	const handleDeleteWorkout = async (id: string) => {
@@ -99,14 +134,17 @@ export default function CreateWorkout() {
 		setDeletingId(id);
 		await supabase.from('workouts').delete().eq('id', id);
 		setDeletingId(null);
-		// Refetch workouts after deletion
+		// Refetch workouts and exercises after deletion
 		if (!user) return;
 		const { data, error } = await supabase
 			.from('workouts')
 			.select('*')
 			.eq('user_id', user.id)
 			.order('created_at', { ascending: false });
-		if (!error && data) setWorkouts(data);
+		if (!error && data) {
+			setWorkouts(data);
+			await fetchExercises(data);
+		}
 	};
 
 	return (
@@ -230,15 +268,26 @@ export default function CreateWorkout() {
 							workouts
 								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
 								.map((w) => (
-									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-										<View style={{ flex: 1 }}>
-											<Text style={{ color: '#fff', fontSize: 16 }}>{w.name}</Text>
+									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12 }}>
+										<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: exercises[w.id] && exercises[w.id].length > 0 ? 8 : 0 }}>
+											<View style={{ flex: 1 }}>
+												<Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{w.name}</Text>
+											</View>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
+												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+													<Ionicons name="pencil" size={22} color="#fff" />
+												</Pressable>
+											</View>
 										</View>
-										<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
-											<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
-												<Ionicons name="pencil" size={22} color="#fff" />
-											</Pressable>
-										</View>
+										{exercises[w.id] && exercises[w.id].length > 0 && (
+											<View style={{ marginTop: 8 }}>
+												{exercises[w.id].map((exercise, index) => (
+													<Text key={exercise.id} style={{ color: '#666', fontSize: 14, marginTop: 2 }}>
+														{index + 1}. {exercise.name}
+													</Text>
+												))}
+											</View>
+										)}
 									</View>
 								))
 						)}
