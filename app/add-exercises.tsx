@@ -56,7 +56,7 @@ export default function AddExercises() {
 				.from('exercise_phases')
 				.select('*')
 				.eq('exercise_id', exercise.id)
-				.order('created_at', { ascending: false });
+				.order('created_at', { ascending: true });
 			
 			if (!error && data) {
 				phasesMap[exercise.id] = data;

@@ -36,7 +36,7 @@ export default function EditExercise() {
 			.from('exercise_phases')
 			.select('*')
 			.eq('exercise_id', exerciseId)
-			.order('created_at', { ascending: false });
+			.order('created_at', { ascending: true });
 		
 		if (!error && data) {
 			setExercisePhases(data);
@@ -69,6 +69,34 @@ export default function EditExercise() {
 		// Add weights array if multiple weights are specified
 		if (parsedData.weights) {
 			insertData.weights = parsedData.weights;
+		}
+
+		// Add wave phases if it's a wave exercise
+		if (parsedData.wavePhases) {
+			// Create multiple phases for wave exercise
+			for (const phase of parsedData.wavePhases) {
+				const phaseData = {
+					exercise_id: exerciseId,
+					sets: phase.sets,
+					repetitions: phase.reps,
+					weight: phase.weight
+				};
+				
+				const { error: phaseError } = await supabase
+					.from('exercise_phases')
+					.insert(phaseData);
+				
+				if (phaseError) {
+					console.error('Error adding wave phase:', phaseError);
+					alert('Error adding wave phase');
+					return;
+				}
+			}
+			
+			// Clear input and refresh phases
+			setSetInput('');
+			fetchExercisePhases();
+			return;
 		}
 
 		const { error } = await supabase
@@ -169,7 +197,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg or 3 x 1 @50 60 70"
+							placeholder="4 x 3 @50kg, 3 x 1 @50 60 70, or 3-2-1-1-1 65"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}
@@ -179,10 +207,10 @@ export default function EditExercise() {
 					{exercisePhases.map((phase) => (
 						<View key={phase.id} style={styles.phaseContainer}>
 							<Text style={styles.phaseText}>
-								{phase.sets} x {phase.compound_reps ? 
-									`${phase.compound_reps[0]} + ${phase.compound_reps[1]}` : 
-									phase.repetitions
-								} @{phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}
+								{phase.compound_reps ? 
+									`${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}` :
+									`${phase.sets} x ${phase.repetitions} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}`
+								}
 							</Text>
 							<Pressable 
 								onPress={() => handleDeletePhase(phase.id)}
