@@ -318,8 +318,9 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: 'bold',
-		lineHeight: 24,
+		lineHeight: 16,
 		textAlignVertical: 'center',
+		includeFontPadding: false,
 	},
 	pickerArrow: {
 		color: '#fff',
@@ -333,12 +334,15 @@ const styles = StyleSheet.create({
 		height: 24,
 		alignItems: 'center',
 		justifyContent: 'center',
+		display: 'flex',
 	},
 	arrowText: {
 		color: '#fff',
 		fontSize: 18,
 		fontWeight: 'bold',
-		lineHeight: 24,
+		lineHeight: 18,
+		textAlignVertical: 'center',
+		includeFontPadding: false,
 	},
 	arrowButtonDisabled: {
 		opacity: 0.3,
