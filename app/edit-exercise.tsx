@@ -2,7 +2,8 @@ import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidin
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
+import { parseSetInput, ParsedSetData, reverseParsePhase } from '../lib/parseSetInput';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ExercisePhase {
 	id: string;
@@ -22,13 +23,12 @@ export default function EditExercise() {
 	const [setInput, setSetInput] = useState('');
 	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+	const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!exerciseId || !supabase) return;
 		fetchExercisePhases();
 	}, [exerciseId]);
-
-
 
 	const fetchExercisePhases = async () => {
 		if (!supabase || !exerciseId) return;
@@ -43,6 +43,16 @@ export default function EditExercise() {
 		}
 	};
 
+	const handleEditPhase = (phase: ExercisePhase) => {
+		setEditingPhaseId(phase.id);
+		setSetInput(reverseParsePhase(phase));
+	};
+
+	const handleCancelEdit = () => {
+		setEditingPhaseId(null);
+		setSetInput('');
+	};
+
 	const handleAddSet = async () => {
 		const parsedData = parseSetInput(setInput);
 		if (!parsedData.isValid) {
@@ -53,6 +63,44 @@ export default function EditExercise() {
 		if (!exerciseId || !supabase) return;
 		
 		setIsLoading(true);
+
+		// If we're editing an existing phase, update it instead of creating a new one
+		if (editingPhaseId) {
+			const updateData: any = {
+				sets: parsedData.sets,
+				repetitions: parsedData.reps,
+				weight: parsedData.weight
+			};
+
+			// Add compound_reps if it's a compound exercise
+			if (parsedData.compoundReps) {
+				updateData.compound_reps = parsedData.compoundReps;
+			} else {
+				updateData.compound_reps = null; // Clear compound_reps if not present
+			}
+
+			// Add weights array if multiple weights are specified
+			if (parsedData.weights) {
+				updateData.weights = parsedData.weights;
+			} else {
+				updateData.weights = null; // Clear weights if not present
+			}
+
+			const { error } = await supabase
+				.from('exercise_phases')
+				.update(updateData)
+				.eq('id', editingPhaseId);
+
+			if (!error) {
+				setSetInput('');
+				setEditingPhaseId(null);
+				fetchExercisePhases();
+			} else {
+				alert('Error updating phase');
+			}
+			setIsLoading(false);
+			return;
+		}
 
 		const insertData: any = {
 			exercise_id: exerciseId,
@@ -182,15 +230,25 @@ export default function EditExercise() {
 					<View style={styles.setsSection}>
 						<View style={styles.setsHeader}>
 							<Text style={styles.subtitle}>Sets and repetitions</Text>
-							<Pressable 
-								style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
-								onPress={handleAddSet}
-								disabled={isLoading}
-							>
-								<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
-									{isLoading ? '...' : 'Add'}
-								</Text>
-							</Pressable>
+							<View style={styles.headerButtons}>
+								{editingPhaseId && (
+									<Pressable 
+										style={styles.cancelButton} 
+										onPress={handleCancelEdit}
+									>
+										<Text style={styles.cancelButtonText}>Cancel</Text>
+									</Pressable>
+								)}
+								<Pressable 
+									style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
+									onPress={handleAddSet}
+									disabled={isLoading}
+								>
+									<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
+										{isLoading ? '...' : editingPhaseId ? 'Update' : 'Add'}
+									</Text>
+								</Pressable>
+							</View>
 						</View>
 						
 						<TextInput
@@ -205,19 +263,33 @@ export default function EditExercise() {
 					</View>
 
 					{exercisePhases.map((phase) => (
-						<View key={phase.id} style={styles.phaseContainer}>
+						<View 
+							key={phase.id} 
+							style={[
+								styles.phaseContainer,
+								editingPhaseId === phase.id && styles.phaseContainerEditing
+							]}
+						>
 							<Text style={styles.phaseText}>
 								{phase.compound_reps ? 
 									`${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}` :
 									`${phase.sets} x ${phase.repetitions} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}`
 								}
 							</Text>
-							<Pressable 
-								onPress={() => handleDeletePhase(phase.id)}
-								style={styles.deleteButton}
-							>
-								<Text style={styles.deleteButtonText}>×</Text>
-							</Pressable>
+							<View style={styles.phaseButtons}>
+								<Pressable 
+									onPress={() => handleEditPhase(phase)}
+									style={styles.editButton}
+								>
+									<Ionicons name="pencil-outline" size={22} color="#fff" />
+								</Pressable>
+								<Pressable 
+									onPress={() => handleDeletePhase(phase.id)}
+									style={styles.deleteButton}
+								>
+									<Text style={styles.deleteButtonText}>×</Text>
+								</Pressable>
+							</View>
 						</View>
 					))}
 
@@ -312,6 +384,11 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		marginLeft: 8,
 	},
+	headerButtons: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+	},
 	addButton: {
 		backgroundColor: '#333',
 		borderRadius: 8,
@@ -331,6 +408,19 @@ const styles = StyleSheet.create({
 	addButtonTextDisabled: {
 		color: '#666',
 	},
+	cancelButton: {
+		backgroundColor: '#444',
+		borderRadius: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	cancelButtonText: {
+		color: '#fff',
+		fontSize: 14,
+		fontWeight: '600',
+	},
 	phaseContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -340,8 +430,24 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		marginBottom: 10,
 	},
+	phaseContainerEditing: {
+		borderWidth: 2,
+		borderColor: '#fff',
+	},
 	phaseText: {
 		color: '#fff',
+		fontSize: 16,
+		flex: 1,
+	},
+	phaseButtons: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+	},
+	editButton: {
+		padding: 8,
+	},
+	editButtonText: {
 		fontSize: 16,
 	},
 	deleteButton: {

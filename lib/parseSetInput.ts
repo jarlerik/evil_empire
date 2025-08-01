@@ -216,4 +216,31 @@ export function parseSetInput(input: string): ParsedSetData {
 		isValid: false,
 		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, or "reps1-reps2-reps3... weight" for wave exercises'
 	};
+}
+
+/**
+ * Converts an ExercisePhase back to the input format for editing
+ * @param phase - The exercise phase to convert
+ * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70")
+ */
+export function reverseParsePhase(phase: {
+	sets: number;
+	repetitions: number;
+	weight: number;
+	weights?: number[];
+	compound_reps?: number[];
+}): string {
+	// Handle compound exercises
+	if (phase.compound_reps && phase.compound_reps.length === 2) {
+		return `${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weight}kg`;
+	}
+	
+	// Handle multiple weights
+	if (phase.weights && phase.weights.length > 1) {
+		const weightsStr = phase.weights.map(w => w.toString()).join(' ');
+		return `${phase.sets} x ${phase.repetitions} @${weightsStr}`;
+	}
+	
+	// Handle simple format
+	return `${phase.sets} x ${phase.repetitions} @${phase.weight}kg`;
 } 
