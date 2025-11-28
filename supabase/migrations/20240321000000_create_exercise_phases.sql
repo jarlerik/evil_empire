@@ -1,5 +1,5 @@
 -- Create exercise_phases table
-CREATE TABLE exercise_phases (
+CREATE TABLE IF NOT EXISTS exercise_phases (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
     sets INTEGER NOT NULL,
@@ -12,6 +12,8 @@ CREATE TABLE exercise_phases (
 -- Add RLS policies
 ALTER TABLE exercise_phases ENABLE ROW LEVEL SECURITY;
 
+-- Drop policies if they exist (for idempotency)
+DROP POLICY IF EXISTS "Users can view their own exercise phases" ON exercise_phases;
 CREATE POLICY "Users can view their own exercise phases"
     ON exercise_phases
     FOR SELECT
@@ -25,6 +27,7 @@ CREATE POLICY "Users can view their own exercise phases"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert their own exercise phases" ON exercise_phases;
 CREATE POLICY "Users can insert their own exercise phases"
     ON exercise_phases
     FOR INSERT
@@ -38,6 +41,7 @@ CREATE POLICY "Users can insert their own exercise phases"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update their own exercise phases" ON exercise_phases;
 CREATE POLICY "Users can update their own exercise phases"
     ON exercise_phases
     FOR UPDATE
@@ -51,6 +55,7 @@ CREATE POLICY "Users can update their own exercise phases"
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete their own exercise phases" ON exercise_phases;
 CREATE POLICY "Users can delete their own exercise phases"
     ON exercise_phases
     FOR DELETE
@@ -74,6 +79,7 @@ END;
 $$ language 'plpgsql';
 
 -- Create updated_at trigger
+DROP TRIGGER IF EXISTS set_updated_at ON exercise_phases;
 CREATE TRIGGER set_updated_at
     BEFORE UPDATE ON exercise_phases
     FOR EACH ROW

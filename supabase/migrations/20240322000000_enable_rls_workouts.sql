@@ -2,21 +2,26 @@
 ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for workouts table
+-- Drop policies if they exist (for idempotency)
+DROP POLICY IF EXISTS "Users can view their own workouts" ON workouts;
 CREATE POLICY "Users can view their own workouts"
     ON workouts
     FOR SELECT
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can insert their own workouts" ON workouts;
 CREATE POLICY "Users can insert their own workouts"
     ON workouts
     FOR INSERT
     WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update their own workouts" ON workouts;
 CREATE POLICY "Users can update their own workouts"
     ON workouts
     FOR UPDATE
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete their own workouts" ON workouts;
 CREATE POLICY "Users can delete their own workouts"
     ON workouts
     FOR DELETE
@@ -26,6 +31,7 @@ CREATE POLICY "Users can delete their own workouts"
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for exercises table
+DROP POLICY IF EXISTS "Users can view their own exercises" ON exercises;
 CREATE POLICY "Users can view their own exercises"
     ON exercises
     FOR SELECT
@@ -36,6 +42,7 @@ CREATE POLICY "Users can view their own exercises"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert their own exercises" ON exercises;
 CREATE POLICY "Users can insert their own exercises"
     ON exercises
     FOR INSERT
@@ -46,6 +53,7 @@ CREATE POLICY "Users can insert their own exercises"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update their own exercises" ON exercises;
 CREATE POLICY "Users can update their own exercises"
     ON exercises
     FOR UPDATE
@@ -56,6 +64,7 @@ CREATE POLICY "Users can update their own exercises"
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete their own exercises" ON exercises;
 CREATE POLICY "Users can delete their own exercises"
     ON exercises
     FOR DELETE

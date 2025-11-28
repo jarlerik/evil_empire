@@ -1,8 +1,8 @@
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { parseSetInput, ParsedSetData, reverseParsePhase } from '../lib/parseSetInput';
+import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ExercisePhase {
@@ -19,7 +19,7 @@ interface ExercisePhase {
 export default function EditExercise() {
 	const params = useLocalSearchParams();
 	const { exerciseId, exerciseName: initialExerciseName } = params;
-	const [exerciseName, setExerciseName] = useState(initialExerciseName as string);
+	const [exerciseName] = useState(initialExerciseName as string);
 	const [setInput, setSetInput] = useState('');
 	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -207,7 +207,7 @@ export default function EditExercise() {
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
 			<ScrollView
-				contentContainerStyle={{ flex: 1 }}
+				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>

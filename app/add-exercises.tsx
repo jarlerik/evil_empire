@@ -136,7 +136,7 @@ export default function AddExercises() {
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
 			<ScrollView
-				contentContainerStyle={{ flex: 1 }}
+				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
