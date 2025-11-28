@@ -157,6 +157,10 @@ export default function CreateWorkout() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
+					<Pressable onPress={() => router.back()} style={styles.backButton}>
+						<Text style={styles.backButtonText}>←</Text>
+					</Pressable>
+
 					<Text style={styles.title}>{'Workouts'}</Text>
 
 					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
@@ -319,6 +323,13 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#000',
 		padding: 20,
+	},
+	backButton: {
+		marginTop: 20,
+	},
+	backButtonText: {
+		color: '#fff',
+		fontSize: 24,
 	},
 	title: {
 		fontSize: 32,
