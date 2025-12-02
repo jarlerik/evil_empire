@@ -7,6 +7,12 @@ export interface ParsedSetData {
 	isValid: boolean;
 	errorMessage?: string; // Error message when parsing fails
 	compoundReps?: number[]; // For compound exercises like "2 + 2"
+	exerciseType?: 'standard' | 'circuit' | 'superset' | 'rm_build'; // Type of exercise
+	notes?: string; // Free-form text for special instructions
+	targetRm?: number; // Target repetition maximum for "Build to XRM" format
+	rirMin?: number; // Minimum Reps in Reserve
+	rirMax?: number; // Maximum Reps in Reserve (for ranges like "2-3RIR")
+	circuitExercises?: Array<{reps: string, name: string}>; // Array of exercise descriptions for circuits/supersets
 }
 
 /**
@@ -160,6 +166,155 @@ export function parseSetInput(input: string): ParsedSetData {
 		}
 	}
 	
+	// Pattern 4: Circuit format with "sets of" - "2 sets of 10/10 banded side step, 10 banded skated walk forward..."
+	const circuitSetsOfPattern = /^([1-9]\d*)\s+sets?\s+of\s+(.+)$/i;
+	const circuitSetsOfMatch = cleanInput.match(circuitSetsOfPattern);
+	
+	if (circuitSetsOfMatch) {
+		const sets = parseInt(circuitSetsOfMatch[1]);
+		const exercisesStr = circuitSetsOfMatch[2];
+		
+		// Parse comma-separated exercises
+		const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
+		const circuitExercises: Array<{reps: string, name: string}> = [];
+		
+		for (const exercise of exercises) {
+			// Match pattern: "10/10 exercise name" or "10 exercise name"
+			const exerciseMatch = exercise.match(/^(\d+(?:\/\d+)?)\s+(.+)$/);
+			if (exerciseMatch) {
+				circuitExercises.push({
+					reps: exerciseMatch[1],
+					name: exerciseMatch[2]
+				});
+			} else {
+				// If no match, treat entire string as exercise name with no reps
+				circuitExercises.push({
+					reps: '',
+					name: exercise
+				});
+			}
+		}
+		
+		if (circuitExercises.length > 0) {
+			return {
+				sets,
+				reps: 0, // Circuits don't have a single rep count
+				weight: 0, // Circuits typically don't have weights
+				isValid: true,
+				exerciseType: 'circuit',
+				circuitExercises
+			};
+		}
+	}
+	
+	// Pattern 5: Circuit format with "x" - "2 x 10/10 banded side step, 10 banded skated walk forward..."
+	const circuitXPattern = /^([1-9]\d*)\s+x\s+(.+)$/i;
+	const circuitXMatch = cleanInput.match(circuitXPattern);
+	
+	if (circuitXMatch) {
+		const sets = parseInt(circuitXMatch[1]);
+		const exercisesStr = circuitXMatch[2];
+		
+		// Check if this looks like a circuit (has commas and text) vs standard format (has @ and numbers)
+		// Standard format would be "2 x 10 @50" which we already handled
+		if (exercisesStr.includes(',') || (!exercisesStr.includes('@') && /[a-zA-Z]/.test(exercisesStr))) {
+			// Parse comma-separated exercises
+			const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
+			const circuitExercises: Array<{reps: string, name: string}> = [];
+			
+			for (const exercise of exercises) {
+				// Match pattern: "10/10 exercise name" or "10 exercise name"
+				const exerciseMatch = exercise.match(/^(\d+(?:\/\d+)?)\s+(.+)$/);
+				if (exerciseMatch) {
+					circuitExercises.push({
+						reps: exerciseMatch[1],
+						name: exerciseMatch[2]
+					});
+				} else {
+					// If no match, treat entire string as exercise name with no reps
+					circuitExercises.push({
+						reps: '',
+						name: exercise
+					});
+				}
+			}
+			
+			if (circuitExercises.length > 0) {
+				return {
+					sets,
+					reps: 0, // Circuits don't have a single rep count
+					weight: 0, // Circuits typically don't have weights
+					isValid: true,
+					exerciseType: 'circuit',
+					circuitExercises
+				};
+			}
+		}
+	}
+	
+	// Pattern 6: RM Build format - "Build to 8RM" or "build to 8rm"
+	const rmBuildPattern = /^build\s+to\s+(\d+)\s*rm$/i;
+	const rmBuildMatch = cleanInput.match(rmBuildPattern);
+	
+	if (rmBuildMatch) {
+		const targetRm = parseInt(rmBuildMatch[1]);
+		
+		if (targetRm > 0) {
+			return {
+				sets: 0, // RM builds don't have fixed sets
+				reps: 0, // RM builds don't have fixed reps
+				weight: 0, // Weight is built up to
+				isValid: true,
+				exerciseType: 'rm_build',
+				targetRm
+			};
+		}
+	}
+	
+	// Pattern 7: RIR format - "2x 10, 2-3RIR" or "2x 10, 2RIR"
+	// This can be combined with standard sets format
+	const rirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*,\s*(\d+)(?:-(\d+))?\s*rir$/i;
+	const rirMatch = cleanInput.match(rirPattern);
+	
+	if (rirMatch) {
+		const sets = parseInt(rirMatch[1]);
+		const reps = parseInt(rirMatch[2]);
+		const rirMin = parseInt(rirMatch[3]);
+		const rirMax = rirMatch[4] ? parseInt(rirMatch[4]) : undefined;
+		
+		return {
+			sets,
+			reps,
+			weight: 0, // RIR format doesn't specify weight
+			isValid: true,
+			exerciseType: 'standard',
+			rirMin,
+			rirMax: rirMax || rirMin // If no max, use min as max
+		};
+	}
+	
+	// Pattern 8: Standard format with RIR - "2x 10 @50, 2-3RIR"
+	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?\s*,\s*(\d+)(?:-(\d+))?\s*rir$/i;
+	const standardWithRirMatch = cleanInput.match(standardWithRirPattern);
+	
+	if (standardWithRirMatch) {
+		const sets = parseInt(standardWithRirMatch[1]);
+		const reps = parseInt(standardWithRirMatch[2]);
+		const weight = parseFloat(standardWithRirMatch[3]);
+		const rirMin = parseInt(standardWithRirMatch[4]);
+		const rirMax = standardWithRirMatch[5] ? parseInt(standardWithRirMatch[5]) : undefined;
+		
+		return {
+			sets,
+			reps,
+			weight,
+			isValid: true,
+			exerciseType: 'standard',
+			rirMin,
+			rirMax: rirMax || rirMin
+		};
+	}
+	
 	// Check for multiple weights-like patterns that failed validation (check this first)
 	const multipleWeightsLikePattern = /^\d+\s*x\s*\d+\s*@\s*[\d\s]+/i;
 	if (multipleWeightsLikePattern.test(cleanInput)) {
@@ -214,14 +369,14 @@ export function parseSetInput(input: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, or "reps1-reps2-reps3... weight" for wave exercises'
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
 	};
 }
 
 /**
  * Converts an ExercisePhase back to the input format for editing
  * @param phase - The exercise phase to convert
- * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70")
+ * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70", "2 x 10/10 banded side step, 10 banded skated walk forward...", "Build to 8RM", "2x 10, 2-3RIR")
  */
 export function reverseParsePhase(phase: {
 	sets: number;
@@ -229,7 +384,62 @@ export function reverseParsePhase(phase: {
 	weight: number;
 	weights?: number[];
 	compound_reps?: number[];
+	exercise_type?: string;
+	target_rm?: number;
+	rir_min?: number;
+	rir_max?: number;
+	circuit_exercises?: Array<{reps: string, name: string}> | string; // Can be JSONB string from DB
 }): string {
+	// Handle RM build format
+	if (phase.exercise_type === 'rm_build' && phase.target_rm) {
+		return `Build to ${phase.target_rm}RM`;
+	}
+	
+	// Handle circuit format
+	if (phase.exercise_type === 'circuit' && phase.circuit_exercises) {
+		let circuitExercises: Array<{reps: string, name: string}> = [];
+		
+		// Handle JSONB string from database
+		if (typeof phase.circuit_exercises === 'string') {
+			try {
+				circuitExercises = JSON.parse(phase.circuit_exercises);
+			} catch (e) {
+				// If parsing fails, return a fallback
+				return `${phase.sets} sets of ${phase.circuit_exercises}`;
+			}
+		} else {
+			circuitExercises = phase.circuit_exercises;
+		}
+		
+		if (circuitExercises.length > 0) {
+			const exercisesStr = circuitExercises.map(ex => {
+				if (ex.reps && ex.name) {
+					return `${ex.reps} ${ex.name}`;
+				} else if (ex.name) {
+					return ex.name;
+				} else {
+					return '';
+				}
+			}).filter(s => s.length > 0).join(', ');
+			
+			return `${phase.sets} x ${exercisesStr}`;
+		}
+	}
+	
+	// Handle RIR format (with or without weight)
+	if (phase.rir_min !== undefined && phase.rir_min !== null) {
+		const rirStr = phase.rir_max && phase.rir_max !== phase.rir_min 
+			? `${phase.rir_min}-${phase.rir_max}RIR`
+			: `${phase.rir_min}RIR`;
+		
+		// If there's a weight, include it
+		if (phase.weight > 0) {
+			return `${phase.sets} x ${phase.repetitions} @${phase.weight}kg, ${rirStr}`;
+		} else {
+			return `${phase.sets} x ${phase.repetitions}, ${rirStr}`;
+		}
+	}
+	
 	// Handle compound exercises
 	if (phase.compound_reps && phase.compound_reps.length === 2) {
 		return `${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weight}kg`;

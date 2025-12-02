@@ -13,6 +13,12 @@ interface ExercisePhase {
 	weight: number;
 	weights?: number[];
 	compound_reps?: number[];
+	exercise_type?: string;
+	notes?: string;
+	target_rm?: number;
+	rir_min?: number;
+	rir_max?: number;
+	circuit_exercises?: Array<{reps: string, name: string}> | string;
 	created_at: string;
 }
 
@@ -86,6 +92,43 @@ export default function EditExercise() {
 				updateData.weights = null; // Clear weights if not present
 			}
 
+			// Add exercise type
+			if (parsedData.exerciseType) {
+				updateData.exercise_type = parsedData.exerciseType;
+			} else {
+				updateData.exercise_type = 'standard';
+			}
+
+			// Add notes if present
+			if (parsedData.notes) {
+				updateData.notes = parsedData.notes;
+			} else {
+				updateData.notes = null;
+			}
+
+			// Add target RM if present
+			if (parsedData.targetRm) {
+				updateData.target_rm = parsedData.targetRm;
+			} else {
+				updateData.target_rm = null;
+			}
+
+			// Add RIR values if present
+			if (parsedData.rirMin !== undefined) {
+				updateData.rir_min = parsedData.rirMin;
+				updateData.rir_max = parsedData.rirMax || parsedData.rirMin;
+			} else {
+				updateData.rir_min = null;
+				updateData.rir_max = null;
+			}
+
+			// Add circuit exercises if present
+			if (parsedData.circuitExercises && parsedData.circuitExercises.length > 0) {
+				updateData.circuit_exercises = parsedData.circuitExercises;
+			} else {
+				updateData.circuit_exercises = null;
+			}
+
 			const { error } = await supabase
 				.from('exercise_phases')
 				.update(updateData)
@@ -119,6 +162,34 @@ export default function EditExercise() {
 			insertData.weights = parsedData.weights;
 		}
 
+		// Add exercise type
+		if (parsedData.exerciseType) {
+			insertData.exercise_type = parsedData.exerciseType;
+		} else {
+			insertData.exercise_type = 'standard';
+		}
+
+		// Add notes if present
+		if (parsedData.notes) {
+			insertData.notes = parsedData.notes;
+		}
+
+		// Add target RM if present
+		if (parsedData.targetRm) {
+			insertData.target_rm = parsedData.targetRm;
+		}
+
+		// Add RIR values if present
+		if (parsedData.rirMin !== undefined) {
+			insertData.rir_min = parsedData.rirMin;
+			insertData.rir_max = parsedData.rirMax || parsedData.rirMin;
+		}
+
+		// Add circuit exercises if present
+		if (parsedData.circuitExercises && parsedData.circuitExercises.length > 0) {
+			insertData.circuit_exercises = parsedData.circuitExercises;
+		}
+
 		// Add wave phases if it's a wave exercise
 		if (parsedData.wavePhases) {
 			// Create multiple phases for wave exercise
@@ -136,7 +207,8 @@ export default function EditExercise() {
 				
 				if (phaseError) {
 					console.error('Error adding wave phase:', phaseError);
-					alert('Error adding wave phase');
+					alert('Error adding wave phase: ' + (phaseError.message || 'Unknown error'));
+					setIsLoading(false);
 					return;
 				}
 			}
@@ -144,6 +216,7 @@ export default function EditExercise() {
 			// Clear input and refresh phases
 			setSetInput('');
 			fetchExercisePhases();
+			setIsLoading(false);
 			return;
 		}
 
@@ -154,6 +227,9 @@ export default function EditExercise() {
 		if (!error) {
 			setSetInput('');
 			fetchExercisePhases();
+		} else {
+			console.error('Error adding phase:', error);
+			alert('Error adding phase: ' + (error.message || 'Unknown error'));
 		}
 		setIsLoading(false);
 	};
@@ -191,13 +267,9 @@ export default function EditExercise() {
 			.eq('id', exerciseId);
 
 		if (!error) {
-			router.setParams({
-				editedExercise: exerciseName.trim(),
-				editedIndex: params.index,
-			});
-			// Optionally, show a success message or navigate back
+			router.back();
 		} else {
-			// Optionally, handle error (e.g., show a message)
+			alert('Error saving exercise');
 		}
 	};
 
@@ -211,13 +283,10 @@ export default function EditExercise() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
-					<Pressable onPress={() => router.back()} style={styles.backButton}>
-						<Text style={styles.backButtonText}>←</Text>
-					</Pressable>
-
-					<Text style={styles.title}>Exercise</Text>
-
-					<View style={styles.exerciseNameContainer}>
+					<View style={styles.headerRow}>
+						<Pressable onPress={() => router.back()} style={styles.backButton}>
+							<Text style={styles.backButtonText}>←</Text>
+						</Pressable>
 						<Text style={styles.exerciseName}>{exerciseName}</Text>
 						<Pressable 
 							onPress={() => handleDeleteExercise()}
@@ -246,27 +315,100 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg, 3 x 1 @50 60 70, or 3-2-1-1-1 65"
+							placeholder="4 x 3 @50kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}
+							multiline
+							textAlignVertical="top"
 						/>
+						<Pressable 
+							style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
+							onPress={handleAddSet}
+							disabled={isLoading}
+						>
+							<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
+								{editingPhaseId ? 'Update' : 'Add'}
+							</Text>
+						</Pressable>
 					</View>
 
-					{exercisePhases.map((phase) => (
-						<View 
-							key={phase.id} 
-							style={[
-								styles.phaseContainer,
-								editingPhaseId === phase.id && styles.phaseContainerEditing
-							]}
-						>
-							<Text style={styles.phaseText}>
-								{phase.compound_reps ? 
-									`${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}` :
-									`${phase.sets} x ${phase.repetitions} @${phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`}`
+					{exercisePhases.map((phase) => {
+						const formatPhase = (p: ExercisePhase): string => {
+							// Handle RM build format
+							if (p.exercise_type === 'rm_build' && p.target_rm) {
+								return `Build to ${p.target_rm}RM`;
+							}
+							
+							// Handle circuit format
+							if (p.exercise_type === 'circuit' && p.circuit_exercises) {
+								let circuitExercises: Array<{reps: string, name: string}> = [];
+								
+								// Handle JSONB string from database
+								if (typeof p.circuit_exercises === 'string') {
+									try {
+										circuitExercises = JSON.parse(p.circuit_exercises);
+									} catch (e) {
+										return `${p.sets} sets of ${p.circuit_exercises}`;
+									}
+								} else {
+									circuitExercises = p.circuit_exercises;
 								}
-							</Text>
+								
+								if (circuitExercises.length > 0) {
+									const exercisesStr = circuitExercises.map(ex => {
+										if (ex.reps && ex.name) {
+											return `${ex.reps} ${ex.name}`;
+										} else if (ex.name) {
+											return ex.name;
+										}
+										return '';
+									}).filter(s => s.length > 0).join(', ');
+									
+									return `${p.sets} x ${exercisesStr}`;
+								}
+							}
+							
+							// Handle RIR format
+							if (p.rir_min !== undefined && p.rir_min !== null) {
+								const rirStr = p.rir_max && p.rir_max !== p.rir_min 
+									? `${p.rir_min}-${p.rir_max}RIR`
+									: `${p.rir_min}RIR`;
+								
+								// If there's a weight, include it
+								if (p.weight > 0) {
+									return `${p.sets} x ${p.repetitions} @${p.weights ? p.weights.map(w => `${w}kg`).join(' ') : `${p.weight}kg`}, ${rirStr}`;
+								} else {
+									return `${p.sets} x ${p.repetitions}, ${rirStr}`;
+								}
+							}
+							
+							// Handle compound exercises
+							if (p.compound_reps && p.compound_reps.length === 2) {
+								return `${p.sets} x ${p.compound_reps[0]} + ${p.compound_reps[1]} @${p.weights ? p.weights.map(w => `${w}kg`).join(' ') : `${p.weight}kg`}`;
+							}
+							
+							// Handle multiple weights
+							if (p.weights && p.weights.length > 1) {
+								const weightsStr = p.weights.map(w => `${w}kg`).join(' ');
+								return `${p.sets} x ${p.repetitions} @${weightsStr}`;
+							}
+							
+							// Handle simple format
+							return `${p.sets} x ${p.repetitions} @${p.weight}kg`;
+						};
+						
+						return (
+							<View 
+								key={phase.id} 
+								style={[
+									styles.phaseContainer,
+									editingPhaseId === phase.id && styles.phaseContainerEditing
+								]}
+							>
+								<Text style={styles.phaseText}>
+									{formatPhase(phase)}
+								</Text>
 							<View style={styles.phaseButtons}>
 								<Pressable 
 									onPress={() => handleEditPhase(phase)}
@@ -282,7 +424,8 @@ export default function EditExercise() {
 								</Pressable>
 							</View>
 						</View>
-					))}
+					);
+					})}
 
 					<View style={styles.footer}>
 						<Pressable style={styles.button} onPress={handleSave}>
@@ -301,19 +444,18 @@ const styles = StyleSheet.create({
 		backgroundColor: '#000',
 		padding: 20,
 	},
-	backButton: {
+	headerRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
 		marginTop: 20,
+		marginBottom: 40,
+	},
+	backButton: {
+		marginRight: 12,
 	},
 	backButtonText: {
 		color: '#fff',
 		fontSize: 24,
-	},
-	title: {
-		fontSize: 32,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginTop: 20,
-		marginBottom: 40,
 	},
 	subtitle: {
 		fontSize: 18,
@@ -364,6 +506,7 @@ const styles = StyleSheet.create({
 		padding: 15,
 		fontSize: 16,
 		width: '100%',
+		minHeight: 90,
 	},
 	separator: {
 		color: '#666',
@@ -384,9 +527,10 @@ const styles = StyleSheet.create({
 		backgroundColor: '#333',
 		borderRadius: 8,
 		paddingHorizontal: 16,
-		paddingVertical: 8,
+		paddingVertical: 12,
 		alignItems: 'center',
 		justifyContent: 'center',
+		marginTop: 12,
 	},
 	addButtonDisabled: {
 		borderColor: '#666',
@@ -462,19 +606,11 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '600',
 	},
-	exerciseNameContainer: {
-		backgroundColor: '#111',
-		borderRadius: 8,
-		padding: 15,
-		marginBottom: 20,
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-	},
 	exerciseName: {
 		color: '#fff',
-		fontSize: 24,
+		fontSize: 32,
 		fontWeight: 'bold',
+		flex: 1,
 	},
 	setsSection: {
 		backgroundColor: '#111',
