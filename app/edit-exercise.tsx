@@ -239,15 +239,6 @@ export default function EditExercise() {
 										<Text style={styles.cancelButtonText}>Cancel</Text>
 									</Pressable>
 								)}
-								<Pressable 
-									style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
-									onPress={handleAddSet}
-									disabled={isLoading}
-								>
-									<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
-										{isLoading ? '...' : editingPhaseId ? 'Update' : 'Add'}
-									</Text>
-								</Pressable>
 							</View>
 						</View>
 						
