@@ -13,6 +13,8 @@ export interface ParsedSetData {
 	rirMin?: number; // Minimum Reps in Reserve
 	rirMax?: number; // Maximum Reps in Reserve (for ranges like "2-3RIR")
 	circuitExercises?: Array<{reps: string, name: string}>; // Array of exercise descriptions for circuits/supersets
+	weightPercentage?: number; // Percentage value (e.g., 80 for 80%)
+	needsRmLookup?: boolean; // Flag indicating RM lookup is needed
 }
 
 /**
@@ -35,6 +37,36 @@ export function parseSetInput(input: string): ParsedSetData {
 
 	// Remove any extra spaces and convert to lowercase for easier parsing
 	const cleanInput = input.trim().toLowerCase();
+	
+	// Pattern 0: Percentage format "sets x reps@80%" or "sets x reps @80%" - check this BEFORE simple pattern
+	const percentagePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
+	const percentageMatch = cleanInput.match(percentagePattern);
+	
+	if (percentageMatch) {
+		const sets = parseInt(percentageMatch[1]);
+		const reps = parseInt(percentageMatch[2]);
+		const percentage = parseFloat(percentageMatch[3]);
+		
+		// Validate percentage is between 0 and 100
+		if (percentage <= 0 || percentage > 100) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Percentage must be between 0 and 100'
+			};
+		}
+		
+		return {
+			sets,
+			reps,
+			weight: 0, // Will be calculated after RM lookup
+			isValid: true,
+			weightPercentage: percentage,
+			needsRmLookup: true
+		};
+	}
 	
 	// Pattern 1: Simple format "sets x reps @weight" or "sets x reps @weightkg"
 	const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
@@ -369,7 +401,7 @@ export function parseSetInput(input: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" for percentage-based weights, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
 	};
 }
 

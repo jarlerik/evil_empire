@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExercisePhase {
 	id: string;
@@ -30,6 +31,7 @@ export default function EditExercise() {
 	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+	const { user } = useAuth();
 
 	useEffect(() => {
 		if (!exerciseId || !supabase) return;
@@ -66,16 +68,41 @@ export default function EditExercise() {
 			alert(parsedData.errorMessage || 'Invalid input format');
 			return;
 		}
-		if (!exerciseId || !supabase) return;
+		if (!exerciseId || !supabase || !user) return;
 		
 		setIsLoading(true);
+
+		// Handle percentage-based weights (RM lookup needed)
+		let calculatedWeight = parsedData.weight;
+		if (parsedData.needsRmLookup && parsedData.weightPercentage !== undefined) {
+			// Query for most recent 1RM matching exercise name
+			// Always use 1RM for percentage calculations (as per user requirement)
+			const { data: rmData, error: rmError } = await supabase
+				.from('repetition_maximums')
+				.select('weight')
+				.eq('user_id', user.id)
+				.ilike('exercise_name', exerciseName.trim())
+				.eq('reps', 1) // Always use 1RM for percentage calculations
+				.order('date', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+
+			if (rmError || !rmData) {
+				setIsLoading(false);
+				alert(`No 1RM found for "${exerciseName}". Please set your 1RM first.`);
+				return;
+			}
+
+			// Calculate absolute weight from percentage and round to nearest integer
+			calculatedWeight = Math.round((rmData.weight * parsedData.weightPercentage) / 100);
+		}
 
 		// If we're editing an existing phase, update it instead of creating a new one
 		if (editingPhaseId) {
 			const updateData: any = {
 				sets: parsedData.sets,
 				repetitions: parsedData.reps,
-				weight: parsedData.weight
+				weight: calculatedWeight
 			};
 
 			// Add compound_reps if it's a compound exercise
@@ -149,7 +176,7 @@ export default function EditExercise() {
 			exercise_id: exerciseId,
 			sets: parsedData.sets,
 			repetitions: parsedData.reps,
-			weight: parsedData.weight
+			weight: calculatedWeight
 		};
 
 		// Add compound_reps if it's a compound exercise
@@ -315,7 +342,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
+							placeholder="4 x 3 @50kg, 4 x 5@80%, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}

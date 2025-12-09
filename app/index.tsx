@@ -140,6 +140,12 @@ export default function Index() {
 					<Pressable style={styles.button} onPress={handleCreateWorkout}>
 						<Text style={styles.buttonText}>Workouts</Text>
 					</Pressable>
+					<Pressable 
+						style={[styles.button, styles.buttonMargin]} 
+						onPress={() => router.push('/repetition-maximums')}
+					>
+						<Text style={styles.buttonText}>Repetition Maximums</Text>
+					</Pressable>
 				</View>
 			</View>
 		</Pressable>
@@ -228,6 +234,9 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: '600',
+	},
+	buttonMargin: {
+		marginTop: 12,
 	},
 	weightEditContainer: {
 		alignItems: 'center',
