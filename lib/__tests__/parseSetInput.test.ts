@@ -104,6 +104,17 @@ describe('parseSetInput', () => {
 			});
 		});
 
+		it('should parse compound exercise with multiple rep parts', () => {
+			const result = parseSetInput('4 x 1 + 2 + 2 + 2@40kg');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 7, // Total reps (1 + 2 + 2 + 2)
+				weight: 40,
+				isValid: true,
+				compoundReps: [1, 2, 2, 2]
+			});
+		});
+
 		it('should parse compound exercise without kg suffix', () => {
 			const result = parseSetInput('5 x 2 + 1@60');
 			expect(result).toEqual({
@@ -112,6 +123,32 @@ describe('parseSetInput', () => {
 				weight: 60,
 				isValid: true,
 				compoundReps: [2, 1]
+			});
+		});
+
+		it('should parse compound exercise with percentage', () => {
+			const result = parseSetInput('3 x 1 + 1 + 1@60%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 3, // Total reps (1 + 1 + 1)
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: 60,
+				needsRmLookup: true,
+				compoundReps: [1, 1, 1]
+			});
+		});
+
+		it('should parse compound exercise with multiple parts and percentage', () => {
+			const result = parseSetInput('4 x 1 + 2 + 2 + 2@60%');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 7, // Total reps (1 + 2 + 2 + 2)
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: 60,
+				needsRmLookup: true,
+				compoundReps: [1, 2, 2, 2]
 			});
 		});
 
@@ -419,6 +456,36 @@ describe('parseSetInput', () => {
 		it('should return invalid for compound exercise with zero reps', () => {
 			const result = parseSetInput('4 x 0 + 2@50kg');
 			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for weight range with min > max', () => {
+			const result = parseSetInput('3 x 5@89-85kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Minimum weight must be less than or equal to maximum weight');
+		});
+
+		it('should return invalid for percentage range with min > max', () => {
+			const result = parseSetInput('3 x 5@85-80%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Minimum percentage must be less than or equal to maximum percentage');
+		});
+
+		it('should return invalid for percentage range with values > 100', () => {
+			const result = parseSetInput('3 x 5@101-105%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Percentage must be between 0 and 100');
+		});
+
+		it('should return invalid for percentage range with values <= 0', () => {
+			const result = parseSetInput('3 x 5@0-5%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Percentage must be between 0 and 100');
+		});
+
+		it('should return invalid for weight range with zero or negative values', () => {
+			const result = parseSetInput('3 x 5@0-5kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toBe('Weight must be positive');
 		});
 
 		it('should return invalid for compound exercise with missing plus', () => {

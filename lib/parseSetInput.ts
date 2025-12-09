@@ -15,6 +15,10 @@ export interface ParsedSetData {
 	circuitExercises?: Array<{reps: string, name: string}>; // Array of exercise descriptions for circuits/supersets
 	weightPercentage?: number; // Percentage value (e.g., 80 for 80%)
 	needsRmLookup?: boolean; // Flag indicating RM lookup is needed
+	weightMin?: number; // Minimum weight for ranges (e.g., 80 for "80-85%" or 85 for "85-89kg")
+	weightMax?: number; // Maximum weight for ranges (e.g., 85 for "80-85%" or 89 for "85-89kg")
+	weightMinPercentage?: number; // Minimum percentage for percentage ranges (e.g., 80 for "80-85%")
+	weightMaxPercentage?: number; // Maximum percentage for percentage ranges (e.g., 85 for "80-85%")
 }
 
 /**
@@ -38,7 +42,90 @@ export function parseSetInput(input: string): ParsedSetData {
 	// Remove any extra spaces and convert to lowercase for easier parsing
 	const cleanInput = input.trim().toLowerCase();
 	
-	// Pattern 0: Percentage format "sets x reps@80%" or "sets x reps @80%" - check this BEFORE simple pattern
+	// Pattern 0a: Compound format with percentage "sets x reps1 + reps2 (+ reps3 ...) @percentage%"
+	const compoundPercentagePattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
+	const compoundPercentageMatch = cleanInput.match(compoundPercentagePattern);
+	
+	if (compoundPercentageMatch) {
+		const sets = parseInt(compoundPercentageMatch[1]);
+		const repsSequence = compoundPercentageMatch[2];
+		const percentage = parseFloat(compoundPercentageMatch[3]);
+		
+		// Validate percentage is between 0 and 100
+		if (percentage <= 0 || percentage > 100) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Percentage must be between 0 and 100'
+			};
+		}
+		
+		const repsParts = repsSequence
+			.split('+')
+			.map(r => r.trim())
+			.map(r => parseInt(r, 10))
+			.filter(r => !isNaN(r) && r > 0);
+		
+		if (repsParts.length >= 2) {
+			const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+			return {
+				sets,
+				reps: totalReps, // Total reps for display
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: percentage,
+				needsRmLookup: true,
+				compoundReps: repsParts
+			};
+		}
+	}
+	
+	// Pattern 0b: Percentage range format "sets x reps@80-85%" - check this BEFORE simple percentage
+	const percentageRangePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*%$/i;
+	const percentageRangeMatch = cleanInput.match(percentageRangePattern);
+	
+	if (percentageRangeMatch) {
+		const sets = parseInt(percentageRangeMatch[1]);
+		const reps = parseInt(percentageRangeMatch[2]);
+		const minPercentage = parseFloat(percentageRangeMatch[3]);
+		const maxPercentage = parseFloat(percentageRangeMatch[4]);
+		
+		// Validate percentages are between 0 and 100
+		if (minPercentage <= 0 || minPercentage > 100 || maxPercentage <= 0 || maxPercentage > 100) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Percentage must be between 0 and 100'
+			};
+		}
+		
+		// Validate min <= max
+		if (minPercentage > maxPercentage) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Minimum percentage must be less than or equal to maximum percentage'
+			};
+		}
+		
+		return {
+			sets,
+			reps,
+			weight: 0, // Will be calculated after RM lookup
+			isValid: true,
+			weightMinPercentage: minPercentage,
+			weightMaxPercentage: maxPercentage,
+			needsRmLookup: true
+		};
+	}
+	
+	// Pattern 0c: Simple percentage format "sets x reps@80%" or "sets x reps @80%" - check this AFTER compound percentage and percentage range
 	const percentagePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
 	const percentageMatch = cleanInput.match(percentagePattern);
 	
@@ -65,6 +152,48 @@ export function parseSetInput(input: string): ParsedSetData {
 			isValid: true,
 			weightPercentage: percentage,
 			needsRmLookup: true
+		};
+	}
+	
+	// Pattern 1a: Absolute weight range format "sets x reps@85-89kg" - check this BEFORE simple format
+	const weightRangePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	const weightRangeMatch = cleanInput.match(weightRangePattern);
+	
+	if (weightRangeMatch) {
+		const sets = parseInt(weightRangeMatch[1]);
+		const reps = parseInt(weightRangeMatch[2]);
+		const minWeight = parseFloat(weightRangeMatch[3]);
+		const maxWeight = parseFloat(weightRangeMatch[4]);
+		
+		// Validate weights are positive
+		if (minWeight <= 0 || maxWeight <= 0) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Weight must be positive'
+			};
+		}
+		
+		// Validate min <= max
+		if (minWeight > maxWeight) {
+			return {
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: false,
+				errorMessage: 'Minimum weight must be less than or equal to maximum weight'
+			};
+		}
+		
+		return {
+			sets,
+			reps,
+			weight: minWeight, // Use min for backward compatibility
+			isValid: true,
+			weightMin: minWeight,
+			weightMax: maxWeight
 		};
 	}
 	
@@ -129,22 +258,38 @@ export function parseSetInput(input: string): ParsedSetData {
 		// If only one weight, let it fall through to simple pattern
 	}
 	
-	// Pattern 2: Compound format "sets x reps1 + reps2 @weight"
-	const compoundPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*\+\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	// Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weight"
+	const compoundPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
 	const compoundMatch = cleanInput.match(compoundPattern);
 	
 	if (compoundMatch) {
 		const sets = parseInt(compoundMatch[1]);
-		const reps1 = parseInt(compoundMatch[2]);
-		const reps2 = parseInt(compoundMatch[3]);
-		const weight = parseFloat(compoundMatch[4]);
+		const repsSequence = compoundMatch[2];
+		const weight = parseFloat(compoundMatch[3]);
+		
+		const repsParts = repsSequence
+			.split('+')
+			.map(r => r.trim())
+			.map(r => parseInt(r, 10))
+			.filter(r => !isNaN(r) && r > 0);
+		
+		if (repsParts.length >= 2) {
+			const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+			return {
+				sets,
+				reps: totalReps, // Total reps for display
+				weight,
+				isValid: true,
+				compoundReps: repsParts
+			};
+		}
 		
 		return {
-			sets,
-			reps: reps1 + reps2, // Total reps for display
-			weight,
-			isValid: true,
-			compoundReps: [reps1, reps2]
+			sets: 0,
+			reps: 0,
+			weight: 0,
+			isValid: false,
+			errorMessage: 'Invalid compound format. Use "sets x a + b + ... @weight"'
 		};
 	}
 	
@@ -401,7 +546,7 @@ export function parseSetInput(input: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" for percentage-based weights, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, "sets x reps @85-89kg" for weight ranges, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
 	};
 }
 
@@ -421,6 +566,10 @@ export function reverseParsePhase(phase: {
 	rir_min?: number;
 	rir_max?: number;
 	circuit_exercises?: Array<{reps: string, name: string}> | string; // Can be JSONB string from DB
+	weight_min?: number;
+	weight_max?: number;
+	weight_min_percentage?: number;
+	weight_max_percentage?: number;
 }): string {
 	// Handle RM build format
 	if (phase.exercise_type === 'rm_build' && phase.target_rm) {
@@ -472,9 +621,19 @@ export function reverseParsePhase(phase: {
 		}
 	}
 	
+	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
+	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
+		if (phase.compound_reps && phase.compound_reps.length >= 2) {
+			const repsStr = phase.compound_reps.join(' + ');
+			return `${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`;
+		}
+		return `${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`;
+	}
+	
 	// Handle compound exercises
-	if (phase.compound_reps && phase.compound_reps.length === 2) {
-		return `${phase.sets} x ${phase.compound_reps[0]} + ${phase.compound_reps[1]} @${phase.weight}kg`;
+	if (phase.compound_reps && phase.compound_reps.length >= 2) {
+		const repsStr = phase.compound_reps.join(' + ');
+		return `${phase.sets} x ${repsStr} @${phase.weight}kg`;
 	}
 	
 	// Handle multiple weights

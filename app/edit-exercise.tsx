@@ -20,6 +20,10 @@ interface ExercisePhase {
 	rir_min?: number;
 	rir_max?: number;
 	circuit_exercises?: Array<{reps: string, name: string}> | string;
+	weight_min?: number;
+	weight_max?: number;
+	weight_min_percentage?: number;
+	weight_max_percentage?: number;
 	created_at: string;
 }
 
@@ -74,10 +78,12 @@ export default function EditExercise() {
 
 		// Handle percentage-based weights (RM lookup needed)
 		let calculatedWeight = parsedData.weight;
-		if (parsedData.needsRmLookup && parsedData.weightPercentage !== undefined) {
-			// Query for most recent 1RM matching exercise name
-			// Always use 1RM for percentage calculations (as per user requirement)
-			const { data: rmData, error: rmError } = await supabase
+		let calculatedWeightMin: number | undefined = undefined;
+		let calculatedWeightMax: number | undefined = undefined;
+		
+		if (parsedData.needsRmLookup) {
+			// First, try exact match on exercise name
+			let { data: rmData, error: rmError } = await supabase
 				.from('repetition_maximums')
 				.select('weight')
 				.eq('user_id', user.id)
@@ -87,14 +93,64 @@ export default function EditExercise() {
 				.limit(1)
 				.maybeSingle();
 
+			// If no exact match, try to find a matching base exercise
+			// For compound exercises like "Muscle clean + Push press...", look for "Clean" in existing RMs
+			if ((rmError || !rmData) && exerciseName.includes('+')) {
+				// Get all user's 1RMs to search for partial matches
+				const { data: allRms, error: allRmsError } = await supabase
+					.from('repetition_maximums')
+					.select('exercise_name, weight')
+					.eq('user_id', user.id)
+					.eq('reps', 1)
+					.order('date', { ascending: false });
+
+				if (!allRmsError && allRms && allRms.length > 0) {
+					// Split compound exercise name by '+' and check each part
+					const exerciseParts = exerciseName.split('+').map(part => part.trim().toLowerCase());
+					
+					// Find the first RM where the exercise name is contained in any part of the compound exercise
+					// or where any part of the compound exercise is contained in the RM exercise name
+					for (const rm of allRms) {
+						const rmNameLower = rm.exercise_name.toLowerCase();
+						
+						// Check if any part of the compound exercise matches the RM name
+						for (const part of exerciseParts) {
+							// Check if RM name contains the part (e.g., "Clean" in "Muscle clean")
+							// or if the part contains the RM name (e.g., "clean" contains "clean")
+							if (rmNameLower.includes(part) || part.includes(rmNameLower)) {
+								rmData = { weight: rm.weight };
+								rmError = null;
+								break;
+							}
+						}
+						
+						if (rmData) break;
+					}
+				}
+			}
+
 			if (rmError || !rmData) {
 				setIsLoading(false);
 				alert(`No 1RM found for "${exerciseName}". Please set your 1RM first.`);
 				return;
 			}
 
-			// Calculate absolute weight from percentage and round to nearest integer
-			calculatedWeight = Math.round((rmData.weight * parsedData.weightPercentage) / 100);
+			// Handle percentage ranges
+			if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {
+				calculatedWeightMin = Math.round((rmData.weight * parsedData.weightMinPercentage) / 100);
+				calculatedWeightMax = Math.round((rmData.weight * parsedData.weightMaxPercentage) / 100);
+				calculatedWeight = calculatedWeightMin; // Use min for backward compatibility
+			} else if (parsedData.weightPercentage !== undefined) {
+				// Single percentage
+				calculatedWeight = Math.round((rmData.weight * parsedData.weightPercentage) / 100);
+			}
+		}
+		
+		// Handle absolute weight ranges (already calculated, just need to store)
+		if (parsedData.weightMin !== undefined && parsedData.weightMax !== undefined) {
+			calculatedWeightMin = parsedData.weightMin;
+			calculatedWeightMax = parsedData.weightMax;
+			calculatedWeight = calculatedWeightMin; // Use min for backward compatibility
 		}
 
 		// If we're editing an existing phase, update it instead of creating a new one
@@ -156,6 +212,15 @@ export default function EditExercise() {
 				updateData.circuit_exercises = null;
 			}
 
+			// Add weight ranges if present
+			if (calculatedWeightMin !== undefined && calculatedWeightMax !== undefined) {
+				updateData.weight_min = calculatedWeightMin;
+				updateData.weight_max = calculatedWeightMax;
+			} else {
+				updateData.weight_min = null;
+				updateData.weight_max = null;
+			}
+
 			const { error } = await supabase
 				.from('exercise_phases')
 				.update(updateData)
@@ -215,6 +280,12 @@ export default function EditExercise() {
 		// Add circuit exercises if present
 		if (parsedData.circuitExercises && parsedData.circuitExercises.length > 0) {
 			insertData.circuit_exercises = parsedData.circuitExercises;
+		}
+
+		// Add weight ranges if present
+		if (calculatedWeightMin !== undefined && calculatedWeightMax !== undefined) {
+			insertData.weight_min = calculatedWeightMin;
+			insertData.weight_max = calculatedWeightMax;
 		}
 
 		// Add wave phases if it's a wave exercise
@@ -342,7 +413,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg, 4 x 5@80%, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
+							placeholder="4 x 3 @50kg, 4 x 5@80%, 4 x 5@80-85%, 4 x 5@85-89kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}
@@ -365,6 +436,20 @@ export default function EditExercise() {
 							// Handle RM build format
 							if (p.exercise_type === 'rm_build' && p.target_rm) {
 								return `Build to ${p.target_rm}RM`;
+							}
+							
+							// Handle compound exercises (any number of rep parts)
+							if (p.compound_reps && p.compound_reps.length >= 2) {
+								const repsStr = p.compound_reps.join(' + ');
+								let weightStr: string;
+								if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
+									weightStr = `${p.weight_min}-${p.weight_max}kg`;
+								} else if (p.weights && p.weights.length > 1) {
+									weightStr = p.weights.map(w => `${w}kg`).join(' ');
+								} else {
+									weightStr = `${p.weight}kg`;
+								}
+								return `${p.sets} x ${repsStr} @${weightStr}`;
 							}
 							
 							// Handle circuit format
@@ -404,15 +489,23 @@ export default function EditExercise() {
 								
 								// If there's a weight, include it
 								if (p.weight > 0) {
-									return `${p.sets} x ${p.repetitions} @${p.weights ? p.weights.map(w => `${w}kg`).join(' ') : `${p.weight}kg`}, ${rirStr}`;
+									let weightStr: string;
+									if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
+										weightStr = `${p.weight_min}-${p.weight_max}kg`;
+									} else if (p.weights && p.weights.length > 1) {
+										weightStr = p.weights.map(w => `${w}kg`).join(' ');
+									} else {
+										weightStr = `${p.weight}kg`;
+									}
+									return `${p.sets} x ${p.repetitions} @${weightStr}, ${rirStr}`;
 								} else {
 									return `${p.sets} x ${p.repetitions}, ${rirStr}`;
 								}
 							}
 							
-							// Handle compound exercises
-							if (p.compound_reps && p.compound_reps.length === 2) {
-								return `${p.sets} x ${p.compound_reps[0]} + ${p.compound_reps[1]} @${p.weights ? p.weights.map(w => `${w}kg`).join(' ') : `${p.weight}kg`}`;
+							// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
+							if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
+								return `${p.sets} x ${p.repetitions} @${p.weight_min}-${p.weight_max}kg`;
 							}
 							
 							// Handle multiple weights
