@@ -138,7 +138,7 @@ export default function Index() {
 				</View>
 				<View style={styles.footer}>
 					<Pressable style={styles.button} onPress={handleCreateWorkout}>
-						<Text style={styles.buttonText}>Start workout</Text>
+						<Text style={styles.buttonText}>Workouts</Text>
 					</Pressable>
 				</View>
 			</View>
