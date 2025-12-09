@@ -71,6 +71,9 @@ export default function Index() {
 						<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
 						<Text style={styles.dropdownArrow}>▼</Text>
 					</Pressable>
+					<Pressable onPress={() => router.push('/repetition-maximums')}>
+						<Text style={styles.editWeightButton}>Repetition Maximums</Text>
+					</Pressable>
 					<Modal
 						visible={isEditingUnit}
 						transparent={true}
@@ -139,12 +142,6 @@ export default function Index() {
 				<View style={styles.footer}>
 					<Pressable style={styles.button} onPress={handleCreateWorkout}>
 						<Text style={styles.buttonText}>Workouts</Text>
-					</Pressable>
-					<Pressable 
-						style={[styles.button, styles.buttonMargin]} 
-						onPress={() => router.push('/repetition-maximums')}
-					>
-						<Text style={styles.buttonText}>Repetition Maximums</Text>
 					</Pressable>
 				</View>
 			</View>
