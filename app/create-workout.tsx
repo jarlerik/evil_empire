@@ -282,6 +282,9 @@ export default function CreateWorkout() {
 												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
 													<Ionicons name="pencil" size={22} color="#fff" />
 												</Pressable>
+												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+													<Ionicons name="play" size={22} color="#fff" />
+												</Pressable>
 											</View>
 										</View>
 										{exercises[w.id] && exercises[w.id].length > 0 && (
