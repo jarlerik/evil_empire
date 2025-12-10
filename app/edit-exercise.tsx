@@ -24,6 +24,7 @@ interface ExercisePhase {
 	weight_max?: number;
 	weight_min_percentage?: number;
 	weight_max_percentage?: number;
+	rest_time_seconds?: number;
 	created_at: string;
 }
 
@@ -221,6 +222,13 @@ export default function EditExercise() {
 				updateData.weight_max = null;
 			}
 
+			// Add rest time if present
+			if (parsedData.restTimeSeconds !== undefined) {
+				updateData.rest_time_seconds = parsedData.restTimeSeconds;
+			} else {
+				updateData.rest_time_seconds = null;
+			}
+
 			const { error } = await supabase
 				.from('exercise_phases')
 				.update(updateData)
@@ -288,16 +296,26 @@ export default function EditExercise() {
 			insertData.weight_max = calculatedWeightMax;
 		}
 
+		// Add rest time if present
+		if (parsedData.restTimeSeconds !== undefined) {
+			insertData.rest_time_seconds = parsedData.restTimeSeconds;
+		}
+
 		// Add wave phases if it's a wave exercise
 		if (parsedData.wavePhases) {
 			// Create multiple phases for wave exercise
 			for (const phase of parsedData.wavePhases) {
-				const phaseData = {
+				const phaseData: any = {
 					exercise_id: exerciseId,
 					sets: phase.sets,
 					repetitions: phase.reps,
 					weight: phase.weight
 				};
+				
+				// Add rest time to wave phases if present
+				if (parsedData.restTimeSeconds !== undefined) {
+					phaseData.rest_time_seconds = parsedData.restTimeSeconds;
+				}
 				
 				const { error: phaseError } = await supabase
 					.from('exercise_phases')
@@ -413,7 +431,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg, 4 x 5@80%, 4 x 5@80-85%, 4 x 5@85-89kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR"
+							placeholder="4 x 3 @50kg, 4 x 5@80%, 4 x 5@80-85%, 4 x 5@85-89kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR, 4 x 3 @50kg 120s"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}

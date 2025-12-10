@@ -19,12 +19,45 @@ export interface ParsedSetData {
 	weightMax?: number; // Maximum weight for ranges (e.g., 85 for "80-85%" or 89 for "85-89kg")
 	weightMinPercentage?: number; // Minimum percentage for percentage ranges (e.g., 80 for "80-85%")
 	weightMaxPercentage?: number; // Maximum percentage for percentage ranges (e.g., 85 for "80-85%")
+	restTimeSeconds?: number; // Rest time between sets in seconds (e.g., 120 for 2 minutes)
+}
+
+/**
+ * Parses rest time from the end of input string
+ * Supports formats: "120s", "2m" (requires unit to avoid conflicts with multiple weights)
+ * @param input - The input string that may contain rest time at the end
+ * @returns Object with restTimeSeconds and remainingInput without rest time
+ */
+function parseRestTime(input: string): { restTimeSeconds?: number; remainingInput: string } {
+	// Pattern to match rest time at the end: requires space before number and a unit (s, m, etc.)
+	// Examples: "120s", "2m", "120 s", "2 m"
+	// We require a unit to avoid conflicts with multiple weights format like "3 x 1 @50 60 70"
+	const restTimePattern = /\s+(\d+)\s*(s|m|sec|min|seconds?|minutes?)\s*$/i;
+	const match = input.match(restTimePattern);
+	
+	if (match) {
+		const value = parseInt(match[1], 10);
+		const unit = match[2]?.toLowerCase() || '';
+		
+		let restTimeSeconds: number;
+		if (unit === 'm' || unit === 'min' || unit === 'minute' || unit === 'minutes') {
+			restTimeSeconds = value * 60; // Convert minutes to seconds
+		} else {
+			restTimeSeconds = value; // Seconds
+		}
+		
+		// Remove the rest time part from input
+		const remainingInput = input.substring(0, match.index).trim();
+		return { restTimeSeconds, remainingInput };
+	}
+	
+	return { remainingInput: input };
 }
 
 /**
  * Parses a string input in the format "sets x reps @weight" or "sets x reps @weightkg"
  * Also supports compound exercises like "sets x reps1 + reps2 @weight"
- * @param input - The input string to parse (e.g., "4 x 3 @50kg" or "4 x 2 + 2@50kg")
+ * @param input - The input string to parse (e.g., "4 x 3 @50kg" or "4 x 2 + 2@50kg" or "4 x 3 @50kg 120s")
  * @returns ParsedSetData object with parsed values and validity status
  */
 export function parseSetInput(input: string): ParsedSetData {
@@ -39,8 +72,11 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 
+	// Parse rest time from the end of input
+	const { restTimeSeconds, remainingInput } = parseRestTime(input.trim());
+	
 	// Remove any extra spaces and convert to lowercase for easier parsing
-	const cleanInput = input.trim().toLowerCase();
+	const cleanInput = remainingInput.toLowerCase();
 	
 	// Pattern 0a: Compound format with percentage "sets x reps1 + reps2 (+ reps3 ...) @percentage%"
 	const compoundPercentagePattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
@@ -77,7 +113,8 @@ export function parseSetInput(input: string): ParsedSetData {
 				isValid: true,
 				weightPercentage: percentage,
 				needsRmLookup: true,
-				compoundReps: repsParts
+				compoundReps: repsParts,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		}
 	}
@@ -121,7 +158,8 @@ export function parseSetInput(input: string): ParsedSetData {
 			isValid: true,
 			weightMinPercentage: minPercentage,
 			weightMaxPercentage: maxPercentage,
-			needsRmLookup: true
+			needsRmLookup: true,
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}
 	
@@ -151,7 +189,8 @@ export function parseSetInput(input: string): ParsedSetData {
 			weight: 0, // Will be calculated after RM lookup
 			isValid: true,
 			weightPercentage: percentage,
-			needsRmLookup: true
+			needsRmLookup: true,
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}
 	
@@ -193,59 +232,84 @@ export function parseSetInput(input: string): ParsedSetData {
 			weight: minWeight, // Use min for backward compatibility
 			isValid: true,
 			weightMin: minWeight,
-			weightMax: maxWeight
+			weightMax: maxWeight,
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}
 	
 	// Pattern 1: Simple format "sets x reps @weight" or "sets x reps @weightkg"
-	const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
-	const simpleMatch = cleanInput.match(simplePattern);
+	// Also handle cases like "4 x 3 @50kg 120" where 120 might be rest time without unit
+	// We need to check for this before multiple weights pattern
+	// First check if there are multiple numbers after @ without "kg" - if so, it's likely multiple weights
+	const afterAtCheck = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
+	const numbersAfterAt = afterAtCheck.match(/\d+(?:\.\d+)?/g);
+	const hasMultipleNumbers = numbersAfterAt && numbersAfterAt.length > 1;
+	const hasKgInMiddle = /kg\s+\d/i.test(afterAtCheck);
+	const hasKgAtEnd = /\d+\s*kg\s*$/i.test(afterAtCheck);
 	
-	if (simpleMatch) {
-		const sets = parseInt(simpleMatch[1]);
-		const reps = parseInt(simpleMatch[2]);
-		const weight = parseFloat(simpleMatch[3]);
+	// Only skip simple pattern if there are multiple numbers AND no "kg" (which indicates multiple weights)
+	// Cases like "4 x 3 @50kg" or "4 x 3 @50kg 120" should still match simple pattern
+	if (!hasMultipleNumbers || hasKgInMiddle || hasKgAtEnd) {
+		// Standard simple pattern - allow optional "kg" and optional trailing number (for rest time without unit)
+		const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:\s+\d+)?$/i;
+		const simpleMatch = cleanInput.match(simplePattern);
 		
-		return {
-			sets,
-			reps,
-			weight,
-			isValid: true
-		};
+		if (simpleMatch) {
+			const sets = parseInt(simpleMatch[1]);
+			const reps = parseInt(simpleMatch[2]);
+			const weight = parseFloat(simpleMatch[3]);
+			
+			return {
+				sets,
+				reps,
+				weight,
+				isValid: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
+			};
+		}
 	}
 	
 	// Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3..."
-	const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s*)+)(?:\s*kg)?$/i;
+	// This pattern should only match if there are multiple space-separated numbers after @
+	// and "kg" can only appear at the very end (not after individual weights like "50kg 60")
+	// Also, we need to exclude cases like "4 x 3 @50kg 120" where "kg" appears before the end
+	const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)(?:\s*kg)?$/i;
 	const multipleWeightsMatch = cleanInput.match(multipleWeightsPattern);
 	
 	if (multipleWeightsMatch) {
 		const sets = parseInt(multipleWeightsMatch[1]);
 		const reps = parseInt(multipleWeightsMatch[2]);
-		const weightsStr = multipleWeightsMatch[3];
 		
-		// Parse multiple weights
-		const weights = weightsStr.trim().split(/\s+/).map(w => parseFloat(w));
+		// Extract all numbers after @ (before any "kg" suffix)
+		const afterAt = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
 		
-		// Only process as multiple weights if there are actually multiple weights
-		if (weights.length > 1) {
-			// Validate that number of weights matches number of sets
-			if (weights.length === sets && weights.every(w => !isNaN(w) && w > 0)) {
+		// Check if "kg" appears anywhere except at the very end - if so, it's not multiple weights format
+		// This handles cases like "4 x 3 @50kg 120" which should not be multiple weights
+		const kgBeforeEnd = /kg\s+\d/i.test(afterAt);
+		if (kgBeforeEnd) {
+			// "kg" appears before the end (like "50kg 120"), so this is not a multiple weights format
+			// Try to match as simple format by removing everything after "kg"
+			const simpleMatchAfterKg = afterAt.match(/^(\d+(?:\.\d+)?)\s*kg/i);
+			if (simpleMatchAfterKg) {
+				const weight = parseFloat(simpleMatchAfterKg[1]);
 				return {
 					sets,
 					reps,
-					weight: weights[0], // Keep for backward compatibility
-					weights,
-					isValid: true
+					weight,
+					isValid: true,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
 				};
-			} else if (weights.length !== sets) {
-				return {
-					sets: 0,
-					reps: 0,
-					weight: 0,
-					isValid: false,
-					errorMessage: `Expected ${sets} weights for ${sets} sets, but got ${weights.length}`
-				};
-			} else {
+			}
+			// If we can't parse it, let it fall through to error handling
+		} else {
+			const beforeKg = afterAt.replace(/\s*kg\s*$/i, '').trim();
+			// Split by whitespace and parse, but don't filter yet - we need to check for empty values
+			const weightStrings = beforeKg.split(/\s+/);
+			const weights = weightStrings.map(w => parseFloat(w));
+			
+			// Check for empty values (NaN from empty strings or invalid numbers)
+			const hasEmptyValues = weightStrings.some(w => w.trim() === '' || isNaN(parseFloat(w)));
+			if (hasEmptyValues) {
 				return {
 					sets: 0,
 					reps: 0,
@@ -254,8 +318,42 @@ export function parseSetInput(input: string): ParsedSetData {
 					errorMessage: 'Invalid weight values. Please use numbers only.'
 				};
 			}
+			
+			// Filter out invalid weights and check if we have multiple
+			const validWeights = weights.filter(w => !isNaN(w) && w > 0);
+			
+			// Only process as multiple weights if there are actually multiple weights
+			if (validWeights.length > 1) {
+				// Validate that number of weights matches number of sets
+				if (validWeights.length === sets && validWeights.every(w => !isNaN(w) && w > 0)) {
+					return {
+						sets,
+						reps,
+						weight: validWeights[0], // Keep for backward compatibility
+						weights: validWeights,
+						isValid: true,
+						...(restTimeSeconds !== undefined && { restTimeSeconds })
+					};
+				} else if (validWeights.length !== sets) {
+					return {
+						sets: 0,
+						reps: 0,
+						weight: 0,
+						isValid: false,
+						errorMessage: `Expected ${sets} weights for ${sets} sets, but got ${validWeights.length}`
+					};
+				} else {
+					return {
+						sets: 0,
+						reps: 0,
+						weight: 0,
+						isValid: false,
+						errorMessage: 'Invalid weight values. Please use numbers only.'
+					};
+				}
+			}
 		}
-		// If only one weight, let it fall through to simple pattern
+		// If only one weight or kg appears in middle, let it fall through to simple pattern
 	}
 	
 	// Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weight"
@@ -280,7 +378,8 @@ export function parseSetInput(input: string): ParsedSetData {
 				reps: totalReps, // Total reps for display
 				weight,
 				isValid: true,
-				compoundReps: repsParts
+				compoundReps: repsParts,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		}
 		
@@ -330,7 +429,8 @@ export function parseSetInput(input: string): ParsedSetData {
 				reps: waveReps[0], // First rep count for backward compatibility
 				weight,
 				wavePhases,
-				isValid: true
+				isValid: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		} else {
 			return {
@@ -379,7 +479,8 @@ export function parseSetInput(input: string): ParsedSetData {
 				weight: 0, // Circuits typically don't have weights
 				isValid: true,
 				exerciseType: 'circuit',
-				circuitExercises
+				circuitExercises,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		}
 	}
@@ -394,7 +495,12 @@ export function parseSetInput(input: string): ParsedSetData {
 		
 		// Check if this looks like a circuit (has commas and text) vs standard format (has @ and numbers)
 		// Standard format would be "2 x 10 @50" which we already handled
-		if (exercisesStr.includes(',') || (!exercisesStr.includes('@') && /[a-zA-Z]/.test(exercisesStr))) {
+		// Also exclude patterns that look like "4 x 3 50kg" (missing @) - these should be invalid
+		const looksLikeMissingAt = /^\d+\s*\d*kg?$/i.test(exercisesStr.trim());
+		if (looksLikeMissingAt) {
+			// This looks like "sets x reps weight" without @, should be invalid
+			// Let it fall through to error handling
+		} else if (exercisesStr.includes(',') || (!exercisesStr.includes('@') && /[a-zA-Z]/.test(exercisesStr))) {
 			// Parse comma-separated exercises
 			const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
 			const circuitExercises: Array<{reps: string, name: string}> = [];
@@ -443,7 +549,8 @@ export function parseSetInput(input: string): ParsedSetData {
 				weight: 0, // Weight is built up to
 				isValid: true,
 				exerciseType: 'rm_build',
-				targetRm
+				targetRm,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		}
 	}
@@ -466,7 +573,8 @@ export function parseSetInput(input: string): ParsedSetData {
 			isValid: true,
 			exerciseType: 'standard',
 			rirMin,
-			rirMax: rirMax || rirMin // If no max, use min as max
+			rirMax: rirMax || rirMin, // If no max, use min as max
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}
 	
@@ -488,7 +596,8 @@ export function parseSetInput(input: string): ParsedSetData {
 			isValid: true,
 			exerciseType: 'standard',
 			rirMin,
-			rirMax: rirMax || rirMin
+			rirMax: rirMax || rirMin,
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}
 	
@@ -546,14 +655,14 @@ export function parseSetInput(input: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, "sets x reps @85-89kg" for weight ranges, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, or "2x 10, 2-3RIR" for RIR notation'
+		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, "sets x reps @85-89kg" for weight ranges, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, "2x 10, 2-3RIR" for RIR notation, or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)'
 	};
 }
 
 /**
  * Converts an ExercisePhase back to the input format for editing
  * @param phase - The exercise phase to convert
- * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70", "2 x 10/10 banded side step, 10 banded skated walk forward...", "Build to 8RM", "2x 10, 2-3RIR")
+ * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70", "2 x 10/10 banded side step, 10 banded skated walk forward...", "Build to 8RM", "2x 10, 2-3RIR", "4 x 3 @50kg 120s")
  */
 export function reverseParsePhase(phase: {
 	sets: number;
@@ -570,10 +679,19 @@ export function reverseParsePhase(phase: {
 	weight_max?: number;
 	weight_min_percentage?: number;
 	weight_max_percentage?: number;
+	rest_time_seconds?: number;
 }): string {
+	// Helper function to append rest time
+	const appendRestTime = (str: string): string => {
+		if (phase.rest_time_seconds !== undefined && phase.rest_time_seconds !== null) {
+			return `${str} ${phase.rest_time_seconds}s`;
+		}
+		return str;
+	};
+	
 	// Handle RM build format
 	if (phase.exercise_type === 'rm_build' && phase.target_rm) {
-		return `Build to ${phase.target_rm}RM`;
+		return appendRestTime(`Build to ${phase.target_rm}RM`);
 	}
 	
 	// Handle circuit format
@@ -586,7 +704,7 @@ export function reverseParsePhase(phase: {
 				circuitExercises = JSON.parse(phase.circuit_exercises);
 			} catch (e) {
 				// If parsing fails, return a fallback
-				return `${phase.sets} sets of ${phase.circuit_exercises}`;
+				return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`);
 			}
 		} else {
 			circuitExercises = phase.circuit_exercises;
@@ -603,7 +721,7 @@ export function reverseParsePhase(phase: {
 				}
 			}).filter(s => s.length > 0).join(', ');
 			
-			return `${phase.sets} x ${exercisesStr}`;
+			return appendRestTime(`${phase.sets} x ${exercisesStr}`);
 		}
 	}
 	
@@ -615,9 +733,9 @@ export function reverseParsePhase(phase: {
 		
 		// If there's a weight, include it
 		if (phase.weight > 0) {
-			return `${phase.sets} x ${phase.repetitions} @${phase.weight}kg, ${rirStr}`;
+			return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg, ${rirStr}`);
 		} else {
-			return `${phase.sets} x ${phase.repetitions}, ${rirStr}`;
+			return appendRestTime(`${phase.sets} x ${phase.repetitions}, ${rirStr}`);
 		}
 	}
 	
@@ -625,23 +743,23 @@ export function reverseParsePhase(phase: {
 	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
 		if (phase.compound_reps && phase.compound_reps.length >= 2) {
 			const repsStr = phase.compound_reps.join(' + ');
-			return `${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`;
+			return appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`);
 		}
-		return `${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`;
+		return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`);
 	}
 	
 	// Handle compound exercises
 	if (phase.compound_reps && phase.compound_reps.length >= 2) {
 		const repsStr = phase.compound_reps.join(' + ');
-		return `${phase.sets} x ${repsStr} @${phase.weight}kg`;
+		return appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight}kg`);
 	}
 	
 	// Handle multiple weights
 	if (phase.weights && phase.weights.length > 1) {
 		const weightsStr = phase.weights.map(w => w.toString()).join(' ');
-		return `${phase.sets} x ${phase.repetitions} @${weightsStr}`;
+		return appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`);
 	}
 	
 	// Handle simple format
-	return `${phase.sets} x ${phase.repetitions} @${phase.weight}kg`;
+	return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg`);
 } 

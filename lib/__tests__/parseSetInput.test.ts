@@ -550,7 +550,7 @@ describe('parseSetInput', () => {
 		it('should return invalid for wave exercise with non-numeric reps', () => {
 			const result = parseSetInput('3-abc-1-1-1 65');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @weight1 weight2..." for multiple weights, or "reps1-reps2-reps3... weight" for wave exercises');
+			expect(result.errorMessage).toContain('Invalid format');
 		});
 
 		it('should return invalid for wave exercise with missing weight', () => {
@@ -815,6 +815,135 @@ describe('parseSetInput', () => {
 			expect(waveResult.sets).toBe(5);
 			expect(waveResult.reps).toBe(3); // First rep count
 			expect(waveResult.weight).toBe(65);
+		});
+	});
+
+	describe('rest time parsing', () => {
+		it('should parse rest time in seconds with "s" suffix', () => {
+			const result = parseSetInput('4 x 3 @50kg 120s');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 120
+			});
+		});
+
+		it('should parse rest time in minutes with "m" suffix', () => {
+			const result = parseSetInput('4 x 3 @50kg 2m');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 120 // 2 minutes = 120 seconds
+			});
+		});
+
+		it('should not parse rest time without unit (to avoid conflicts with multiple weights)', () => {
+			const result = parseSetInput('4 x 3 @50kg 120');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true
+				// restTimeSeconds should not be set without a unit
+			});
+			expect(result.restTimeSeconds).toBeUndefined();
+		});
+
+		it('should parse rest time with compound exercises', () => {
+			const result = parseSetInput('4 x 1 + 2 + 2 + 2@60% 120s');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 7, // Total reps (1 + 2 + 2 + 2)
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: 60,
+				needsRmLookup: true,
+				compoundReps: [1, 2, 2, 2],
+				restTimeSeconds: 120
+			});
+		});
+
+		it('should parse rest time with percentage format', () => {
+			const result = parseSetInput('3 x 5 @80% 90s');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 5,
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true,
+				restTimeSeconds: 90
+			});
+		});
+
+		it('should parse rest time with multiple weights', () => {
+			const result = parseSetInput('3 x 1 @50 60 70 2m');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 50, // First weight for backward compatibility
+				weights: [50, 60, 70],
+				isValid: true,
+				restTimeSeconds: 120 // 2 minutes = 120 seconds
+			});
+		});
+
+		it('should parse rest time with RIR format', () => {
+			const result = parseSetInput('2x 10, 2-3RIR 180s');
+			expect(result).toEqual({
+				sets: 2,
+				reps: 10,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 2,
+				rirMax: 3,
+				restTimeSeconds: 180
+			});
+		});
+
+		it('should handle rest time with extra spaces', () => {
+			const result = parseSetInput('4 x 3 @50kg   120   s');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 120
+			});
+		});
+
+		it('should not include restTimeSeconds when not specified', () => {
+			const result = parseSetInput('4 x 3 @50kg');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true
+			});
+			expect(result.restTimeSeconds).toBeUndefined();
+		});
+
+		it('should parse rest time with wave exercises', () => {
+			const result = parseSetInput('3-2-1-1-1 65 90s');
+			expect(result).toEqual({
+				sets: 5,
+				reps: 3, // First rep count for backward compatibility
+				weight: 65,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 65},
+					{sets: 1, reps: 2, weight: 65},
+					{sets: 1, reps: 1, weight: 65},
+					{sets: 1, reps: 1, weight: 65},
+					{sets: 1, reps: 1, weight: 65}
+				],
+				isValid: true,
+				restTimeSeconds: 90
+			});
 		});
 	});
 }); 

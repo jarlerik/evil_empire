@@ -26,6 +26,7 @@ interface ExercisePhase {
 	rir_min?: number;
 	rir_max?: number;
 	circuit_exercises?: Array<{reps: string, name: string}> | string;
+	rest_time_seconds?: number;
 	created_at: string;
 }
 
@@ -73,9 +74,17 @@ export default function AddExercises() {
 	};
 
 	const formatExercisePhase = (phase: ExercisePhase) => {
+		// Helper function to append rest time
+		const appendRestTime = (str: string): string => {
+			if (phase.rest_time_seconds !== undefined && phase.rest_time_seconds !== null) {
+				return `${str} ${phase.rest_time_seconds}s`;
+			}
+			return str;
+		};
+		
 		// Handle RM build format
 		if (phase.exercise_type === 'rm_build' && phase.target_rm) {
-			return `Build to ${phase.target_rm}RM`;
+			return appendRestTime(`Build to ${phase.target_rm}RM`);
 		}
 		
 		// Handle circuit format
@@ -87,7 +96,7 @@ export default function AddExercises() {
 				try {
 					circuitExercises = JSON.parse(phase.circuit_exercises);
 				} catch (e) {
-					return `${phase.sets} sets of ${phase.circuit_exercises}`;
+					return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`);
 				}
 			} else {
 				circuitExercises = phase.circuit_exercises;
@@ -103,7 +112,7 @@ export default function AddExercises() {
 					return '';
 				}).filter(s => s.length > 0).join(', ');
 				
-				return `${phase.sets}× ${exercisesStr}`;
+				return appendRestTime(`${phase.sets}× ${exercisesStr}`);
 			}
 		}
 		
@@ -116,9 +125,9 @@ export default function AddExercises() {
 			// If there's a weight, include it
 			if (phase.weight > 0) {
 				const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-				return `${phase.sets}×${phase.repetitions} @ ${weightStr}, ${rirStr}`;
+				return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}, ${rirStr}`);
 			} else {
-				return `${phase.sets}×${phase.repetitions}, ${rirStr}`;
+				return appendRestTime(`${phase.sets}×${phase.repetitions}, ${rirStr}`);
 			}
 		}
 		
@@ -126,18 +135,18 @@ export default function AddExercises() {
 		if (phase.compound_reps && phase.compound_reps.length > 0) {
 			const compoundRepsStr = phase.compound_reps.join(' + ');
 			const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-			return `${phase.sets}×${compoundRepsStr} @ ${weightStr}`;
+			return appendRestTime(`${phase.sets}×${compoundRepsStr} @ ${weightStr}`);
 		}
 		
 		// Handle multiple weights
 		if (phase.weights && phase.weights.length > 1) {
 			const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
-			return `${phase.sets}×${phase.repetitions} @ ${weightStr}`;
+			return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
 		}
 		
 		// Handle simple format
 		const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-		return `${phase.sets}×${phase.repetitions} @ ${weightStr}`;
+		return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
 	};
 
 	useFocusEffect(
