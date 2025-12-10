@@ -451,9 +451,17 @@ export default function EditExercise() {
 
 					{exercisePhases.map((phase) => {
 						const formatPhase = (p: ExercisePhase): string => {
+							// Helper function to append rest time
+							const appendRestTime = (str: string): string => {
+								if (p.rest_time_seconds !== undefined && p.rest_time_seconds !== null) {
+									return `${str} ${p.rest_time_seconds}s`;
+								}
+								return str;
+							};
+							
 							// Handle RM build format
 							if (p.exercise_type === 'rm_build' && p.target_rm) {
-								return `Build to ${p.target_rm}RM`;
+								return appendRestTime(`Build to ${p.target_rm}RM`);
 							}
 							
 							// Handle compound exercises (any number of rep parts)
@@ -467,7 +475,7 @@ export default function EditExercise() {
 								} else {
 									weightStr = `${p.weight}kg`;
 								}
-								return `${p.sets} x ${repsStr} @${weightStr}`;
+								return appendRestTime(`${p.sets} x ${repsStr} @${weightStr}`);
 							}
 							
 							// Handle circuit format
@@ -479,7 +487,7 @@ export default function EditExercise() {
 									try {
 										circuitExercises = JSON.parse(p.circuit_exercises);
 									} catch (e) {
-										return `${p.sets} sets of ${p.circuit_exercises}`;
+										return appendRestTime(`${p.sets} sets of ${p.circuit_exercises}`);
 									}
 								} else {
 									circuitExercises = p.circuit_exercises;
@@ -495,7 +503,7 @@ export default function EditExercise() {
 										return '';
 									}).filter(s => s.length > 0).join(', ');
 									
-									return `${p.sets} x ${exercisesStr}`;
+									return appendRestTime(`${p.sets} x ${exercisesStr}`);
 								}
 							}
 							
@@ -515,25 +523,25 @@ export default function EditExercise() {
 									} else {
 										weightStr = `${p.weight}kg`;
 									}
-									return `${p.sets} x ${p.repetitions} @${weightStr}, ${rirStr}`;
+									return appendRestTime(`${p.sets} x ${p.repetitions} @${weightStr}, ${rirStr}`);
 								} else {
-									return `${p.sets} x ${p.repetitions}, ${rirStr}`;
+									return appendRestTime(`${p.sets} x ${p.repetitions}, ${rirStr}`);
 								}
 							}
 							
 							// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
 							if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
-								return `${p.sets} x ${p.repetitions} @${p.weight_min}-${p.weight_max}kg`;
+								return appendRestTime(`${p.sets} x ${p.repetitions} @${p.weight_min}-${p.weight_max}kg`);
 							}
 							
 							// Handle multiple weights
 							if (p.weights && p.weights.length > 1) {
 								const weightsStr = p.weights.map(w => `${w}kg`).join(' ');
-								return `${p.sets} x ${p.repetitions} @${weightsStr}`;
+								return appendRestTime(`${p.sets} x ${p.repetitions} @${weightsStr}`);
 							}
 							
 							// Handle simple format
-							return `${p.sets} x ${p.repetitions} @${p.weight}kg`;
+							return appendRestTime(`${p.sets} x ${p.repetitions} @${p.weight}kg`);
 						};
 						
 						return (
