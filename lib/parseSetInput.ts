@@ -564,7 +564,7 @@ export function parseSetInput(input: string): ParsedSetData {
 	// Skip if input contains "rir" (handled by Pattern 7 or Pattern 8)
 	if (!cleanInput.includes('rir')) {
 		const circuitSetsOfPattern = /^([1-9]\d*)\s+sets?\s+of\s+(.+)$/i;
-		const circuitSetsOfMatch = cleanInput.match(circuitSetsOfPattern);
+		const circuitSetsOfMatch = remainingInput.match(circuitSetsOfPattern);
 		
 		if (circuitSetsOfMatch) {
 			const sets = parseInt(circuitSetsOfMatch[1]);
@@ -609,7 +609,7 @@ export function parseSetInput(input: string): ParsedSetData {
 	// Skip if input contains "rir" (handled by Pattern 7 or Pattern 8)
 	if (!cleanInput.includes('rir')) {
 		const circuitXPattern = /^([1-9]\d*)\s+x\s+(.+)$/i;
-		const circuitXMatch = cleanInput.match(circuitXPattern);
+		const circuitXMatch = remainingInput.match(circuitXPattern);
 		
 		if (circuitXMatch) {
 			const sets = parseInt(circuitXMatch[1]);
@@ -651,7 +651,8 @@ export function parseSetInput(input: string): ParsedSetData {
 					weight: 0, // Circuits typically don't have weights
 					isValid: true,
 					exerciseType: 'circuit',
-					circuitExercises
+					circuitExercises,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
 				};
 			}
 		}
