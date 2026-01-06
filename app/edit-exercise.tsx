@@ -1,6 +1,7 @@
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,22 @@ export default function EditExercise() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 	const { user } = useAuth();
+	const inputValueRef = useRef<string>('');
+
+	// Save input value whenever it changes
+	useEffect(() => {
+		inputValueRef.current = setInput;
+	}, [setInput]);
+
+	// Preserve input state when navigating away and back
+	useFocusEffect(
+		React.useCallback(() => {
+			// Restore input value when screen comes into focus
+			if (inputValueRef.current) {
+				setSetInput(inputValueRef.current);
+			}
+		}, [])
+	);
 
 	useEffect(() => {
 		if (!exerciseId || !supabase) return;
@@ -416,6 +433,12 @@ export default function EditExercise() {
 						<View style={styles.setsHeader}>
 							<Text style={styles.subtitle}>Sets and repetitions</Text>
 							<View style={styles.headerButtons}>
+								<Pressable 
+									style={styles.inputOptionsButton} 
+									onPress={() => router.push('/exercise-input-help')}
+								>
+									<Text style={styles.inputOptionsButtonText}>Input options</Text>
+								</Pressable>
 								{editingPhaseId && (
 									<Pressable 
 										style={styles.cancelButton} 
@@ -431,7 +454,7 @@ export default function EditExercise() {
 							style={styles.setInput}
 							value={setInput}
 							onChangeText={setSetInput}
-							placeholder="4 x 3 @50kg, 4 x 5@80%, 4 x 5@80-85%, 4 x 5@85-89kg, 2 x 10/10 banded side step, 10 banded skated walk forward..., Build to 8RM, 2x 10, 2-3RIR, 4 x 3 @50kg 120s"
+							placeholder="4 x 3 @100kg 120s"
 							placeholderTextColor="#666"
 							returnKeyType="done"
 							onSubmitEditing={handleAddSet}
@@ -688,6 +711,18 @@ const styles = StyleSheet.create({
 	},
 	addButtonTextDisabled: {
 		color: '#666',
+	},
+	inputOptionsButton: {
+		borderRadius: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	inputOptionsButtonText: {
+		color: '#fff',
+		fontSize: 14,
+		fontWeight: '600',
 	},
 	cancelButton: {
 		backgroundColor: '#444',

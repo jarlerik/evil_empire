@@ -13,7 +13,7 @@ export default function ExerciseInputHelp() {
 					<Pressable onPress={() => router.back()} style={styles.backButton}>
 						<Text style={styles.backButtonText}>←</Text>
 					</Pressable>
-					<Text style={styles.title}>Exercise Input Help</Text>
+					<Text style={styles.title}>Exercise input options and examples</Text>
 				</View>
 
 				<View style={styles.section}>

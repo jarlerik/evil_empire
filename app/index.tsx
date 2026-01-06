@@ -74,9 +74,6 @@ export default function Index() {
 					<Pressable onPress={() => router.push('/repetition-maximums')}>
 						<Text style={styles.editWeightButton}>Repetition Maximums</Text>
 					</Pressable>
-					<Pressable onPress={() => router.push('/exercise-input-help')}>
-						<Text style={styles.editWeightButton}>Exercise Input Help</Text>
-					</Pressable>
 					<Modal
 						visible={isEditingUnit}
 						transparent={true}
