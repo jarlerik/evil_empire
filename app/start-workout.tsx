@@ -161,44 +161,51 @@ export default function StartWorkout() {
 			style={{ flex: 1 }}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
-			<ScrollView
-				contentContainerStyle={{ flexGrow: 1 }}
-				keyboardShouldPersistTaps="handled"
-			>
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton}>
-							<Text style={styles.backButtonText}>←</Text>
-						</Pressable>
-						<Text style={styles.title}>{workoutName}</Text>
-					</View>
+			<View style={styles.container}>
+				<View style={styles.headerRow}>
+					<Pressable onPress={() => router.back()} style={styles.backButton}>
+						<Text style={styles.backButtonText}>←</Text>
+					</Pressable>
+					<Text style={styles.title}>{workoutName}</Text>
+				</View>
 
-					{exercises.map((exercise) => (
-						<View key={exercise.id} style={styles.exerciseItem}>
-							<View style={styles.exerciseHeader}>
-								<View style={styles.exerciseNameContainer}>
-									<Text style={styles.exerciseName}>{exercise.name}</Text>
+				<View style={styles.mainContent}>
+					<ScrollView 
+						style={styles.exercisesContainer}
+						contentContainerStyle={styles.exercisesContent}
+						keyboardShouldPersistTaps="handled"
+					>
+						{exercises.map((exercise) => (
+							<View key={exercise.id} style={styles.exerciseItem}>
+								<View style={styles.exerciseHeader}>
+									<View style={styles.exerciseNameContainer}>
+										<Text style={styles.exerciseName}>{exercise.name}</Text>
+									</View>
 								</View>
+								{exercisePhases[exercise.id] && exercisePhases[exercise.id].length > 0 && (
+									<View style={styles.phasesContainer}>
+										{exercisePhases[exercise.id].map((phase) => (
+											<Text key={phase.id} style={styles.phaseText}>
+												{formatExercisePhase(phase)}
+											</Text>
+										))}
+									</View>
+								)}
 							</View>
-							{exercisePhases[exercise.id] && exercisePhases[exercise.id].length > 0 && (
-								<View style={styles.phasesContainer}>
-									{exercisePhases[exercise.id].map((phase) => (
-										<Text key={phase.id} style={styles.phaseText}>
-											{formatExercisePhase(phase)}
-										</Text>
-									))}
-								</View>
-							)}
-						</View>
-					))}
+						))}
+					</ScrollView>
 
-					<View style={styles.bottomContainer}>
-						<Pressable style={styles.button} onPress={handleStartWorkout}>
-							<Text style={styles.buttonText}>Start workout</Text>
-						</Pressable>
+					<View style={styles.timerContainer}>
+						<Text style={styles.timerPlaceholder}>[ TIMER COMPONENT ]</Text>
 					</View>
 				</View>
-			</ScrollView>
+
+				<View style={styles.bottomContainer}>
+					<Pressable style={styles.button} onPress={handleStartWorkout}>
+						<Text style={styles.buttonText}>Start workout</Text>
+					</Pressable>
+				</View>
+			</View>
 		</KeyboardAvoidingView>
 	);
 }
@@ -227,6 +234,27 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		color: '#fff',
 		flex: 1,
+	},
+	mainContent: {
+		flex: 1,
+		flexDirection: 'column',
+	},
+	exercisesContainer: {
+		flex: 0.1,
+	},
+	exercisesContent: {
+		paddingBottom: 12,
+	},
+	timerContainer: {
+		flex: 0.9,
+		backgroundColor: '#000',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	timerPlaceholder: {
+		color: '#fff',
+		fontSize: 14,
+		textDecorationLine: 'underline',
 	},
 	button: {
 		backgroundColor: '#333',
@@ -257,7 +285,7 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 	},
 	bottomContainer: {
-		marginTop: 'auto',
+		marginTop: 20,
 	},
 	phasesContainer: {
 		marginTop: 12,
