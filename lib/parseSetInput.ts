@@ -237,35 +237,63 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
+	// Pattern 8: Standard format with RIR - "2x 10 @50, 2-3RIR" or "2x 10 @50 2-3RIR"
+	// Check this BEFORE Pattern 1 because it's more specific (requires "rir" at the end)
+	// Comma is optional - supports both "4 x 6 @50kg, 1RIR" and "4 x 6 @50kg 1RIR"
+	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
+	const standardWithRirMatch = cleanInput.match(standardWithRirPattern);
+	
+	if (standardWithRirMatch) {
+		const sets = parseInt(standardWithRirMatch[1]);
+		const reps = parseInt(standardWithRirMatch[2]);
+		const weight = parseFloat(standardWithRirMatch[3]);
+		const rirMin = parseInt(standardWithRirMatch[4]);
+		const rirMax = standardWithRirMatch[5] ? parseInt(standardWithRirMatch[5]) : undefined;
+		
+		return {
+			sets,
+			reps,
+			weight,
+			isValid: true,
+			exerciseType: 'standard',
+			rirMin,
+			rirMax: rirMax || rirMin,
+			...(restTimeSeconds !== undefined && { restTimeSeconds })
+		};
+	}
+	
 	// Pattern 1: Simple format "sets x reps @weight" or "sets x reps @weightkg"
 	// Also handle cases like "4 x 3 @50kg 120" where 120 might be rest time without unit
 	// We need to check for this before multiple weights pattern
-	// First check if there are multiple numbers after @ without "kg" - if so, it's likely multiple weights
-	const afterAtCheck = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
-	const numbersAfterAt = afterAtCheck.match(/\d+(?:\.\d+)?/g);
-	const hasMultipleNumbers = numbersAfterAt && numbersAfterAt.length > 1;
-	const hasKgInMiddle = /kg\s+\d/i.test(afterAtCheck);
-	const hasKgAtEnd = /\d+\s*kg\s*$/i.test(afterAtCheck);
-	
-	// Only skip simple pattern if there are multiple numbers AND no "kg" (which indicates multiple weights)
-	// Cases like "4 x 3 @50kg" or "4 x 3 @50kg 120" should still match simple pattern
-	if (!hasMultipleNumbers || hasKgInMiddle || hasKgAtEnd) {
-		// Standard simple pattern - allow optional "kg" and optional trailing number (for rest time without unit)
-		const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:\s+\d+)?$/i;
-		const simpleMatch = cleanInput.match(simplePattern);
+	// Skip if input contains "rir" (handled by Pattern 8 or Pattern 7)
+	if (!cleanInput.includes('rir')) {
+		// First check if there are multiple numbers after @ without "kg" - if so, it's likely multiple weights
+		const afterAtCheck = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
+		const numbersAfterAt = afterAtCheck.match(/\d+(?:\.\d+)?/g);
+		const hasMultipleNumbers = numbersAfterAt && numbersAfterAt.length > 1;
+		const hasKgInMiddle = /kg\s+\d/i.test(afterAtCheck);
+		const hasKgAtEnd = /\d+\s*kg\s*$/i.test(afterAtCheck);
 		
-		if (simpleMatch) {
-			const sets = parseInt(simpleMatch[1]);
-			const reps = parseInt(simpleMatch[2]);
-			const weight = parseFloat(simpleMatch[3]);
+		// Only skip simple pattern if there are multiple numbers AND no "kg" (which indicates multiple weights)
+		// Cases like "4 x 3 @50kg" or "4 x 3 @50kg 120" should still match simple pattern
+		if (!hasMultipleNumbers || hasKgInMiddle || hasKgAtEnd) {
+			// Standard simple pattern - allow optional "kg" and optional trailing number (for rest time without unit)
+			const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:\s+\d+)?$/i;
+			const simpleMatch = cleanInput.match(simplePattern);
 			
-			return {
-				sets,
-				reps,
-				weight,
-				isValid: true,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			};
+			if (simpleMatch) {
+				const sets = parseInt(simpleMatch[1]);
+				const reps = parseInt(simpleMatch[2]);
+				const weight = parseFloat(simpleMatch[3]);
+				
+				return {
+					sets,
+					reps,
+					weight,
+					isValid: true,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			}
 		}
 	}
 	
@@ -273,10 +301,12 @@ export function parseSetInput(input: string): ParsedSetData {
 	// This pattern should only match if there are multiple space-separated numbers after @
 	// and "kg" can only appear at the very end (not after individual weights like "50kg 60")
 	// Also, we need to exclude cases like "4 x 3 @50kg 120" where "kg" appears before the end
-	const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)(?:\s*kg)?$/i;
-	const multipleWeightsMatch = cleanInput.match(multipleWeightsPattern);
-	
-	if (multipleWeightsMatch) {
+	// Skip if input contains "rir" (handled by Pattern 8)
+	if (!cleanInput.includes('rir')) {
+		const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)(?:\s*kg)?$/i;
+		const multipleWeightsMatch = cleanInput.match(multipleWeightsPattern);
+		
+		if (multipleWeightsMatch) {
 		const sets = parseInt(multipleWeightsMatch[1]);
 		const reps = parseInt(multipleWeightsMatch[2]);
 		
@@ -354,6 +384,7 @@ export function parseSetInput(input: string): ParsedSetData {
 			}
 		}
 		// If only one weight or kg appears in middle, let it fall through to simple pattern
+		}
 	}
 	
 	// Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weight"
@@ -444,63 +475,68 @@ export function parseSetInput(input: string): ParsedSetData {
 	}
 	
 	// Pattern 4: Circuit format with "sets of" - "2 sets of 10/10 banded side step, 10 banded skated walk forward..."
-	const circuitSetsOfPattern = /^([1-9]\d*)\s+sets?\s+of\s+(.+)$/i;
-	const circuitSetsOfMatch = cleanInput.match(circuitSetsOfPattern);
-	
-	if (circuitSetsOfMatch) {
-		const sets = parseInt(circuitSetsOfMatch[1]);
-		const exercisesStr = circuitSetsOfMatch[2];
+	// Skip if input contains "rir" (handled by Pattern 7 or Pattern 8)
+	if (!cleanInput.includes('rir')) {
+		const circuitSetsOfPattern = /^([1-9]\d*)\s+sets?\s+of\s+(.+)$/i;
+		const circuitSetsOfMatch = cleanInput.match(circuitSetsOfPattern);
 		
-		// Parse comma-separated exercises
-		const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
-		const circuitExercises: Array<{reps: string, name: string}> = [];
-		
-		for (const exercise of exercises) {
-			// Match pattern: "10/10 exercise name" or "10 exercise name"
-			const exerciseMatch = exercise.match(/^(\d+(?:\/\d+)?)\s+(.+)$/);
-			if (exerciseMatch) {
-				circuitExercises.push({
-					reps: exerciseMatch[1],
-					name: exerciseMatch[2]
-				});
-			} else {
-				// If no match, treat entire string as exercise name with no reps
-				circuitExercises.push({
-					reps: '',
-					name: exercise
-				});
+		if (circuitSetsOfMatch) {
+			const sets = parseInt(circuitSetsOfMatch[1]);
+			const exercisesStr = circuitSetsOfMatch[2];
+			
+			// Parse comma-separated exercises
+			const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
+			const circuitExercises: Array<{reps: string, name: string}> = [];
+			
+			for (const exercise of exercises) {
+				// Match pattern: "10/10 exercise name" or "10 exercise name"
+				const exerciseMatch = exercise.match(/^(\d+(?:\/\d+)?)\s+(.+)$/);
+				if (exerciseMatch) {
+					circuitExercises.push({
+						reps: exerciseMatch[1],
+						name: exerciseMatch[2]
+					});
+				} else {
+					// If no match, treat entire string as exercise name with no reps
+					circuitExercises.push({
+						reps: '',
+						name: exercise
+					});
+				}
 			}
-		}
-		
-		if (circuitExercises.length > 0) {
-			return {
-				sets,
-				reps: 0, // Circuits don't have a single rep count
-				weight: 0, // Circuits typically don't have weights
-				isValid: true,
-				exerciseType: 'circuit',
-				circuitExercises,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			};
+			
+			if (circuitExercises.length > 0) {
+				return {
+					sets,
+					reps: 0, // Circuits don't have a single rep count
+					weight: 0, // Circuits typically don't have weights
+					isValid: true,
+					exerciseType: 'circuit',
+					circuitExercises,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			}
 		}
 	}
 	
 	// Pattern 5: Circuit format with "x" - "2 x 10/10 banded side step, 10 banded skated walk forward..."
-	const circuitXPattern = /^([1-9]\d*)\s+x\s+(.+)$/i;
-	const circuitXMatch = cleanInput.match(circuitXPattern);
-	
-	if (circuitXMatch) {
-		const sets = parseInt(circuitXMatch[1]);
-		const exercisesStr = circuitXMatch[2];
+	// Skip if input contains "rir" (handled by Pattern 7 or Pattern 8)
+	if (!cleanInput.includes('rir')) {
+		const circuitXPattern = /^([1-9]\d*)\s+x\s+(.+)$/i;
+		const circuitXMatch = cleanInput.match(circuitXPattern);
 		
-		// Check if this looks like a circuit (has commas and text) vs standard format (has @ and numbers)
-		// Standard format would be "2 x 10 @50" which we already handled
-		// Also exclude patterns that look like "4 x 3 50kg" (missing @) - these should be invalid
-		const looksLikeMissingAt = /^\d+\s*\d*kg?$/i.test(exercisesStr.trim());
-		if (looksLikeMissingAt) {
-			// This looks like "sets x reps weight" without @, should be invalid
-			// Let it fall through to error handling
-		} else if (exercisesStr.includes(',') || (!exercisesStr.includes('@') && /[a-zA-Z]/.test(exercisesStr))) {
+		if (circuitXMatch) {
+			const sets = parseInt(circuitXMatch[1]);
+			const exercisesStr = circuitXMatch[2];
+			
+			// Check if this looks like a circuit (has commas and text) vs standard format (has @ and numbers)
+			// Standard format would be "2 x 10 @50" which we already handled
+			// Also exclude patterns that look like "4 x 3 50kg" (missing @) - these should be invalid
+			const looksLikeMissingAt = /^\d+\s*\d*kg?$/i.test(exercisesStr.trim());
+			if (looksLikeMissingAt) {
+				// This looks like "sets x reps weight" without @, should be invalid
+				// Let it fall through to error handling
+			} else if (exercisesStr.includes(',') || (!exercisesStr.includes('@') && /[a-zA-Z]/.test(exercisesStr))) {
 			// Parse comma-separated exercises
 			const exercises = exercisesStr.split(',').map(ex => ex.trim()).filter(ex => ex.length > 0);
 			const circuitExercises: Array<{reps: string, name: string}> = [];
@@ -533,6 +569,7 @@ export function parseSetInput(input: string): ParsedSetData {
 				};
 			}
 		}
+		}
 	}
 	
 	// Pattern 6: RM Build format - "Build to 8RM" or "build to 8rm"
@@ -555,9 +592,10 @@ export function parseSetInput(input: string): ParsedSetData {
 		}
 	}
 	
-	// Pattern 7: RIR format - "2x 10, 2-3RIR" or "2x 10, 2RIR"
+	// Pattern 7: RIR format - "2x 10, 2-3RIR" or "2x 10, 2RIR" or "2x 10 2-3RIR" or "2x 10 2RIR"
 	// This can be combined with standard sets format
-	const rirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*,\s*(\d+)(?:-(\d+))?\s*rir$/i;
+	// Comma is optional - supports both "4 x 6, 1RIR" and "4 x 6 1RIR"
+	const rirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
 	const rirMatch = cleanInput.match(rirPattern);
 	
 	if (rirMatch) {
@@ -574,29 +612,6 @@ export function parseSetInput(input: string): ParsedSetData {
 			exerciseType: 'standard',
 			rirMin,
 			rirMax: rirMax || rirMin, // If no max, use min as max
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		};
-	}
-	
-	// Pattern 8: Standard format with RIR - "2x 10 @50, 2-3RIR"
-	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?\s*,\s*(\d+)(?:-(\d+))?\s*rir$/i;
-	const standardWithRirMatch = cleanInput.match(standardWithRirPattern);
-	
-	if (standardWithRirMatch) {
-		const sets = parseInt(standardWithRirMatch[1]);
-		const reps = parseInt(standardWithRirMatch[2]);
-		const weight = parseFloat(standardWithRirMatch[3]);
-		const rirMin = parseInt(standardWithRirMatch[4]);
-		const rirMax = standardWithRirMatch[5] ? parseInt(standardWithRirMatch[5]) : undefined;
-		
-		return {
-			sets,
-			reps,
-			weight,
-			isValid: true,
-			exerciseType: 'standard',
-			rirMin,
-			rirMax: rirMax || rirMin,
 			...(restTimeSeconds !== undefined && { restTimeSeconds })
 		};
 	}

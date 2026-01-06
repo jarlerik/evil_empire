@@ -906,6 +906,112 @@ describe('parseSetInput', () => {
 			});
 		});
 
+		it('should parse RIR format with comma (backward compatibility)', () => {
+			const result = parseSetInput('4 x 6, 1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
+			});
+		});
+
+		it('should parse RIR format with comma and range (backward compatibility)', () => {
+			const result = parseSetInput('2x 10, 2-3RIR');
+			expect(result).toEqual({
+				sets: 2,
+				reps: 10,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 2,
+				rirMax: 3
+			});
+		});
+
+		it('should parse RIR format with comma and weight (backward compatibility)', () => {
+			const result = parseSetInput('4 x 6 @50kg, 1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 50,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
+			});
+		});
+
+		it('should parse RIR format without comma (single RIR)', () => {
+			const result = parseSetInput('4 x 6 1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
+			});
+		});
+
+		it('should parse RIR format without comma (RIR range)', () => {
+			const result = parseSetInput('4 x 6 2-3RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 2,
+				rirMax: 3
+			});
+		});
+
+		it('should parse RIR format without comma with weight', () => {
+			const result = parseSetInput('4 x 6 @50kg 1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 50,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
+			});
+		});
+
+		it('should parse RIR format without comma with rest time', () => {
+			const result = parseSetInput('4 x 6 1RIR 3min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0, // RIR format doesn't specify weight
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1,
+				restTimeSeconds: 180 // 3 minutes = 180 seconds
+			});
+		});
+
+		it('should parse RIR format without comma with weight and rest time', () => {
+			const result = parseSetInput('4 x 6 @50kg 1RIR 3min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 50,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1,
+				restTimeSeconds: 180 // 3 minutes = 180 seconds
+			});
+		});
+
 		it('should handle rest time with extra spaces', () => {
 			const result = parseSetInput('4 x 3 @50kg   120   s');
 			expect(result).toEqual({
