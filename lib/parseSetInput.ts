@@ -30,8 +30,8 @@ export interface ParsedSetData {
  */
 function parseRestTime(input: string): { restTimeSeconds?: number; remainingInput: string } {
 	// Pattern to match rest time at the end: requires space before number and a unit (s, m, etc.)
-	// Examples: "120s", "2m", "120 s", "2 m"
-	// We require a unit to avoid conflicts with multiple weights format like "3 x 1 @50 60 70"
+	// Examples: "120s", "2m", "120 s", "2 m", "2min"
+	// Unit is mandatory to avoid conflicts with multiple weights format like "3 x 1 @50 60 70"
 	const restTimePattern = /\s+(\d+)\s*(s|m|sec|min|seconds?|minutes?)\s*$/i;
 	const match = input.match(restTimePattern);
 	
@@ -79,24 +79,15 @@ export function parseSetInput(input: string): ParsedSetData {
 	const cleanInput = remainingInput.toLowerCase();
 	
 	// Pattern 0a: Compound format with percentage "sets x reps1 + reps2 (+ reps3 ...) @percentage%"
-	const compoundPercentagePattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
+	// Also support RIR: "sets x reps1 + reps2 (+ reps3 ...) @RIRRIR"
+	const compoundPercentagePattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*(%|rir)$/i;
 	const compoundPercentageMatch = cleanInput.match(compoundPercentagePattern);
 	
 	if (compoundPercentageMatch) {
 		const sets = parseInt(compoundPercentageMatch[1]);
 		const repsSequence = compoundPercentageMatch[2];
-		const percentage = parseFloat(compoundPercentageMatch[3]);
-		
-		// Validate percentage is between 0 and 100
-		if (percentage <= 0 || percentage > 100) {
-			return {
-				sets: 0,
-				reps: 0,
-				weight: 0,
-				isValid: false,
-				errorMessage: 'Percentage must be between 0 and 100'
-			};
-		}
+		const value = parseFloat(compoundPercentageMatch[3]);
+		const unit = compoundPercentageMatch[4]?.toLowerCase() || '';
 		
 		const repsParts = repsSequence
 			.split('+')
@@ -106,16 +97,43 @@ export function parseSetInput(input: string): ParsedSetData {
 		
 		if (repsParts.length >= 2) {
 			const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
-			return {
-				sets,
-				reps: totalReps, // Total reps for display
-				weight: 0, // Will be calculated after RM lookup
-				isValid: true,
-				weightPercentage: percentage,
-				needsRmLookup: true,
-				compoundReps: repsParts,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			};
+			
+			if (unit === '%') {
+				// Validate percentage is between 0 and 100
+				if (value <= 0 || value > 100) {
+					return {
+						sets: 0,
+						reps: 0,
+						weight: 0,
+						isValid: false,
+						errorMessage: 'Percentage must be between 0 and 100'
+					};
+				}
+				
+				return {
+					sets,
+					reps: totalReps, // Total reps for display
+					weight: 0, // Will be calculated after RM lookup
+					isValid: true,
+					weightPercentage: value,
+					needsRmLookup: true,
+					compoundReps: repsParts,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			} else if (unit === 'rir') {
+				// RIR format for compound exercises
+				return {
+					sets,
+					reps: totalReps, // Total reps for display
+					weight: 0,
+					isValid: true,
+					exerciseType: 'standard',
+					compoundReps: repsParts,
+					rirMin: value,
+					rirMax: value,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			}
 		}
 	}
 	
@@ -163,39 +181,55 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
-	// Pattern 0c: Simple percentage format "sets x reps@80%" or "sets x reps @80%" - check this AFTER compound percentage and percentage range
-	const percentagePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*%$/i;
-	const percentageMatch = cleanInput.match(percentagePattern);
+	// Pattern 0c: Simple percentage or RIR format "sets x reps@80%" or "sets x reps @1RIR" - check this AFTER compound percentage and percentage range
+	const percentageOrRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(%|rir)$/i;
+	const percentageOrRirMatch = cleanInput.match(percentageOrRirPattern);
 	
-	if (percentageMatch) {
-		const sets = parseInt(percentageMatch[1]);
-		const reps = parseInt(percentageMatch[2]);
-		const percentage = parseFloat(percentageMatch[3]);
+	if (percentageOrRirMatch) {
+		const sets = parseInt(percentageOrRirMatch[1]);
+		const reps = parseInt(percentageOrRirMatch[2]);
+		const value = parseFloat(percentageOrRirMatch[3]);
+		const unit = percentageOrRirMatch[4]?.toLowerCase() || '';
 		
-		// Validate percentage is between 0 and 100
-		if (percentage <= 0 || percentage > 100) {
+		if (unit === '%') {
+			// Validate percentage is between 0 and 100
+			if (value <= 0 || value > 100) {
+				return {
+					sets: 0,
+					reps: 0,
+					weight: 0,
+					isValid: false,
+					errorMessage: 'Percentage must be between 0 and 100'
+				};
+			}
+			
 			return {
-				sets: 0,
-				reps: 0,
+				sets,
+				reps,
+				weight: 0, // Will be calculated after RM lookup
+				isValid: true,
+				weightPercentage: value,
+				needsRmLookup: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
+			};
+		} else if (unit === 'rir') {
+			// RIR format
+			return {
+				sets,
+				reps,
 				weight: 0,
-				isValid: false,
-				errorMessage: 'Percentage must be between 0 and 100'
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: value,
+				rirMax: value,
+				...(restTimeSeconds !== undefined && { restTimeSeconds })
 			};
 		}
-		
-		return {
-			sets,
-			reps,
-			weight: 0, // Will be calculated after RM lookup
-			isValid: true,
-			weightPercentage: percentage,
-			needsRmLookup: true,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		};
 	}
 	
 	// Pattern 1a: Absolute weight range format "sets x reps@85-89kg" - check this BEFORE simple format
-	const weightRangePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	// Now requires kg unit
+	const weightRangePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*kg$/i;
 	const weightRangeMatch = cleanInput.match(weightRangePattern);
 	
 	if (weightRangeMatch) {
@@ -237,10 +271,11 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
-	// Pattern 8: Standard format with RIR - "2x 10 @50, 2-3RIR" or "2x 10 @50 2-3RIR"
+	// Pattern 8: Standard format with RIR - "2x 10 @50kg, 2-3RIR" or "2x 10 @50kg 2-3RIR"
 	// Check this BEFORE Pattern 1 because it's more specific (requires "rir" at the end)
 	// Comma is optional - supports both "4 x 6 @50kg, 1RIR" and "4 x 6 @50kg 1RIR"
-	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
+	// Note: This pattern is for weight + RIR, not @weightRIR (which is handled by Pattern 0c)
+	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*kg(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
 	const standardWithRirMatch = cleanInput.match(standardWithRirPattern);
 	
 	if (standardWithRirMatch) {
@@ -262,12 +297,10 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
-	// Pattern 1: Simple format "sets x reps @weight" or "sets x reps @weightkg"
-	// Also handle cases like "4 x 3 @50kg 120" where 120 might be rest time without unit
-	// We need to check for this before multiple weights pattern
-	// Skip if input contains "rir" (handled by Pattern 8 or Pattern 7)
+	// Pattern 1: Simple format "sets x reps @weightkg" - now requires kg unit
+	// Skip if input contains "rir" (handled by Pattern 8, Pattern 7, or Pattern 0c)
 	if (!cleanInput.includes('rir')) {
-		// First check if there are multiple numbers after @ without "kg" - if so, it's likely multiple weights
+		// First check if there are multiple numbers after @ - if so, it's likely multiple weights
 		const afterAtCheck = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
 		const numbersAfterAt = afterAtCheck.match(/\d+(?:\.\d+)?/g);
 		const hasMultipleNumbers = numbersAfterAt && numbersAfterAt.length > 1;
@@ -275,16 +308,31 @@ export function parseSetInput(input: string): ParsedSetData {
 		const hasKgAtEnd = /\d+\s*kg\s*$/i.test(afterAtCheck);
 		
 		// Only skip simple pattern if there are multiple numbers AND no "kg" (which indicates multiple weights)
-		// Cases like "4 x 3 @50kg" or "4 x 3 @50kg 120" should still match simple pattern
+		// Cases like "4 x 3 @50kg" should still match simple pattern
 		if (!hasMultipleNumbers || hasKgInMiddle || hasKgAtEnd) {
-			// Standard simple pattern - allow optional "kg" and optional trailing number (for rest time without unit)
-			const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?(?:\s+\d+)?$/i;
-			const simpleMatch = cleanInput.match(simplePattern);
+			// Standard simple pattern - now requires "kg" unit
+			// Allow optional trailing content (rest time is handled separately by parseRestTime)
+			const simplePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*kg(?:\s+.*)?$/i;
+			const simpleMatch = cleanInput.match(/^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*kg/i);
 			
 			if (simpleMatch) {
 				const sets = parseInt(simpleMatch[1]);
 				const reps = parseInt(simpleMatch[2]);
 				const weight = parseFloat(simpleMatch[3]);
+				
+				// Check if there's any trailing content that wasn't parsed as rest time
+				// If there is, it's invalid (rest time requires unit)
+				const afterKg = cleanInput.substring(cleanInput.indexOf('kg') + 2).trim();
+				if (afterKg && !restTimeSeconds) {
+					// There's trailing content but no valid rest time parsed
+					return {
+						sets: 0,
+						reps: 0,
+						weight: 0,
+						isValid: false,
+						errorMessage: 'Invalid format. Rest time requires a unit (s, m, sec, min, etc.). Use "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m"'
+					};
+				}
 				
 				return {
 					sets,
@@ -297,44 +345,25 @@ export function parseSetInput(input: string): ParsedSetData {
 		}
 	}
 	
-	// Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3..."
+	// Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3...kg" or "...%"
 	// This pattern should only match if there are multiple space-separated numbers after @
-	// and "kg" can only appear at the very end (not after individual weights like "50kg 60")
-	// Also, we need to exclude cases like "4 x 3 @50kg 120" where "kg" appears before the end
-	// Skip if input contains "rir" (handled by Pattern 8)
+	// and unit (kg or %) can only appear at the very end
+	// Skip if input contains "rir" (handled by Pattern 8, Pattern 7, or Pattern 0c)
 	if (!cleanInput.includes('rir')) {
-		const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)(?:\s*kg)?$/i;
+		const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)\s*(kg|%)\s*$/i;
 		const multipleWeightsMatch = cleanInput.match(multipleWeightsPattern);
 		
 		if (multipleWeightsMatch) {
-		const sets = parseInt(multipleWeightsMatch[1]);
-		const reps = parseInt(multipleWeightsMatch[2]);
-		
-		// Extract all numbers after @ (before any "kg" suffix)
-		const afterAt = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
-		
-		// Check if "kg" appears anywhere except at the very end - if so, it's not multiple weights format
-		// This handles cases like "4 x 3 @50kg 120" which should not be multiple weights
-		const kgBeforeEnd = /kg\s+\d/i.test(afterAt);
-		if (kgBeforeEnd) {
-			// "kg" appears before the end (like "50kg 120"), so this is not a multiple weights format
-			// Try to match as simple format by removing everything after "kg"
-			const simpleMatchAfterKg = afterAt.match(/^(\d+(?:\.\d+)?)\s*kg/i);
-			if (simpleMatchAfterKg) {
-				const weight = parseFloat(simpleMatchAfterKg[1]);
-				return {
-					sets,
-					reps,
-					weight,
-					isValid: true,
-					...(restTimeSeconds !== undefined && { restTimeSeconds })
-				};
-			}
-			// If we can't parse it, let it fall through to error handling
-		} else {
-			const beforeKg = afterAt.replace(/\s*kg\s*$/i, '').trim();
-			// Split by whitespace and parse, but don't filter yet - we need to check for empty values
-			const weightStrings = beforeKg.split(/\s+/);
+			const sets = parseInt(multipleWeightsMatch[1]);
+			const reps = parseInt(multipleWeightsMatch[2]);
+			const unit = multipleWeightsMatch[4]?.toLowerCase() || '';
+			
+			// Extract all numbers after @ (before unit)
+			const afterAt = cleanInput.substring(cleanInput.indexOf('@') + 1).trim();
+			const beforeUnit = afterAt.replace(/\s*(kg|%)\s*$/i, '').trim();
+			
+			// Split by whitespace and parse
+			const weightStrings = beforeUnit.split(/\s+/);
 			const weights = weightStrings.map(w => parseFloat(w));
 			
 			// Check for empty values (NaN from empty strings or invalid numbers)
@@ -356,14 +385,39 @@ export function parseSetInput(input: string): ParsedSetData {
 			if (validWeights.length > 1) {
 				// Validate that number of weights matches number of sets
 				if (validWeights.length === sets && validWeights.every(w => !isNaN(w) && w > 0)) {
-					return {
-						sets,
-						reps,
-						weight: validWeights[0], // Keep for backward compatibility
-						weights: validWeights,
-						isValid: true,
-						...(restTimeSeconds !== undefined && { restTimeSeconds })
-					};
+					if (unit === 'kg') {
+						return {
+							sets,
+							reps,
+							weight: validWeights[0], // Keep for backward compatibility
+							weights: validWeights,
+							isValid: true,
+							...(restTimeSeconds !== undefined && { restTimeSeconds })
+						};
+					} else if (unit === '%') {
+						// Validate percentages are between 0 and 100
+						if (validWeights.some(w => w <= 0 || w > 100)) {
+							return {
+								sets: 0,
+								reps: 0,
+								weight: 0,
+								isValid: false,
+								errorMessage: 'Percentage must be between 0 and 100'
+							};
+						}
+						// For percentage multiple weights, we'll use the first one as weightPercentage
+						// and store all in weights array (though this might need special handling)
+						return {
+							sets,
+							reps,
+							weight: 0, // Will be calculated after RM lookup
+							weights: validWeights, // Store all percentages
+							isValid: true,
+							weightPercentage: validWeights[0], // Use first for backward compatibility
+							needsRmLookup: true,
+							...(restTimeSeconds !== undefined && { restTimeSeconds })
+						};
+					}
 				} else if (validWeights.length !== sets) {
 					return {
 						sets: 0,
@@ -383,12 +437,12 @@ export function parseSetInput(input: string): ParsedSetData {
 				}
 			}
 		}
-		// If only one weight or kg appears in middle, let it fall through to simple pattern
-		}
+		// If only one weight, let it fall through to simple pattern
 	}
 	
-	// Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weight"
-	const compoundPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	// Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weightkg"
+	// Now requires kg unit (percentage and RIR are handled by Pattern 0a)
+	const compoundPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*kg$/i;
 	const compoundMatch = cleanInput.match(compoundPattern);
 	
 	if (compoundMatch) {
@@ -423,23 +477,24 @@ export function parseSetInput(input: string): ParsedSetData {
 		};
 	}
 	
-	// Pattern 3: Wave format "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")
-	// More flexible pattern to handle extra spaces
-	const wavePattern = /^((?:\d+\s*\-?\s*)+)\s+(\d+(?:\.\d+)?)\s*(?:kg)?$/i;
+	// Pattern 3: Wave format "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")
+	// Now requires unit (kg or %)
+	const wavePattern = /^((?:\d+\s*\-?\s*)+)\s+(\d+(?:\.\d+)?)\s*(kg|%)$/i;
 	const waveMatch = cleanInput.match(wavePattern);
 	
 	if (waveMatch) {
 		const repsStr = waveMatch[1];
-		const weight = parseFloat(waveMatch[2]);
+		const value = parseFloat(waveMatch[2]);
+		const unit = waveMatch[3]?.toLowerCase() || '';
 		
-		// Validate weight is positive
-		if (weight <= 0) {
+		// Validate value is positive
+		if (value <= 0) {
 			return {
 				sets: 0,
 				reps: 0,
 				weight: 0,
 				isValid: false,
-				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")'
 			};
 		}
 		
@@ -448,28 +503,59 @@ export function parseSetInput(input: string): ParsedSetData {
 		
 		// Validate that all reps are valid numbers
 		if (waveReps.every(r => !isNaN(r) && r > 0)) {
-			// Create individual phases for each set in the wave
-			const wavePhases = waveReps.map((reps) => ({
-				sets: 1,
-				reps,
-				weight: weight // All phases get the same weight
-			}));
-			
-			return {
-				sets: waveReps.length,
-				reps: waveReps[0], // First rep count for backward compatibility
-				weight,
-				wavePhases,
-				isValid: true,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			};
+			if (unit === 'kg') {
+				// Create individual phases for each set in the wave
+				const wavePhases = waveReps.map((reps) => ({
+					sets: 1,
+					reps,
+					weight: value // All phases get the same weight
+				}));
+				
+				return {
+					sets: waveReps.length,
+					reps: waveReps[0], // First rep count for backward compatibility
+					weight: value,
+					wavePhases,
+					isValid: true,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			} else if (unit === '%') {
+				// Validate percentage is between 0 and 100
+				if (value <= 0 || value > 100) {
+					return {
+						sets: 0,
+						reps: 0,
+						weight: 0,
+						isValid: false,
+						errorMessage: 'Percentage must be between 0 and 100'
+					};
+				}
+				
+				// Create individual phases for each set in the wave
+				const wavePhases = waveReps.map((reps) => ({
+					sets: 1,
+					reps,
+					weight: 0 // Will be calculated after RM lookup
+				}));
+				
+				return {
+					sets: waveReps.length,
+					reps: waveReps[0], // First rep count for backward compatibility
+					weight: 0, // Will be calculated after RM lookup
+					wavePhases,
+					isValid: true,
+					weightPercentage: value,
+					needsRmLookup: true,
+					...(restTimeSeconds !== undefined && { restTimeSeconds })
+				};
+			}
 		} else {
 			return {
 				sets: 0,
 				reps: 0,
 				weight: 0,
 				isValid: false,
-				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+				errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")'
 			};
 		}
 	}
@@ -593,8 +679,9 @@ export function parseSetInput(input: string): ParsedSetData {
 	}
 	
 	// Pattern 7: RIR format - "2x 10, 2-3RIR" or "2x 10, 2RIR" or "2x 10 2-3RIR" or "2x 10 2RIR"
-	// This can be combined with standard sets format
+	// This can be combined with standard sets format (without weight)
 	// Comma is optional - supports both "4 x 6, 1RIR" and "4 x 6 1RIR"
+	// Note: RIR with weight is handled by Pattern 8 or Pattern 0c (@weightRIR)
 	const rirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
 	const rirMatch = cleanInput.match(rirPattern);
 	
@@ -636,7 +723,7 @@ export function parseSetInput(input: string): ParsedSetData {
 			reps: 0,
 			weight: 0,
 			isValid: false,
-			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.'
 		};
 	}
 	
@@ -648,7 +735,7 @@ export function parseSetInput(input: string): ParsedSetData {
 			reps: 0,
 			weight: 0,
 			isValid: false,
-			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.'
 		};
 	}
 	
@@ -660,7 +747,7 @@ export function parseSetInput(input: string): ParsedSetData {
 			reps: 0,
 			weight: 0,
 			isValid: false,
-			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")'
+			errorMessage: 'Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.'
 		};
 	}
 	
@@ -670,7 +757,7 @@ export function parseSetInput(input: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage: 'Invalid format. Use "sets x reps @weight" (e.g., "3 x 5 @50kg"), "sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, "sets x reps @85-89kg" for weight ranges, "sets x reps @weight1 weight2..." for multiple weights, "reps1-reps2-reps3... weight" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, "2x 10, 2-3RIR" for RIR notation, or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)'
+		errorMessage: 'Invalid format. Weight unit is required (kg, %, or RIR). Use "sets x reps @weightkg" (e.g., "3 x 5 @50kg"), "sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, "sets x reps @1RIR" for RIR-based weights, "sets x reps @85-89kg" for weight ranges, "sets x reps @weight1 weight2...kg" or "...%" for multiple weights, "reps1-reps2-reps3... weightkg" or "weight%" for wave exercises, "2 x 10/10 exercise1, 10 exercise2..." for circuits, "Build to 8RM" for RM builds, "2x 10, 2-3RIR" for RIR notation, or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)'
 	};
 }
 

@@ -2,8 +2,8 @@ import { parseSetInput, ParsedSetData } from '../parseSetInput';
 
 describe('parseSetInput', () => {
 	describe('valid inputs', () => {
-		it('should parse basic format "sets x reps @weight"', () => {
-			const result = parseSetInput('4 x 3 @50');
+		it('should parse basic format "sets x reps @weightkg"', () => {
+			const result = parseSetInput('4 x 3 @50kg');
 			expect(result).toEqual({
 				sets: 4,
 				reps: 3,
@@ -12,13 +12,38 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should parse format with "kg" suffix', () => {
+		it('should parse format with "kg" suffix (required)', () => {
 			const result = parseSetInput('4 x 3 @50kg');
 			expect(result).toEqual({
 				sets: 4,
 				reps: 3,
 				weight: 50,
 				isValid: true
+			});
+		});
+
+		it('should parse format with percentage', () => {
+			const result = parseSetInput('4 x 6 @80%');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true
+			});
+		});
+
+		it('should parse format with RIR as unit', () => {
+			const result = parseSetInput('4 x 6 @1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
 			});
 		});
 
@@ -115,14 +140,28 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should parse compound exercise without kg suffix', () => {
-			const result = parseSetInput('5 x 2 + 1@60');
+		it('should parse compound exercise with kg unit', () => {
+			const result = parseSetInput('5 x 2 + 1@60kg');
 			expect(result).toEqual({
 				sets: 5,
 				reps: 3, // Total reps (2 + 1)
 				weight: 60,
 				isValid: true,
 				compoundReps: [2, 1]
+			});
+		});
+
+		it('should parse compound exercise with RIR unit', () => {
+			const result = parseSetInput('4 x 2 + 2@1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 4, // Total reps (2 + 2)
+				weight: 0,
+				isValid: true,
+				exerciseType: 'standard',
+				compoundReps: [2, 2],
+				rirMin: 1,
+				rirMax: 1
 			});
 		});
 
@@ -152,14 +191,27 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should parse multiple weights format', () => {
-			const result = parseSetInput('3 x 1 @50 60 70');
+		it('should parse multiple weights format with kg', () => {
+			const result = parseSetInput('3 x 1 @55 60 65kg');
 			expect(result).toEqual({
 				sets: 3,
 				reps: 1,
-				weight: 50, // First weight for backward compatibility
-				weights: [50, 60, 70],
+				weight: 55, // First weight for backward compatibility
+				weights: [55, 60, 65],
 				isValid: true
+			});
+		});
+
+		it('should parse multiple weights format with percentage', () => {
+			const result = parseSetInput('3 x 1 @60 70 75%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 0, // Will be calculated after RM lookup
+				weights: [60, 70, 75],
+				isValid: true,
+				weightPercentage: 60, // First for backward compatibility
+				needsRmLookup: true
 			});
 		});
 
@@ -186,7 +238,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should parse multiple weights with extra spaces', () => {
-			const result = parseSetInput('  3  x  1  @  50  60  70  ');
+			const result = parseSetInput('  3  x  1  @  50  60  70  kg  ');
 			expect(result).toEqual({
 				sets: 3,
 				reps: 1,
@@ -196,8 +248,8 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should parse single weight as simple format', () => {
-			const result = parseSetInput('1 x 5 @50');
+		it('should parse single weight as simple format with kg', () => {
+			const result = parseSetInput('1 x 5 @50kg');
 			expect(result).toEqual({
 				sets: 1,
 				reps: 5,
@@ -217,8 +269,8 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should parse wave exercise format', () => {
-			const result = parseSetInput('3-2-1-1-1 65');
+		it('should parse wave exercise format with kg', () => {
+			const result = parseSetInput('3-2-1-1-1 65kg');
 			expect(result).toEqual({
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
@@ -231,6 +283,25 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 1, weight: 65}
 				],
 				isValid: true
+			});
+		});
+
+		it('should parse wave exercise format with percentage', () => {
+			const result = parseSetInput('3-2-1-1-1 80%');
+			expect(result).toEqual({
+				sets: 5,
+				reps: 3, // First rep count for backward compatibility
+				weight: 0, // Will be calculated after RM lookup
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0},
+					{sets: 1, reps: 2, weight: 0},
+					{sets: 1, reps: 1, weight: 0},
+					{sets: 1, reps: 1, weight: 0},
+					{sets: 1, reps: 1, weight: 0}
+				],
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true
 			});
 		});
 
@@ -303,7 +374,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should parse wave exercise with single digit reps', () => {
-			const result = parseSetInput('1-1-1-1-1 50');
+			const result = parseSetInput('1-1-1-1-1 50kg');
 			expect(result).toEqual({
 				sets: 5,
 				reps: 1, // First rep count for backward compatibility
@@ -337,7 +408,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should parse wave exercise with many sets', () => {
-			const result = parseSetInput('5-4-3-2-1-1-1-1-1 80');
+			const result = parseSetInput('5-4-3-2-1-1-1-1-1 80kg');
 			expect(result).toEqual({
 				sets: 9,
 				reps: 5, // First rep count for backward compatibility
@@ -405,6 +476,11 @@ describe('parseSetInput', () => {
 
 		it('should return invalid for missing @ symbol', () => {
 			const result = parseSetInput('4 x 3 50kg');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for missing unit', () => {
+			const result = parseSetInput('4 x 3 @50');
 			expect(result.isValid).toBe(false);
 		});
 
@@ -499,52 +575,61 @@ describe('parseSetInput', () => {
 		});
 
 		it('should return invalid for multiple weights with wrong count', () => {
-			const result = parseSetInput('3 x 1 @50 60');
+			const result = parseSetInput('3 x 1 @50 60 70kg');
+			// This should be valid (3 weights for 3 sets)
+			expect(result.isValid).toBe(true);
+			
+			// Test with wrong count
+			const result2 = parseSetInput('3 x 1 @50 60kg');
+			expect(result2.isValid).toBe(false);
+		});
+
+		it('should return invalid for multiple weights without unit', () => {
+			const result = parseSetInput('3 x 1 @50 60 70');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Expected 3 weights for 3 sets, but got 2');
 		});
 
 		it('should return invalid for multiple weights with too many weights', () => {
-			const result = parseSetInput('2 x 1 @50 60 70');
+			const result = parseSetInput('2 x 1 @50 60 70kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for multiple weights with non-numeric values', () => {
-			const result = parseSetInput('3 x 1 @50 abc 70');
+			const result = parseSetInput('3 x 1 @50 abc 70kg');
 			expect(result.isValid).toBe(false);
 			expect(result.errorMessage).toBe('Invalid weight values. Please use numbers only.');
 		});
 
 		it('should return invalid for multiple weights with negative values', () => {
-			const result = parseSetInput('3 x 1 @50 -60 70');
+			const result = parseSetInput('3 x 1 @50 -60 70kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for multiple weights with zero values', () => {
-			const result = parseSetInput('3 x 1 @50 0 70');
+			const result = parseSetInput('3 x 1 @50 0 70kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for multiple weights with empty values', () => {
-			const result = parseSetInput('3 x 1 @50  70');
+			const result = parseSetInput('3 x 1 @50  70kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for multiple weights with decimal values that are not numbers', () => {
-			const result = parseSetInput('3 x 1 @50.5 60.abc 70.75');
+			const result = parseSetInput('3 x 1 @50.5 60.abc 70.75kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for wave exercise with zero reps', () => {
-			const result = parseSetInput('3-0-1-1-1 65');
+			const result = parseSetInput('3-0-1-1-1 65kg');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")');
+			expect(result.errorMessage).toContain('Invalid wave format');
 		});
 
 		it('should return invalid for wave exercise with negative reps', () => {
-			const result = parseSetInput('3--2-1-1-1 65');
+			const result = parseSetInput('3--2-1-1-1 65kg');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")');
+			expect(result.errorMessage).toContain('Invalid wave format');
 		});
 
 		it('should return invalid for wave exercise with non-numeric reps', () => {
@@ -564,35 +649,40 @@ describe('parseSetInput', () => {
 		});
 
 		it('should return invalid for wave exercise with negative weight', () => {
-			const result = parseSetInput('3-2-1-1-1 -65');
+			const result = parseSetInput('3-2-1-1-1 -65kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for wave exercise with zero weight', () => {
-			const result = parseSetInput('3-2-1-1-1 0');
+			const result = parseSetInput('3-2-1-1-1 0kg');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for wave exercise without unit', () => {
+			const result = parseSetInput('3-2-1-1-1 65');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for wave exercise with wrong format', () => {
-			const result = parseSetInput('3x2-1-1-1 65');
+			const result = parseSetInput('3x2-1-1-1 65kg');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for wave exercise with extra characters', () => {
-			const result = parseSetInput('3-2-1-1-1 65 extra');
+			const result = parseSetInput('3-2-1-1-1 65kg extra');
 			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for wave exercise with empty rep values', () => {
-			const result = parseSetInput('3--1-1-1 65');
+			const result = parseSetInput('3--1-1-1 65kg');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")');
+			expect(result.errorMessage).toContain('Invalid wave format');
 		});
 
 		it('should return invalid for wave exercise with decimal reps', () => {
-			const result = parseSetInput('3.5-2-1-1-1 65');
+			const result = parseSetInput('3.5-2-1-1-1 65kg');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Invalid wave format. Use "reps1-reps2-reps3... weight" (e.g., "3-2-1-1-1 65")');
+			expect(result.errorMessage).toContain('Invalid wave format');
 		});
 	});
 
@@ -638,7 +728,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should handle multiple weights with tabs and newlines', () => {
-			const result = parseSetInput('\t3\tx\t1\t@\t50\t60\t70\t');
+			const result = parseSetInput('\t3\tx\t1\t@\t50\t60\t70\tkg\t');
 			expect(result).toEqual({
 				sets: 3,
 				reps: 1,
@@ -764,17 +854,17 @@ describe('parseSetInput', () => {
 		});
 
 		it('should return weights array for multiple weights format', () => {
-			const result = parseSetInput('3 x 1 @50 60 70');
+			const result = parseSetInput('3 x 1 @55 60 65kg');
 			expect(Array.isArray(result.weights)).toBe(true);
-			expect(result.weights).toEqual([50, 60, 70]);
+			expect(result.weights).toEqual([55, 60, 65]);
 		});
 
 		it('should not return weights array for single weight format', () => {
-			const result = parseSetInput('3 x 1 @50');
+			const result = parseSetInput('3 x 1 @50kg');
 			expect(result.weights).toBeUndefined();
 		});
 
-		it('should maintain backward compatibility with existing formats', () => {
+		it('should maintain compatibility with existing formats (with required units)', () => {
 			const simpleResult = parseSetInput('4 x 3 @50kg');
 			const compoundResult = parseSetInput('4 x 2 + 2@50kg');
 			
@@ -785,7 +875,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should return wavePhases array for wave exercise format', () => {
-			const result = parseSetInput('3-2-1-1-1 65');
+			const result = parseSetInput('3-2-1-1-1 65kg');
 			expect(Array.isArray(result.wavePhases)).toBe(true);
 			expect(result.wavePhases).toEqual([
 				{sets: 1, reps: 3, weight: 65},
@@ -797,17 +887,17 @@ describe('parseSetInput', () => {
 		});
 
 		it('should not return wavePhases array for non-wave formats', () => {
-			const simpleResult = parseSetInput('3 x 1 @50');
-			const compoundResult = parseSetInput('3 x 2 + 2@50');
-			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70');
+			const simpleResult = parseSetInput('3 x 1 @50kg');
+			const compoundResult = parseSetInput('3 x 2 + 2@50kg');
+			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70kg');
 			
 			expect(simpleResult.wavePhases).toBeUndefined();
 			expect(compoundResult.wavePhases).toBeUndefined();
 			expect(multipleWeightsResult.wavePhases).toBeUndefined();
 		});
 
-		it('should maintain backward compatibility with wave exercises', () => {
-			const waveResult = parseSetInput('3-2-1-1-1 65');
+		it('should maintain compatibility with wave exercises (with required units)', () => {
+			const waveResult = parseSetInput('3-2-1-1-1 65kg');
 			
 			expect(waveResult.weights).toBeUndefined();
 			expect(waveResult.compoundReps).toBeUndefined();
@@ -841,16 +931,34 @@ describe('parseSetInput', () => {
 			});
 		});
 
-		it('should not parse rest time without unit (to avoid conflicts with multiple weights)', () => {
+		it('should return invalid for rest time without unit (unit is mandatory)', () => {
 			const result = parseSetInput('4 x 3 @50kg 120');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Rest time requires a unit');
+		});
+
+		it('should parse rest time with "min" unit', () => {
+			const result = parseSetInput('4 x 3 @50kg 2min');
 			expect(result).toEqual({
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
-				// restTimeSeconds should not be set without a unit
+				isValid: true,
+				restTimeSeconds: 120 // 2 minutes = 120 seconds
 			});
-			expect(result.restTimeSeconds).toBeUndefined();
+		});
+
+		it('should parse RIR as unit format', () => {
+			const result = parseSetInput('4 x 6@1RIR');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 1,
+				rirMax: 1
+			});
 		});
 
 		it('should parse rest time with compound exercises', () => {
@@ -881,7 +989,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should parse rest time with multiple weights', () => {
-			const result = parseSetInput('3 x 1 @50 60 70 2m');
+			const result = parseSetInput('3 x 1 @50 60 70kg 2m');
 			expect(result).toEqual({
 				sets: 3,
 				reps: 1,
@@ -1035,7 +1143,7 @@ describe('parseSetInput', () => {
 		});
 
 		it('should parse rest time with wave exercises', () => {
-			const result = parseSetInput('3-2-1-1-1 65 90s');
+			const result = parseSetInput('3-2-1-1-1 65kg 90s');
 			expect(result).toEqual({
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility

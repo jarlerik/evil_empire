@@ -19,70 +19,75 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Basic Format</Text>
 					<Text style={styles.description}>
-						Standard format for sets, reps, and weight.
+						Standard format for sets, reps, and weight. Weight unit is required (kg, %, or RIR).
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 3 @50kg</Text>
+						<Text style={styles.example}>4 x 6@80kg</Text>
+						<Text style={styles.example}>4 x 6@80%</Text>
+						<Text style={styles.example}>4 x 6@1RIR</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps @weight. The "kg" suffix is optional.
+						Format: sets x reps @weight (kg), sets x reps @percentage (%), or sets x reps @RIR. The unit (kg, %, or RIR) is required.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Compound Exercises</Text>
 					<Text style={styles.description}>
-						For exercises with multiple rep parts, such as complex movements.
+						For exercises with multiple rep parts, such as complex movements. Weight unit is required.
 					</Text>
+					<Text style={styles.description}>Example: Power snatch + Snatch 4 x 2 + 2@50kg</Text>
 					<View style={styles.exampleContainer}>
 						<Text style={styles.example}>4 x 2 + 2@50kg</Text>
+						<Text style={styles.example}>4 x 2 + 2@60%</Text>
 						<Text style={styles.example}>3 x 1 + 3@75kg</Text>
 						<Text style={styles.example}>4 x 1 + 2 + 2 + 2@40kg</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps1 + reps2 (+ reps3...) @weight. The total reps are calculated automatically.
+						Format: sets x reps1 + reps2 (+ reps3...) @weight (kg) or @percentage (%). The total reps are calculated automatically. Unit is required.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Multiple Weights</Text>
 					<Text style={styles.description}>
-						Specify different weights for each set.
+						Specify different weights for each set. Unit (kg or %) must be at the end.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>3 x 1 @50 60 70</Text>
-						<Text style={styles.example}>4 x 5 @100 110 120 130kg</Text>
+						<Text style={styles.example}>3 x 1@55 60 65kg</Text>
+						<Text style={styles.example}>3 x 1@60 70 75%</Text>
+						<Text style={styles.example}>4 x 5@100 110 120 130kg</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps @weight1 weight2 weight3... The number of weights must match the number of sets. "kg" can be added at the end.
+						Format: sets x reps @weight1 weight2 weight3...kg or ...%. The number of weights must match the number of sets. Unit (kg or %) must be at the end.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Wave Exercises</Text>
 					<Text style={styles.description}>
-						Decreasing reps across sets with the same weight.
+						Decreasing reps across sets with the same weight. Unit (kg or %) is required.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>3-2-1-1-1 65</Text>
-						<Text style={styles.example}>5-4-3-2-1 75.5kg</Text>
+						<Text style={styles.example}>3-2-1-3-2-1 50 55 60 55 65 70kg</Text>
+						<Text style={styles.example}>3-2-1-2-2-1 60 70 80 65 75 85%</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: reps1-reps2-reps3... weight. Each number represents reps for one set. Creates multiple phases automatically.
+						Format: reps1-reps2-reps3... weight (kg) or weight (%). Each number represents reps for one set. Creates multiple phases automatically. Unit is required.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Percentage-Based Weight</Text>
 					<Text style={styles.description}>
-						Use a percentage of your 1RM. Requires a 1RM to be set in Repetition Maximums.
+						Use a percentage of your 1RM. Requires a 1RM to be set in Repetition Maximums. The % unit is required.
 					</Text>
 					<View style={styles.exampleContainer}>
 						<Text style={styles.example}>4 x 5@80%</Text>
 						<Text style={styles.example}>3 x 1 + 1 + 1@60%</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps@percentage%. The app will look up your 1RM for the exercise and calculate the weight. Works with compound exercises too.
+						Format: sets x reps@percentage (%). The app will look up your 1RM for the exercise and calculate the weight. Works with compound exercises too. The % unit is required.
 					</Text>
 				</View>
 
@@ -103,14 +108,14 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Weight Range</Text>
 					<Text style={styles.description}>
-						Specify a range of absolute weights.
+						Specify a range of absolute weights. The kg unit is required.
 					</Text>
 					<View style={styles.exampleContainer}>
 						<Text style={styles.example}>4 x 5@85-89kg</Text>
 						<Text style={styles.example}>3 x 3@50-55kg</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps@min-maxkg. The minimum weight must be less than or equal to the maximum. "kg" suffix is optional.
+						Format: sets x reps@min-maxkg. The minimum weight must be less than or equal to the maximum. The kg unit is required.
 					</Text>
 				</View>
 
@@ -145,30 +150,31 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>RIR (Reps in Reserve)</Text>
 					<Text style={styles.description}>
-						Specify target reps in reserve instead of a specific weight.
+						Specify target reps in reserve. Can be used as a unit after weight or as a standalone format.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>2x 10, 2-3RIR</Text>
+						<Text style={styles.example}>4 x 6@1RIR</Text>
 						<Text style={styles.example}>4 x 6 1RIR</Text>
-						<Text style={styles.example}>4 x 6 @50kg 1RIR</Text>
+						<Text style={styles.example}>4 x 8 2-3RIR</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps, RIR or sets x reps RIR. Can include a comma or not. Can specify a range (e.g., "2-3RIR") or single value (e.g., "1RIR"). Optional weight can be included.
+						Format: sets x reps@RIRRIR (as unit) or sets x reps, RIR / sets x reps RIR (standalone). Can specify a range (e.g., "2-3RIR") or single value (e.g., "1RIR"). When used as a unit, it follows the weight directly (e.g., "@1RIR").
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Rest Time</Text>
 					<Text style={styles.description}>
-						Add rest time between sets to any format.
+						Add rest time between sets to any format. Rest time unit is mandatory.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 3 @50kg 120s</Text>
-						<Text style={styles.example}>4 x 3 @50kg 2m</Text>
+						<Text style={styles.example}>4 x 3@50kg 120s</Text>
+						<Text style={styles.example}>4 x 3@50% 2min</Text>
 						<Text style={styles.example}>3 x 5 @80% 90s</Text>
+						<Text style={styles.example}>4 x 3 @50kg 2m</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: ...rest time. Add rest time at the end using "s" for seconds or "m" for minutes. Examples: "120s" (120 seconds), "2m" (2 minutes = 120 seconds). The unit is required to avoid conflicts with multiple weights format.
+						Format: ...rest time. Add rest time at the end using "s" or "sec" for seconds, or "m", "min", or "minute" for minutes. Examples: "120s" (120 seconds), "2m" or "2min" (2 minutes = 120 seconds). The unit is mandatory.
 					</Text>
 				</View>
 
@@ -190,10 +196,11 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Tips</Text>
 					<Text style={styles.description}>
+						• Weight unit is always required: kg, %, or RIR{'\n'}
 						• Extra spaces are automatically handled{'\n'}
-						• "kg" suffix is optional in most formats{'\n'}
 						• Case doesn't matter (e.g., "KG", "Kg", "kg" all work){'\n'}
 						• Decimal weights are supported (e.g., 75.5kg){'\n'}
+						• For multiple weights, the unit goes at the end (e.g., "3 x 1@55 60 65kg"){'\n'}
 						• For percentage-based formats, make sure you have a 1RM set in Repetition Maximums{'\n'}
 						• The app will try to match compound exercise names with existing RMs (e.g., "Muscle clean + Push press" will look for "Clean" in your RMs)
 					</Text>
