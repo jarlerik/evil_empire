@@ -1,16 +1,35 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { router } from 'expo-router';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
+import { Ionicons } from '@expo/vector-icons';
+import { addDays, startOfWeek, format, isToday, getISOWeek, isSameWeek } from 'date-fns';
+import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
+
+interface Workout {
+	id: string;
+	name: string;
+	user_id: string;
+	created_at?: string;
+	workout_date?: string;
+}
+
+interface Exercise {
+	id: string;
+	name: string;
+	workout_id: string;
+	created_at?: string;
+}
 
 export default function Index() {
+	const [workoutName, setWorkoutName] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const { user, loading: authLoading } = useAuth();
-	const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
-	const router = useRouter();
-	const [isEditingWeight, setIsEditingWeight] = useState(false);
-	const [tempWeight, setTempWeight] = useState(settings?.user_weight || '85');
-	const [isEditingUnit, setIsEditingUnit] = useState(false);
+	const { loading: settingsLoading } = useUserSettings();
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -18,31 +37,122 @@ export default function Index() {
 		}
 	}, [user, authLoading]);
 
-	const handleCreateWorkout = () => {
-		router.push('/create-workout');
-	};
+	const [workouts, setWorkouts] = useState<Workout[]>([]);
+	const [exercises, setExercises] = useState<Record<string, Exercise[]>>({});
+	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-	const handleWeightEdit = () => {
-		if (!settings) return;
-		setIsEditingWeight(true);
-		setTempWeight(settings.user_weight);
-	};
+	// Helper to get week options
+	const weekOptions = Array.from({ length: 12 }).map((_, i) => {
+		const weekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i * 7);
+		return {
+			label: `Week ${getISOWeek(weekStart)}`,
+			value: format(weekStart, 'yyyy-MM-dd'),
+			weekStart,
+		};
+	});
 
-	const handleWeightSave = async () => {
-		try {
-			await updateSettings({ user_weight: tempWeight });
-			setIsEditingWeight(false);
-		} catch (error) {
-			console.error('Error saving weight:', error);
+	// When week changes, update selectedDate
+	const handleWeekChange = (weekStartStr: string) => {
+		const weekStart = new Date(weekStartStr);
+		setSelectedWeekStart(weekStart);
+		// If current week, highlight today; else, highlight Monday
+		if (isSameWeek(new Date(), weekStart, { weekStartsOn: 1 })) {
+			setSelectedDate(new Date());
+		} else {
+			setSelectedDate(weekStart);
 		}
 	};
 
-	const handleUnitSelect = async (unit: 'kg' | 'lbs') => {
-		try {
-			await updateSettings({ weight_unit: unit });
-			setIsEditingUnit(false);
-		} catch (error) {
-			console.error('Error updating weight unit:', error);
+	useFocusEffect(
+		useCallback(() => {
+			if (!user || !supabase) return;
+			const fetchWorkouts = async () => {
+				if (!supabase) return;
+				const { data, error } = await supabase
+					.from('workouts')
+					.select('*')
+					.eq('user_id', user.id)
+					.order('created_at', { ascending: false });
+				if (!error && data) {
+					setWorkouts(data);
+					// Fetch exercises for each workout
+					await fetchExercises(data);
+				}
+			};
+			fetchWorkouts();
+		}, [supabase, user])
+	);
+
+	const fetchExercises = async (workoutList: Workout[]) => {
+		if (!supabase) return;
+		
+		const exercisesMap: Record<string, Exercise[]> = {};
+		
+		for (const workout of workoutList) {
+			const { data, error } = await supabase
+				.from('exercises')
+				.select('*')
+				.eq('workout_id', workout.id)
+				.order('created_at', { ascending: true });
+			
+			if (!error && data) {
+				exercisesMap[workout.id] = data;
+			}
+		}
+		
+		setExercises(exercisesMap);
+	};
+
+	const handleCreateWorkout = async () => {
+		if (!workoutName.trim()) return;
+		if (!supabase) {
+			setError('Database not available.');
+			return;
+		}
+		if (!user) {
+			setError('You must be signed in to create a workout.');
+			return;
+		}
+		setIsLoading(true);
+		setError(null);
+		const { error: insertError } = await supabase
+			.from('workouts')
+			.insert([{ name: workoutName.trim(), user_id: user.id, workout_date: format(selectedDate, 'yyyy-MM-dd') }]);
+		setIsLoading(false);
+		if (insertError) {
+			setError('Failed to create workout. Please try again.');
+			return;
+		}
+		setWorkoutName('');
+		// Refetch workouts and exercises after creation
+		const { data, error } = await supabase
+			.from('workouts')
+			.select('*')
+			.eq('user_id', user.id)
+			.order('created_at', { ascending: false });
+		if (!error && data) {
+			setWorkouts(data);
+			await fetchExercises(data);
+		}
+	};
+
+	const handleDeleteWorkout = async (id: string) => {
+		if (!supabase) return;
+		setDeletingId(id);
+		await supabase.from('workouts').delete().eq('id', id);
+		setDeletingId(null);
+		// Refetch workouts and exercises after deletion
+		if (!user) return;
+		const { data, error } = await supabase
+			.from('workouts')
+			.select('*')
+			.eq('user_id', user.id)
+			.order('created_at', { ascending: false });
+		if (!error && data) {
+			setWorkouts(data);
+			await fetchExercises(data);
 		}
 	};
 
@@ -55,97 +165,177 @@ export default function Index() {
 	}
 
 	return (
-		<Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
-			<View style={styles.container}>
-				<Text style={styles.headerTitle}>Settings</Text>
-				<View style={styles.settings}>
-					<View style={styles.email}>
-						<Text style={styles.title}>Email</Text>
-						<Text style={styles.subtitle}>{user?.email}</Text>
+		<KeyboardAvoidingView
+			style={{ flex: 1 }}
+			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+		>
+			<ScrollView
+				contentContainerStyle={{ flex: 1 }}
+				keyboardShouldPersistTaps="handled"
+			>
+				<View style={styles.container}>
+					<View style={styles.headerRow}>
+						<Text style={styles.title}>Workouts</Text>
+						<Pressable onPress={() => router.push('/settings')} style={styles.settingsButton}>
+							<Ionicons name="settings-outline" size={24} color="#fff" />
+						</Pressable>
 					</View>
-					<View style={styles.units}>
-					</View>
-				
-					<Text style={styles.title}>Units</Text>
-					<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
-						<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
-						<Text style={styles.dropdownArrow}>▼</Text>
-					</Pressable>
-					<Pressable onPress={() => router.push('/repetition-maximums')}>
-						<Text style={styles.editWeightButton}>Repetition Maximums</Text>
-					</Pressable>
-					<Modal
-						visible={isEditingUnit}
-						transparent={true}
-						animationType="slide"
-						onRequestClose={() => setIsEditingUnit(false)}
-					>
-						<View style={styles.modalContainer}>
-							<View style={styles.modalContent}>
-								<Text style={styles.modalTitle}>Select Weight Unit</Text>
-								<Pressable
-									style={styles.unitOption}
-									onPress={() => handleUnitSelect('kg')}
-								>
-									<Text style={[
-										styles.unitOptionText,
-										settings?.weight_unit === 'kg' && styles.selectedUnit
-									]}>Kilograms (kg)</Text>
-								</Pressable>
-								<Pressable
-									style={styles.unitOption}
-									onPress={() => handleUnitSelect('lbs')}
-								>
-									<Text style={[
-										styles.unitOptionText,
-										settings?.weight_unit === 'lbs' && styles.selectedUnit
-									]}>Pounds (lbs)</Text>
-								</Pressable>
-								<Pressable
-									style={styles.closeButton}
-									onPress={() => setIsEditingUnit(false)}
-								>
-									<Text style={styles.closeButtonText}>Cancel</Text>
-								</Pressable>
-							</View>
-						</View>
-					</Modal>
-					
-				</View>
-				<View style={styles.weightContainer}>
-					<Text style={styles.weightTitle}>Weight</Text>
-					{isEditingWeight ? (
-						<View style={styles.weightEditContainer}>
-							<TextInput
-								style={styles.weightInput}
-								value={tempWeight}
-								onChangeText={setTempWeight}
-								keyboardType="numeric"
-								maxLength={5}
-								returnKeyType="done"
-								onSubmitEditing={Keyboard.dismiss}
-							/>
-							<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
-							<Pressable style={styles.saveButton} onPress={handleWeightSave}>
-								<Text style={styles.saveButtonText}>Save</Text>
+
+					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+						{format(selectedDate, 'LLLL')}
+					</Text>
+
+					{/* Week Selector with Navigation Arrows */}
+					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+						<View style={styles.pickerContainer}>
+							<Pressable 
+								style={[
+									styles.arrowButton,
+									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowButtonDisabled
+								]}
+								onPress={() => {
+									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
+									const prevIndex = currentIndex > 0 ? currentIndex - 1 : weekOptions.length - 1;
+									handleWeekChange(weekOptions[prevIndex].value);
+								}}
+								disabled={isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 })}
+							>
+								<Text style={[
+									styles.arrowText,
+									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowTextDisabled
+								]}>‹</Text>
+							</Pressable>
+							
+							<Text style={styles.pickerText}>
+								{weekOptions.find(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'))?.label || 'Week 31'}
+							</Text>
+							
+							<Pressable 
+								style={styles.arrowButton}
+								onPress={() => {
+									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
+									const nextIndex = (currentIndex + 1) % weekOptions.length;
+									handleWeekChange(weekOptions[nextIndex].value);
+								}}
+							>
+								<Text style={styles.arrowText}>›</Text>
 							</Pressable>
 						</View>
-					) : (
-						<View style={styles.weightEditContainer}>
-							<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
-							<Pressable onPress={handleWeightEdit}>
-								<Text style={styles.editWeightButton}>Change your weight</Text>
-							</Pressable>
-						</View>
-					)}
+					</View>
+
+					{/* Week Day Selector */}
+					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
+						{Array.from({ length: 7 }).map((_, i) => {
+							const day = addDays(selectedWeekStart, i);
+							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+							const isPast = day < new Date(new Date().setHours(0, 0, 0, 0)); // compare to today at midnight
+
+							return (
+								<Pressable
+									key={i}
+									onPress={isPast ? undefined : () => setSelectedDate(day)}
+									disabled={isPast}
+									style={{
+										alignItems: 'center',
+										flex: 1,
+										paddingVertical: 4,
+										opacity: isPast ? 0.5 : 1, // visually indicate disabled
+									}}
+								>
+									<Text
+										style={{
+											color: isPast ? '#ccc' : '#fff',
+											fontWeight: 'bold',
+											fontSize: 13,
+											letterSpacing: 1,
+											textAlign: 'center',
+										}}
+									>
+										{format(day, 'EEE').toUpperCase()}
+									</Text>
+									<View
+										style={{
+											backgroundColor: isPast ? 'transparent' : isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
+											borderRadius: 20,
+											width: 40,
+											height: 40,
+											alignItems: 'center',
+											justifyContent: 'center',
+											marginTop: 2,
+										}}
+									>
+										<Text
+											style={{
+												color: isPast ? '#ccc' : isSelected ? '#000' : '#fff',
+												fontWeight: 'bold',
+												fontSize: 20,
+												textAlign: 'center',
+											}}
+										>
+											{format(day, 'd')}
+										</Text>
+									</View>
+								</Pressable>
+							);
+						})}
+					</View>
+					{/* List of created workouts */}
+					<View style={{ marginTop: 32 }}>
+						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+							Workout for {format(selectedDate, 'EEEE, LLLL d')}
+						</Text>
+						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
+							<Text style={{ color: '#666' }}>No workout yet.</Text>
+						) : (
+							workouts
+								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
+								.map((w) => (
+									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12 }}>
+										<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: exercises[w.id] && exercises[w.id].length > 0 ? 8 : 0 }}>
+											<View style={{ flex: 1 }}>
+												<Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{w.name}</Text>
+											</View>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
+												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+													<Ionicons name="pencil" size={22} color="#fff" />
+												</Pressable>
+												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+													<Ionicons name="play" size={22} color="#fff" />
+												</Pressable>
+											</View>
+										</View>
+										{exercises[w.id] && exercises[w.id].length > 0 && (
+											<View style={{ marginTop: 8 }}>
+												{exercises[w.id].map((exercise, index) => (
+													<Text key={exercise.id} style={{ color: '#666', fontSize: 14, marginTop: 2 }}>
+														{index + 1}. {exercise.name}
+													</Text>
+												))}
+											</View>
+										)}
+									</View>
+								))
+						)}
+					</View>
+					<View style={{ marginTop: 'auto' }}>
+						<TextInput
+							style={styles.input}
+							value={workoutName}
+							onChangeText={setWorkoutName}
+							placeholder="Workout name"
+							placeholderTextColor="#666"
+							returnKeyType="done"
+							onSubmitEditing={handleCreateWorkout}
+							editable={!isLoading}
+						/>
+						{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+						<Pressable style={styles.button} onPress={handleCreateWorkout} disabled={isLoading}>
+							<Text style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create'}</Text>
+						</Pressable>
+					</View>
 				</View>
-				<View style={styles.footer}>
-					<Pressable style={styles.button} onPress={handleCreateWorkout}>
-						<Text style={styles.buttonText}>Workouts</Text>
-					</Pressable>
-				</View>
-			</View>
-		</Pressable>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 }
 
@@ -155,71 +345,34 @@ const styles = StyleSheet.create({
 		backgroundColor: '#000',
 		padding: 20,
 	},
-	settings: {},
-	header: {
-		flex: 1,
+	headerRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginTop: 20,
+		marginBottom: 16,
 	},
-	headerTitle: {
-		fontSize: 36,
-		fontWeight: 'bold',
-		color: '#fff',
-	},
-	email: {
-		flex: 1,
-	},
-	units: {
-		flex: 1,
-	},
-	weightContainer: {
-		flex: 1,
-		justifyContent: 'center',
-	},
-	weight: {
-		flex: 1,
-	},
-	changeUnit: {
-		fontSize: 12,
-		color: '#fff',
-		textAlign: 'center',
-		marginBottom: 10,
-		textDecorationLine: 'underline',
-	},
-	editWeightButton: {
-		fontSize: 12,
-		color: '#fff',
-		textAlign: 'center',
-		marginTop: 10,
-		marginBottom: 10,
-		textDecorationLine: 'underline',
-	},
-	weightTitle: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginTop: 5,
-		textAlign: 'center',
-	},
-	weightValue: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#666666',
-		marginTop: 5,
-		textAlign: 'center',
-	},
-	footer: {
-		marginTop: 'auto',
+	settingsButton: {
+		padding: 8,
 	},
 	title: {
-		fontSize: 24,
+		fontSize: 32,
 		fontWeight: 'bold',
 		color: '#fff',
-		marginTop: 40,
 	},
 	subtitle: {
 		fontSize: 16,
 		color: '#666',
 		marginTop: 8,
 		marginBottom: 40,
+	},
+	input: {
+		backgroundColor: '#111',
+		color: '#fff',
+		padding: 15,
+		borderRadius: 8,
+		fontSize: 16,
+		marginBottom: 20,
 	},
 	button: {
 		backgroundColor: '#333',
@@ -232,106 +385,50 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '600',
 	},
-	buttonMargin: {
-		marginTop: 12,
-	},
-	weightEditContainer: {
-		alignItems: 'center',
-		marginTop: 10,
-	},
-	weightInput: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#fff',
-		textAlign: 'center',
-		borderBottomWidth: 2,
-		borderBottomColor: '#666',
-		paddingBottom: 5,
-		minWidth: 120,
-	},
-	weightUnit: {
-		fontSize: 24,
-		color: '#666666',
-		marginTop: 5,
-	},
-	saveButton: {
-		backgroundColor: '#333',
-		paddingVertical: 10,
-		paddingHorizontal: 30,
+	pickerContainer: {
+		width: 160,
+		backgroundColor: '#111',
 		borderRadius: 8,
-		marginTop: 20,
-	},
-	saveButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	modalContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-	},
-	modalContent: {
-		backgroundColor: '#1a1a1a',
-		padding: 20,
-		borderRadius: 12,
-		width: '80%',
-		alignItems: 'center',
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginBottom: 20,
-	},
-	unitOption: {
-		paddingVertical: 15,
-		paddingHorizontal: 20,
-		width: '100%',
-		borderRadius: 8,
-		marginBottom: 10,
-	},
-	unitOptionText: {
-		color: '#fff',
-		fontSize: 16,
-		textAlign: 'center',
-	},
-	selectedUnit: {
-		color: '#007AFF',
-		fontWeight: 'bold',
-	},
-	closeButton: {
-		marginTop: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 20,
-		borderRadius: 8,
-		backgroundColor: '#333',
-	},
-	closeButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	dropdownButton: {
+		padding: 8,
 		flexDirection: 'row',
 		alignItems: 'center',
-		justifyContent: 'center',
-		backgroundColor: '#333',
-		paddingVertical: 8,
-		paddingHorizontal: 16,
-		borderRadius: 8,
-		marginTop: 8,
-		marginBottom: 40,
+		justifyContent: 'space-between',
+		height: 40,
 	},
-	dropdownText: {
+	pickerText: {
+		color: '#fff',
 		fontSize: 16,
-		color: '#fff',
-		marginRight: 8,
+		fontWeight: 'bold',
+		lineHeight: 16,
+		textAlignVertical: 'center',
+		includeFontPadding: false,
 	},
-	dropdownArrow: {
-		fontSize: 12,
+	pickerArrow: {
 		color: '#fff',
-		opacity: 0.7,
+		fontSize: 12,
+	},
+	arrowButton: {
+		padding: 4,
+		backgroundColor: 'transparent',
+		borderRadius: 16,
+		width: 24,
+		height: 24,
+		alignItems: 'center',
+		justifyContent: 'center',
+		display: 'flex',
+	},
+	arrowText: {
+		color: '#fff',
+		fontSize: 18,
+		fontWeight: 'bold',
+		lineHeight: 18,
+		textAlignVertical: 'center',
+		includeFontPadding: false,
+	},
+	arrowButtonDisabled: {
+		opacity: 0.3,
+	},
+	arrowTextDisabled: {
+		color: '#666',
 	},
 });
