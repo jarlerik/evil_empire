@@ -159,18 +159,24 @@ export default function AddExercises() {
 	const handleAddExercise = async () => {
 		if (!exerciseName.trim() || !workoutId || !supabase) return;
 		setIsLoading(true);
-		await supabase.from('exercises').insert([{ name: exerciseName.trim(), workout_id: workoutId }]);
-		setExerciseName('');
-		setIsLoading(false);
-		// Refetch exercises and phases
+
 		const { data, error } = await supabase
 			.from('exercises')
-			.select('*')
-			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: true });
+			.insert([{ name: exerciseName.trim(), workout_id: workoutId }])
+			.select()
+			.single();
+
 		if (!error && data) {
-			setExercises(data);
-			await fetchExercisePhases(data);
+			const createdExerciseName = exerciseName.trim();
+			setExerciseName('');
+			setIsLoading(false);
+			// Navigate to edit-exercise with the new exercise
+			router.push({
+				pathname: '/edit-exercise',
+				params: { exerciseId: data.id, exerciseName: createdExerciseName }
+			});
+		} else {
+			setIsLoading(false);
 		}
 	};
 
