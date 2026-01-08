@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -392,6 +392,29 @@ export default function EditExercise() {
 		}
 	};
 
+	const handleBackPress = () => {
+		console.log('handleBackPress exercisePhases', exercisePhases);
+		if (exercisePhases.length === 0) {
+			Alert.alert(
+				'No sets and reps',
+				'',
+				[
+					{
+						text: 'Delete exercise',
+						onPress: () => handleDeleteExercise(),
+						style: 'destructive'
+					},
+					{
+						text: 'Continue',
+						style: 'cancel'
+					}
+				]
+			);
+		} else {
+			router.back();
+		}
+	};
+
 	const handleSave = async () => {
 		if (!exerciseName.trim() || !exerciseId || !supabase) return;
 		// Update the exercise name in the database
@@ -418,7 +441,7 @@ export default function EditExercise() {
 			>
 				<View style={styles.container}>
 					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton}>
+						<Pressable onPress={handleBackPress} style={styles.backButton}>
 							<Text style={styles.backButtonText}>←</Text>
 						</Pressable>
 						<Text style={styles.exerciseName}>{exerciseName}</Text>
