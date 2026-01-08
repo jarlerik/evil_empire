@@ -308,7 +308,7 @@ export default function Index() {
 										{exercises[w.id] && exercises[w.id].length > 0 && (
 											<View style={{ marginTop: 8 }}>
 												{exercises[w.id].map((exercise, index) => (
-													<Text key={exercise.id} style={{ color: '#666', fontSize: 14, marginTop: 2 }}>
+													<Text key={exercise.id} style={{ color: '#C65D24', fontSize: 14, marginTop: 2 }}>
 														{index + 1}. {exercise.name}
 													</Text>
 												))}
