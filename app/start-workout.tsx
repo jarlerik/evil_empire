@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	timerStateDone: {
-		color: '#00FF00',
+		color: '#C65D24',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
