@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
 		borderColor: '#fff',
 	},
 	phaseText: {
-		color: '#fff',
+		color: '#C65D24',
 		fontSize: 16,
 		flex: 1,
 	},
