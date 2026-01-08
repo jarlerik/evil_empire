@@ -393,7 +393,6 @@ export default function EditExercise() {
 	};
 
 	const handleBackPress = () => {
-		console.log('handleBackPress exercisePhases', exercisePhases);
 		if (exercisePhases.length === 0) {
 			Alert.alert(
 				'No sets and reps',
