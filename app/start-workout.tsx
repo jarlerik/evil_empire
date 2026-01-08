@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -43,6 +43,7 @@ export default function StartWorkout() {
 	const [currentSetNumber, setCurrentSetNumber] = useState<number>(1);
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
+	const blinkOpacity = useRef(new Animated.Value(1)).current;
 
 	const fetchExercises = async () => {
 		if (!workoutId || !supabase) return;
@@ -130,6 +131,30 @@ export default function StartWorkout() {
 			}
 		};
 	}, []);
+
+	// Blinking animation for WORKING and RESTING states
+	useEffect(() => {
+		if (workoutState === 'work' || workoutState === 'rest') {
+			const blinkAnimation = Animated.loop(
+				Animated.sequence([
+					Animated.timing(blinkOpacity, {
+						toValue: 0.3,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+					Animated.timing(blinkOpacity, {
+						toValue: 1,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+				])
+			);
+			blinkAnimation.start();
+			return () => blinkAnimation.stop();
+		} else {
+			blinkOpacity.setValue(1);
+		}
+	}, [workoutState, blinkOpacity]);
 
 	const formatExercisePhase = (phase: ExercisePhase) => {
 		// Helper function to append rest time
@@ -421,14 +446,14 @@ export default function StartWorkout() {
 								{/* Bottom half: State and countdown */}
 								<View style={styles.timerBottomHalf}>
 									{workoutState === 'work' && (
-										<Text style={styles.timerStateWork}>WORKING</Text>
+										<Animated.Text style={[styles.timerStateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
 									)}
 									{workoutState === 'rest' && (
 										<>
-											<Text style={styles.timerStateRest}>RESTING</Text>
-											<Text style={styles.timerCountdown}>
+											<Animated.Text style={[styles.timerStateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
+											<Animated.Text style={[styles.timerCountdown, { opacity: blinkOpacity }]}>
 												{formatTime(restTimeRemaining)}
-											</Text>
+											</Animated.Text>
 										</>
 									)}
 									{workoutState === 'done' && (
@@ -529,13 +554,13 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	timerStateWork: {
-		color: '#FFA500',
+		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	timerStateRest: {
-		color: '#00FF00',
+		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
@@ -548,7 +573,7 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	timerCountdown: {
-		color: '#00FF00',
+		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
