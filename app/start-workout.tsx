@@ -473,7 +473,9 @@ export default function StartWorkout() {
 										</>
 									)}
 									{workoutState === 'done' && (
-										<Text style={styles.timerStateDone}>Done</Text>
+										<Text style={styles.timerStateDone}>
+											{isWorkoutComplete() ? 'Done' : 'Exercise Complete'}
+										</Text>
 									)}
 								</View>
 							</>
