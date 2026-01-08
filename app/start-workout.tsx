@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, Scro
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
+import { Button } from '../components/Button';
 
 interface ExerciseDB {
 	id: string;
@@ -483,16 +484,11 @@ export default function StartWorkout() {
 				</View>
 
 				<View style={styles.bottomContainer}>
-					<Pressable 
-						style={[
-							styles.button,
-							workoutState === 'rest' && restTimeRemaining > 0 && styles.buttonDisabled
-						]} 
+					<Button
+						title={getButtonText()}
 						onPress={handleButtonPress}
 						disabled={workoutState === 'rest' && restTimeRemaining > 0}
-					>
-						<Text style={styles.buttonText}>{getButtonText()}</Text>
-					</Pressable>
+					/>
 				</View>
 			</View>
 		</KeyboardAvoidingView>
@@ -598,20 +594,6 @@ const styles = StyleSheet.create({
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
-	},
-	button: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-	},
-	buttonDisabled: {
-		opacity: 0.5,
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
 	},
 	exerciseItem: {
 		backgroundColor: '#111',
