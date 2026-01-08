@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/Button';
 
 interface ExercisePhase {
 	id: string;
@@ -461,15 +462,12 @@ export default function EditExercise() {
 							multiline
 							textAlignVertical="top"
 						/>
-						<Pressable 
-							style={[styles.addButton, isLoading && styles.addButtonDisabled]} 
+						<Button
+							title={editingPhaseId ? 'Update' : 'Add'}
 							onPress={handleAddSet}
 							disabled={isLoading}
-						>
-							<Text style={[styles.addButtonText, isLoading && styles.addButtonTextDisabled]}>
-								{editingPhaseId ? 'Update' : 'Add'}
-							</Text>
-						</Pressable>
+							style={{ marginTop: 12 }}
+						/>
 					</View>
 
 					{exercisePhases.map((phase) => {
@@ -597,9 +595,7 @@ export default function EditExercise() {
 					})}
 
 					<View style={styles.footer}>
-						<Pressable style={styles.button} onPress={handleSave}>
-							<Text style={styles.buttonText}>Save</Text>
-						</Pressable>
+						<Button title="Save" onPress={handleSave} />
 					</View>
 				</View>
 			</ScrollView>
@@ -692,26 +688,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 10,
 	},
-	addButton: {
-		backgroundColor: '#333',
-		borderRadius: 8,
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginTop: 12,
-	},
-	addButtonDisabled: {
-		borderColor: '#666',
-	},
-	addButtonText: {
-		color: '#fff',
-		fontSize: 14,
-		fontWeight: '600',
-	},
-	addButtonTextDisabled: {
-		color: '#666',
-	},
 	inputOptionsButton: {
 		borderRadius: 8,
 		paddingHorizontal: 16,
@@ -775,17 +751,6 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: 'auto',
-	},
-	button: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
 	},
 	exerciseName: {
 		color: '#fff',

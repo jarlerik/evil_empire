@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { Button } from '../components/Button';
 
 interface ExerciseDB {
 	id: string;
@@ -261,9 +262,7 @@ export default function AddExercises() {
 							onSubmitEditing={handleAddExercise}
 							editable={!isLoading}
 						/>
-						<Pressable style={styles.button} onPress={handleAddExercise} disabled={isLoading}>
-							<Text style={styles.buttonText}>{isLoading ? 'Adding...' : 'Add exercise'}</Text>
-						</Pressable>
+						<Button title={isLoading ? 'Adding...' : 'Add exercise'} onPress={handleAddExercise} disabled={isLoading} />
 					</View>
 				</View>
 			</ScrollView>
@@ -303,17 +302,6 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		fontSize: 16,
 		marginBottom: 20,
-	},
-	button: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
 	},
 	exerciseList: {
 		marginTop: 20,

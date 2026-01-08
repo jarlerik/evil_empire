@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addDays, startOfWeek, format, isToday, getISOWeek, isSameWeek } from 'date-fns';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
+import { Button } from '../components/Button';
 
 interface Workout {
 	id: string;
@@ -329,9 +330,7 @@ export default function Index() {
 							editable={!isLoading}
 						/>
 						{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
-						<Pressable style={styles.button} onPress={handleCreateWorkout} disabled={isLoading}>
-							<Text style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create'}</Text>
-						</Pressable>
+						<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
 					</View>
 				</View>
 			</ScrollView>
@@ -373,17 +372,6 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		fontSize: 16,
 		marginBottom: 20,
-	},
-	button: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
 	},
 	pickerContainer: {
 		width: 160,
