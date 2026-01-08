@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert, LayoutAnimation, UIManager } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -32,6 +32,11 @@ interface ExercisePhase {
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'done';
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function StartWorkout() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
@@ -45,6 +50,8 @@ export default function StartWorkout() {
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
+	const scrollViewRef = useRef<ScrollView>(null);
+	const exercisePositions = useRef<Record<number, number>>({});
 
 	const fetchExercises = async () => {
 		if (!workoutId || !supabase) return;
@@ -132,6 +139,18 @@ export default function StartWorkout() {
 			}
 		};
 	}, []);
+
+	// Auto-scroll to current exercise
+	useEffect(() => {
+		if (currentExerciseIndex >= 0 && scrollViewRef.current) {
+			const yPosition = exercisePositions.current[currentExerciseIndex];
+			if (yPosition !== undefined) {
+				// Offset to show some context above the current exercise
+				const scrollOffset = Math.max(0, yPosition - 12);
+				scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
+			}
+		}
+	}, [currentExerciseIndex]);
 
 	// Blinking animation for WORKING and RESTING states
 	useEffect(() => {
@@ -256,6 +275,11 @@ export default function StartWorkout() {
 
 	const handleStartWorkout = () => {
 		if (exercises.length === 0) return;
+		LayoutAnimation.configureNext(LayoutAnimation.create(
+			300,
+			LayoutAnimation.Types.easeInEaseOut,
+			LayoutAnimation.Properties.opacity
+		));
 		setWorkoutState('work');
 		setCurrentExerciseIndex(0);
 		setCurrentSetNumber(1);
@@ -401,20 +425,27 @@ export default function StartWorkout() {
 				</View>
 
 				<View style={styles.mainContent}>
-					<ScrollView 
-						style={styles.exercisesContainer}
+					<ScrollView
+						ref={scrollViewRef}
+						style={[
+							styles.exercisesContainer,
+							workoutState === 'idle' && styles.exercisesContainerExpanded
+						]}
 						contentContainerStyle={styles.exercisesContent}
 						keyboardShouldPersistTaps="handled"
 					>
 						{exercises.map((exercise, index) => {
 							const isActive = currentExerciseIndex === index && workoutState !== 'idle';
 							return (
-								<View 
-									key={exercise.id} 
+								<View
+									key={exercise.id}
 									style={[
 										styles.exerciseItem,
 										isActive && styles.exerciseItemActive
 									]}
+									onLayout={(event) => {
+										exercisePositions.current[index] = event.nativeEvent.layout.y;
+									}}
 								>
 									<View style={styles.exerciseHeader}>
 										<View style={styles.exerciseNameContainer}>
@@ -435,8 +466,11 @@ export default function StartWorkout() {
 						})}
 					</ScrollView>
 
-					<View style={styles.timerContainer}>
-						{workoutState !== 'idle' && currentExerciseIndex >= 0 ? (
+					<View style={[
+						styles.timerContainer,
+						workoutState === 'idle' && styles.timerContainerHidden
+					]}>
+						{workoutState !== 'idle' && currentExerciseIndex >= 0 && (
 							<>
 								{/* Top half: Exercise name, set number, repetitions */}
 								<View style={styles.timerTopHalf}>
@@ -445,7 +479,7 @@ export default function StartWorkout() {
 										const totalSets = getTotalSetsForExercise(currentExercise.id);
 										const phase = getCurrentExercisePhase();
 										const reps = phase?.repetitions || 0;
-										
+
 										return (
 											<>
 												<Text style={styles.timerExerciseName}>
@@ -458,7 +492,7 @@ export default function StartWorkout() {
 										);
 									})()}
 								</View>
-								
+
 								{/* Bottom half: State and countdown */}
 								<View style={styles.timerBottomHalf}>
 									{workoutState === 'work' && (
@@ -473,14 +507,16 @@ export default function StartWorkout() {
 										</>
 									)}
 									{workoutState === 'done' && (
-										<Text style={styles.timerStateDone}>
+										<Text
+											style={styles.timerStateDone}
+											adjustsFontSizeToFit
+											numberOfLines={1}
+										>
 											{isWorkoutComplete() ? 'Done' : 'Exercise Complete'}
 										</Text>
 									)}
 								</View>
 							</>
-						) : (
-							<Text style={styles.timerStateIdle}>START WORKING</Text>
 						)}
 					</View>
 				</View>
@@ -529,6 +565,9 @@ const styles = StyleSheet.create({
 	exercisesContainer: {
 		flex: 0.1,
 	},
+	exercisesContainerExpanded: {
+		flex: 1,
+	},
 	exercisesContent: {
 		paddingBottom: 12,
 	},
@@ -541,6 +580,13 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		padding: 20,
+		overflow: 'hidden',
+	},
+	timerContainerHidden: {
+		flex: 0,
+		height: 0,
+		padding: 0,
+		borderWidth: 0,
 	},
 	timerTopHalf: {
 		flex: 1,
@@ -586,12 +632,6 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	timerCountdown: {
-		color: '#fff',
-		fontSize: 48,
-		fontWeight: 'bold',
-		textAlign: 'center',
-	},
-	timerStateIdle: {
 		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
