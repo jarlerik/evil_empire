@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -238,6 +238,21 @@ export default function StartWorkout() {
 		}, [workoutId])
 	);
 
+	const handleBackPress = () => {
+		if (workoutState === 'work' || workoutState === 'rest') {
+			Alert.alert(
+				'Abort Workout?',
+				'Your progress will not be saved.',
+				[
+					{ text: 'Cancel', style: 'cancel' },
+					{ text: 'Abort', style: 'destructive', onPress: () => router.back() },
+				]
+			);
+		} else {
+			router.back();
+		}
+	};
+
 	const handleStartWorkout = () => {
 		if (exercises.length === 0) return;
 		setWorkoutState('work');
@@ -378,7 +393,7 @@ export default function StartWorkout() {
 		>
 			<View style={styles.container}>
 				<View style={styles.headerRow}>
-					<Pressable onPress={() => router.back()} style={styles.backButton}>
+					<Pressable onPress={handleBackPress} style={styles.backButton}>
 						<Text style={styles.backButtonText}>←</Text>
 					</Pressable>
 					<Text style={styles.title}>{workoutName}</Text>
@@ -462,7 +477,7 @@ export default function StartWorkout() {
 								</View>
 							</>
 						) : (
-							<Text style={styles.timerPlaceholder}>[ TIMER COMPONENT ]</Text>
+							<Text style={styles.timerStateIdle}>START WORKING</Text>
 						)}
 					</View>
 				</View>
@@ -578,10 +593,11 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerPlaceholder: {
+	timerStateIdle: {
 		color: '#fff',
-		fontSize: 14,
-		textDecorationLine: 'underline',
+		fontSize: 48,
+		fontWeight: 'bold',
+		textAlign: 'center',
 	},
 	button: {
 		backgroundColor: '#333',
