@@ -462,7 +462,7 @@ export default function StartWorkout() {
 								</View>
 							</>
 						) : (
-							<Text style={styles.timerPlaceholder}>[ TIMER COMPONENT ]</Text>
+							<Text style={styles.timerStateIdle}>START WORKING</Text>
 						)}
 					</View>
 				</View>
@@ -578,10 +578,11 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerPlaceholder: {
+	timerStateIdle: {
 		color: '#fff',
-		fontSize: 14,
-		textDecorationLine: 'underline',
+		fontSize: 48,
+		fontWeight: 'bold',
+		textAlign: 'center',
 	},
 	button: {
 		backgroundColor: '#333',
