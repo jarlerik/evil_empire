@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 	},
 	phaseText: {
-		color: '#666',
+		color: '#C65D24',
 		fontSize: 14,
 		marginTop: 4,
 	},
