@@ -210,6 +210,7 @@ export default function Index() {
 											fontSize: 13,
 											letterSpacing: 1,
 											textAlign: 'center',
+											color: '#fff',
 										}}
 									>
 										{format(day, 'EEE').toUpperCase()}
