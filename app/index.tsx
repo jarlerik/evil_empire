@@ -291,7 +291,7 @@ export default function Index() {
 							workouts
 								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
 								.map((w) => (
-									<View key={w.id} style={{ backgroundColor: '#111', padding: 16, borderRadius: 8, marginBottom: 12 }}>
+									<View key={w.id} style={{ backgroundColor: '#262626', padding: 16, borderRadius: 8, marginBottom: 12 }}>
 										<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: exercises[w.id] && exercises[w.id].length > 0 ? 8 : 0 }}>
 											<View style={{ flex: 1 }}>
 												<Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{w.name}</Text>
@@ -341,7 +341,7 @@ export default function Index() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	headerRow: {
@@ -357,7 +357,8 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 	},
 	subtitle: {
 		fontSize: 16,
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
 		marginBottom: 40,
 	},
 	input: {
-		backgroundColor: '#111',
+		backgroundColor: '#262626',
 		color: '#fff',
 		padding: 15,
 		borderRadius: 8,
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
 	},
 	pickerContainer: {
 		width: 160,
-		backgroundColor: '#111',
+		backgroundColor: '#262626',
 		borderRadius: 8,
 		padding: 8,
 		flexDirection: 'row',

@@ -149,13 +149,10 @@ export default function Settings() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	settings: {},
-	header: {
-		flex: 1,
-	},
 	headerRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -214,7 +211,8 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 	},
 	sectionTitle: {
 		fontSize: 24,
