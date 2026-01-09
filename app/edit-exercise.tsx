@@ -628,7 +628,7 @@ export default function EditExercise() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	headerRow: {
@@ -775,13 +775,13 @@ const styles = StyleSheet.create({
 		marginTop: 'auto',
 	},
 	exerciseName: {
-		color: '#fff',
+		color: '#C65D24',
+		textTransform: 'uppercase',
 		fontSize: 32,
 		fontWeight: 'bold',
 		flex: 1,
 	},
 	setsSection: {
-		backgroundColor: '#111',
 		borderRadius: 8,
 		padding: 15,
 		marginBottom: 20,

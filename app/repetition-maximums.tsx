@@ -192,7 +192,7 @@ export default function RepetitionMaximums() {
 						<Pressable onPress={() => router.back()} style={styles.backButton}>
 							<Text style={styles.backButtonText}>←</Text>
 						</Pressable>
-						<Text style={styles.title}>Repetition Maximums</Text>
+						<Text style={styles.title}>Max reps</Text>
 					</View>
 
 					<Pressable 
@@ -327,7 +327,7 @@ export default function RepetitionMaximums() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	headerRow: {
@@ -344,7 +344,8 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 	},
 	title: {
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 		fontSize: 32,
 		fontWeight: 'bold',
 		flex: 1,
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#333',
+		backgroundColor: '#c65d24',
 		padding: 15,
 		borderRadius: 8,
 		marginBottom: 20,
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 16,
 		fontWeight: '600',
+		backgroundColor: '#c65d24',
 	},
 	emptyContainer: {
 		flex: 1,

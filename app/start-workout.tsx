@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert, LayoutAnimation, UIManager } from 'react-native';
+import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -52,6 +54,7 @@ export default function StartWorkout() {
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
+	const beepSound = useRef<Audio.Sound | null>(null);
 
 	const fetchExercises = async () => {
 		if (!workoutId || !supabase) return;
@@ -139,6 +142,37 @@ export default function StartWorkout() {
 			}
 		};
 	}, []);
+
+	// Load beep sound on mount
+	useEffect(() => {
+		const loadSound = async () => {
+			const { sound } = await Audio.Sound.createAsync(
+				require('../assets/sounds/beep.wav')
+			);
+			beepSound.current = sound;
+		};
+		loadSound();
+
+		return () => {
+			if (beepSound.current) {
+				beepSound.current.unloadAsync();
+			}
+		};
+	}, []);
+
+	// Audio and vibration feedback for rest timer countdown
+	useEffect(() => {
+		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
+			// Play beep sound for final 5 seconds
+			if (beepSound.current) {
+				beepSound.current.replayAsync();
+			}
+		}
+		if (workoutState === 'rest' && restTimeRemaining === 0) {
+			// Vibrate when timer ends
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+		}
+	}, [restTimeRemaining, workoutState]);
 
 	// Auto-scroll to current exercise
 	useEffect(() => {
@@ -536,7 +570,7 @@ export default function StartWorkout() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	headerRow: {
@@ -555,7 +589,8 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 		flex: 1,
 	},
 	mainContent: {

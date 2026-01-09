@@ -233,7 +233,8 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 	},
 	title: {
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 		fontSize: 32,
 		fontWeight: 'bold',
 		flex: 1,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	example: {
-		color: '#0f0',
+		color: '#c65d24',
 		fontSize: 16,
 		fontFamily: 'monospace',
 		marginBottom: 4,

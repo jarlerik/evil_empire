@@ -279,7 +279,7 @@ export default function AddExercises() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000',
+		backgroundColor: '#171717',
 		padding: 20,
 	},
 	headerRow: {
@@ -298,11 +298,12 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 32,
 		fontWeight: 'bold',
-		color: '#fff',
+		color: '#c65d24',
+		textTransform: 'uppercase',
 		flex: 1,
 	},
 	input: {
-		backgroundColor: '#111',
+		backgroundColor: '#262626',
 		color: '#fff',
 		padding: 15,
 		borderRadius: 8,
