@@ -5,8 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, startOfWeek, format, isToday, getISOWeek, isSameWeek } from 'date-fns';
-import { Picker } from '@react-native-picker/picker';
+import { addDays, startOfWeek, format, getISOWeek, isSameWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 
@@ -40,30 +39,24 @@ export default function Index() {
 
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
 	const [exercises, setExercises] = useState<Record<string, Exercise[]>>({});
-	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-	// Helper to get week options
-	const weekOptions = Array.from({ length: 12 }).map((_, i) => {
-		const weekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i * 7);
-		return {
-			label: `Week ${getISOWeek(weekStart)}`,
-			value: format(weekStart, 'yyyy-MM-dd'),
-			weekStart,
-		};
-	});
+	const getCurrentWeek = () => {
+		return `Week ${getISOWeek(selectedWeekStart)}`;
+	};
 
-	// When week changes, update selectedDate
-	const handleWeekChange = (weekStartStr: string) => {
-		const weekStart = new Date(weekStartStr);
-		setSelectedWeekStart(weekStart);
-		// If current week, highlight today; else, highlight Monday
-		if (isSameWeek(new Date(), weekStart, { weekStartsOn: 1 })) {
-			setSelectedDate(new Date());
-		} else {
-			setSelectedDate(weekStart);
-		}
+	const nextWeek = () => {
+		
+		const nextStart = addDays(selectedWeekStart, 7);
+		setSelectedWeekStart(nextStart);
+		setSelectedDate(nextStart);
+	};
+
+	const prevWeek = () => {
+		const prevStart = subDays(selectedWeekStart, 7);
+		setSelectedWeekStart(prevStart);
+		setSelectedDate(prevStart);
 	};
 
 	useFocusEffect(
@@ -139,24 +132,6 @@ export default function Index() {
 		}
 	};
 
-	const handleDeleteWorkout = async (id: string) => {
-		if (!supabase) return;
-		setDeletingId(id);
-		await supabase.from('workouts').delete().eq('id', id);
-		setDeletingId(null);
-		// Refetch workouts and exercises after deletion
-		if (!user) return;
-		const { data, error } = await supabase
-			.from('workouts')
-			.select('*')
-			.eq('user_id', user.id)
-			.order('created_at', { ascending: false });
-		if (!error && data) {
-			setWorkouts(data);
-			await fetchExercises(data);
-		}
-	};
-
 	if (authLoading || settingsLoading) {
 		return (
 			<View style={styles.container}>
@@ -183,7 +158,7 @@ export default function Index() {
 					</View>
 
 					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
-						{format(selectedDate, 'LLLL')}
+						{format(selectedDate, 'LLLL yyyy')}
 					</Text>
 
 					{/* Week Selector with Navigation Arrows */}
@@ -192,32 +167,21 @@ export default function Index() {
 							<Pressable 
 								style={[
 									styles.arrowButton,
-									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowButtonDisabled
 								]}
-								onPress={() => {
-									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
-									const prevIndex = currentIndex > 0 ? currentIndex - 1 : weekOptions.length - 1;
-									handleWeekChange(weekOptions[prevIndex].value);
-								}}
-								disabled={isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 })}
+								onPress={prevWeek}
 							>
 								<Text style={[
 									styles.arrowText,
-									isSameWeek(new Date(), selectedWeekStart, { weekStartsOn: 1 }) && styles.arrowTextDisabled
 								]}>‹</Text>
 							</Pressable>
 							
 							<Text style={styles.pickerText}>
-								{weekOptions.find(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'))?.label || 'Week 31'}
+								{getCurrentWeek()}
 							</Text>
 							
 							<Pressable 
 								style={styles.arrowButton}
-								onPress={() => {
-									const currentIndex = weekOptions.findIndex(opt => opt.value === format(selectedWeekStart, 'yyyy-MM-dd'));
-									const nextIndex = (currentIndex + 1) % weekOptions.length;
-									handleWeekChange(weekOptions[nextIndex].value);
-								}}
+								onPress={nextWeek}
 							>
 								<Text style={styles.arrowText}>›</Text>
 							</Pressable>
@@ -229,23 +193,19 @@ export default function Index() {
 						{Array.from({ length: 7 }).map((_, i) => {
 							const day = addDays(selectedWeekStart, i);
 							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-							const isPast = day < new Date(new Date().setHours(0, 0, 0, 0)); // compare to today at midnight
-
+							
 							return (
 								<Pressable
 									key={i}
-									onPress={isPast ? undefined : () => setSelectedDate(day)}
-									disabled={isPast}
+									onPress={() => setSelectedDate(day)}
 									style={{
 										alignItems: 'center',
 										flex: 1,
 										paddingVertical: 4,
-										opacity: isPast ? 0.5 : 1, // visually indicate disabled
 									}}
 								>
 									<Text
 										style={{
-											color: isPast ? '#ccc' : '#fff',
 											fontWeight: 'bold',
 											fontSize: 13,
 											letterSpacing: 1,
@@ -256,7 +216,7 @@ export default function Index() {
 									</Text>
 									<View
 										style={{
-											backgroundColor: isPast ? 'transparent' : isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
+											backgroundColor: isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
 											borderRadius: 20,
 											width: 40,
 											height: 40,
@@ -267,7 +227,7 @@ export default function Index() {
 									>
 										<Text
 											style={{
-												color: isPast ? '#ccc' : isSelected ? '#000' : '#fff',
+												color: isSelected ? '#000' : '#fff',
 												fontWeight: 'bold',
 												fontSize: 20,
 												textAlign: 'center',
@@ -414,10 +374,10 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	arrowButtonDisabled: {
-		opacity: 0.3,
-	},
-	arrowTextDisabled: {
-		color: '#666',
-	},
+	// arrowButtonDisabled: {
+	// 	opacity: 0.3,
+	// },
+	// arrowTextDisabled: {
+	// 	color: '#666',
+	// },
 });
