@@ -206,7 +206,10 @@ export default function StartWorkout() {
 	);
 
 	const handleBackPress = () => {
-		if (workoutState !== 'workout_done') {
+		if (workoutState === 'idle' || workoutState === 'workout_done') {
+			router.back();
+		}
+		else {
 			Alert.alert(
 				'Abort Workout?',
 				'Your progress will not be saved.',
@@ -215,8 +218,6 @@ export default function StartWorkout() {
 					{ text: 'Abort', style: 'destructive', onPress: () => router.back() },
 				]
 			);
-		} else {
-			router.back();
 		}
 	};
 
