@@ -4,31 +4,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
+import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
-
-interface ExercisePhase {
-	id: string;
-	exercise_id: string;
-	sets: number;
-	repetitions: number;
-	weight: number;
-	weights?: number[];
-	compound_reps?: number[];
-	exercise_type?: string;
-	notes?: string;
-	target_rm?: number;
-	rir_min?: number;
-	rir_max?: number;
-	circuit_exercises?: Array<{reps: string, name: string}> | string;
-	weight_min?: number;
-	weight_max?: number;
-	weight_min_percentage?: number;
-	weight_max_percentage?: number;
-	rest_time_seconds?: number;
-	created_at: string;
-}
 
 export default function EditExercise() {
 	const params = useLocalSearchParams();
@@ -492,102 +471,7 @@ export default function EditExercise() {
 						/>
 					</View>
 
-					{exercisePhases.map((phase) => {
-						const formatPhase = (p: ExercisePhase): string => {
-							// Helper function to append rest time
-							const appendRestTime = (str: string): string => {
-								if (p.rest_time_seconds !== undefined && p.rest_time_seconds !== null) {
-									return `${str} ${p.rest_time_seconds}s`;
-								}
-								return str;
-							};
-							
-							// Handle RM build format
-							if (p.exercise_type === 'rm_build' && p.target_rm) {
-								return appendRestTime(`Build to ${p.target_rm}RM`);
-							}
-							
-							// Handle compound exercises (any number of rep parts)
-							if (p.compound_reps && p.compound_reps.length >= 2) {
-								const repsStr = p.compound_reps.join(' + ');
-								let weightStr: string;
-								if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
-									weightStr = `${p.weight_min}-${p.weight_max}kg`;
-								} else if (p.weights && p.weights.length > 1) {
-									weightStr = p.weights.map(w => `${w}kg`).join(' ');
-								} else {
-									weightStr = `${p.weight}kg`;
-								}
-								return appendRestTime(`${p.sets} x ${repsStr} @${weightStr}`);
-							}
-							
-							// Handle circuit format
-							if (p.exercise_type === 'circuit' && p.circuit_exercises) {
-								let circuitExercises: Array<{reps: string, name: string}> = [];
-								
-								// Handle JSONB string from database
-								if (typeof p.circuit_exercises === 'string') {
-									try {
-										circuitExercises = JSON.parse(p.circuit_exercises);
-									} catch (e) {
-										return appendRestTime(`${p.sets} sets of ${p.circuit_exercises}`);
-									}
-								} else {
-									circuitExercises = p.circuit_exercises;
-								}
-								
-								if (circuitExercises.length > 0) {
-									const exercisesStr = circuitExercises.map(ex => {
-										if (ex.reps && ex.name) {
-											return `${ex.reps} ${ex.name}`;
-										} else if (ex.name) {
-											return ex.name;
-										}
-										return '';
-									}).filter(s => s.length > 0).join(', ');
-									
-									return appendRestTime(`${p.sets} x ${exercisesStr}`);
-								}
-							}
-							
-							// Handle RIR format
-							if (p.rir_min !== undefined && p.rir_min !== null) {
-								const rirStr = p.rir_max && p.rir_max !== p.rir_min 
-									? `${p.rir_min}-${p.rir_max}RIR`
-									: `${p.rir_min}RIR`;
-								
-								// If there's a weight, include it
-								if (p.weight > 0) {
-									let weightStr: string;
-									if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
-										weightStr = `${p.weight_min}-${p.weight_max}kg`;
-									} else if (p.weights && p.weights.length > 1) {
-										weightStr = p.weights.map(w => `${w}kg`).join(' ');
-									} else {
-										weightStr = `${p.weight}kg`;
-									}
-									return appendRestTime(`${p.sets} x ${p.repetitions} @${weightStr}, ${rirStr}`);
-								} else {
-									return appendRestTime(`${p.sets} x ${p.repetitions}, ${rirStr}`);
-								}
-							}
-							
-							// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
-							if (p.weight_min !== undefined && p.weight_max !== undefined && p.weight_min !== null && p.weight_max !== null) {
-								return appendRestTime(`${p.sets} x ${p.repetitions} @${p.weight_min}-${p.weight_max}kg`);
-							}
-							
-							// Handle multiple weights
-							if (p.weights && p.weights.length > 1) {
-								const weightsStr = p.weights.map(w => `${w}kg`).join(' ');
-								return appendRestTime(`${p.sets} x ${p.repetitions} @${weightsStr}`);
-							}
-							
-							// Handle simple format
-							return appendRestTime(`${p.sets} x ${p.repetitions} @${p.weight}kg`);
-						};
-						
-						return (
+					{exercisePhases.map((phase) => (
 							<View 
 								key={phase.id} 
 								style={[
@@ -596,7 +480,7 @@ export default function EditExercise() {
 								]}
 							>
 								<Text style={styles.phaseText}>
-									{formatPhase(phase)}
+									{formatExercisePhase(phase)}
 								</Text>
 							<View style={styles.phaseButtons}>
 								<Pressable 
@@ -613,8 +497,7 @@ export default function EditExercise() {
 								</Pressable>
 							</View>
 						</View>
-					);
-					})}
+					))}
 
 					<View style={styles.footer}>
 						<Button title="Save" onPress={handleSave} />

@@ -6,30 +6,14 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
+import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutionModal';
 
 interface ExerciseDB {
 	id: string;
 	name: string;
 	workout_id: string;
 	created_at?: string;
-}
-
-interface ExercisePhase {
-	id: string;
-	exercise_id: string;
-	sets: number;
-	repetitions: number;
-	weight: number;
-	weights?: number[];
-	compound_reps?: number[];
-	exercise_type?: string;
-	notes?: string;
-	target_rm?: number;
-	rir_min?: number;
-	rir_max?: number;
-	circuit_exercises?: Array<{reps: string, name: string}> | string;
-	rest_time_seconds?: number;
-	created_at: string;
 }
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
@@ -55,6 +39,9 @@ export default function StartWorkout() {
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
 	const beepSound = useRef<Audio.Sound | null>(null);
+
+	// Edit execution modal state
+	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
 	const fetchExercises = async () => {
 		if (!workoutId || !supabase) return;
@@ -211,82 +198,6 @@ export default function StartWorkout() {
 			blinkOpacity.setValue(1);
 		}
 	}, [workoutState, blinkOpacity]);
-
-	const formatExercisePhase = (phase: ExercisePhase) => {
-		// Helper function to append rest time
-		const appendRestTime = (str: string): string => {
-			if (phase.rest_time_seconds !== undefined && phase.rest_time_seconds !== null) {
-				return `${str} ${phase.rest_time_seconds}s`;
-			}
-			return str;
-		};
-		
-		// Handle RM build format
-		if (phase.exercise_type === 'rm_build' && phase.target_rm) {
-			return appendRestTime(`Build to ${phase.target_rm}RM`);
-		}
-		
-		// Handle circuit format
-		if (phase.exercise_type === 'circuit' && phase.circuit_exercises) {
-			let circuitExercises: Array<{reps: string, name: string}> = [];
-			
-			// Handle JSONB string from database
-			if (typeof phase.circuit_exercises === 'string') {
-				try {
-					circuitExercises = JSON.parse(phase.circuit_exercises);
-				} catch (e) {
-					return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`);
-				}
-			} else {
-				circuitExercises = phase.circuit_exercises;
-			}
-			
-			if (circuitExercises.length > 0) {
-				const exercisesStr = circuitExercises.map(ex => {
-					if (ex.reps && ex.name) {
-						return `${ex.reps} ${ex.name}`;
-					} else if (ex.name) {
-						return ex.name;
-					}
-					return '';
-				}).filter(s => s.length > 0).join(', ');
-				
-				return appendRestTime(`${phase.sets}× ${exercisesStr}`);
-			}
-		}
-		
-		// Handle RIR format
-		if (phase.rir_min !== undefined && phase.rir_min !== null) {
-			const rirStr = phase.rir_max && phase.rir_max !== phase.rir_min 
-				? `${phase.rir_min}-${phase.rir_max}RIR`
-				: `${phase.rir_min}RIR`;
-			
-			// If there's a weight, include it
-			if (phase.weight > 0) {
-				const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-				return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}, ${rirStr}`);
-			} else {
-				return appendRestTime(`${phase.sets}×${phase.repetitions}, ${rirStr}`);
-			}
-		}
-		
-		// Handle compound exercises
-		if (phase.compound_reps && phase.compound_reps.length > 0) {
-			const compoundRepsStr = phase.compound_reps.join(' + ');
-			const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-			return appendRestTime(`${phase.sets}×${compoundRepsStr} @ ${weightStr}`);
-		}
-		
-		// Handle multiple weights
-		if (phase.weights && phase.weights.length > 1) {
-			const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
-			return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
-		}
-		
-		// Handle simple format
-		const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-		return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
-	};
 
 	useFocusEffect(
 		useCallback(() => {
@@ -460,6 +371,38 @@ export default function StartWorkout() {
 		}
 	};
 
+	const handleEditFinishedExercise = () => {
+		setIsEditModalVisible(true);
+	};
+
+	const handleSaveExecution = async (executionData: ExecutionLogData) => {
+		if (!supabase || !workoutId) return;
+
+		for (const phaseData of executionData.phases) {
+			const { parsed } = phaseData;
+
+			await supabase.from('workout_execution_logs').insert({
+				workout_id: workoutId,
+				exercise_id: executionData.exercise_id,
+				exercise_phase_id: phaseData.exercise_phase_id,
+				sets: parsed.sets,
+				repetitions: parsed.reps,
+				weight: parsed.weight,
+				weights: parsed.weights || null,
+				compound_reps: parsed.compoundReps || null,
+				rest_time_seconds: parsed.restTimeSeconds || null,
+				execution_status: 'completed',
+				executed_at: new Date().toISOString(),
+			});
+		}
+
+		setIsEditModalVisible(false);
+	};
+
+	const handleSkipExecution = () => {
+		setIsEditModalVisible(false);
+	};
+
 	return (
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
@@ -565,7 +508,11 @@ export default function StartWorkout() {
 										</Text>
 									)}
 									{workoutState === 'exercise_done' && (
-										<Button title="Update completed exercise" variant="secondary"/>
+										<Button
+											title="Edit finished exercise"
+											variant="secondary"
+											onPress={handleEditFinishedExercise}
+										/>
 									)}
 									{workoutState === 'workout_done' && (
 										<Text
@@ -590,6 +537,18 @@ export default function StartWorkout() {
 					/>
 				</View>
 			</View>
+
+			{currentExerciseIndex >= 0 && exercises[currentExerciseIndex] && (
+				<EditExecutionModal
+					visible={isEditModalVisible}
+					onClose={() => setIsEditModalVisible(false)}
+					onSave={handleSaveExecution}
+					onSkip={handleSkipExecution}
+					exerciseName={exercises[currentExerciseIndex].name}
+					exerciseId={exercises[currentExerciseIndex].id}
+					phases={exercisePhases[exercises[currentExerciseIndex].id] || []}
+				/>
+			)}
 		</KeyboardAvoidingView>
 	);
 }
