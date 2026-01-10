@@ -4,12 +4,17 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
 	title: string;
 	disabled?: boolean;
 	style?: StyleProp<ViewStyle>;
+	variant?: 'primary' | 'secondary';
 }
 
-export function Button({ title, disabled, style, ...props }: ButtonProps) {
+export function Button({ title, disabled, style, variant = 'primary', ...props }: ButtonProps) {
+
+
+	const baseStyle = [styles.baseButton, variant === 'primary' && styles.buttonPrimary, variant === 'secondary' && styles.buttonSecondary];
+	const styleProps = [...baseStyle, disabled && styles.buttonDisabled, style];
 	return (
 		<Pressable
-			style={[styles.button, disabled && styles.buttonDisabled, style]}
+			style={styleProps}
 			disabled={disabled}
 			{...props}
 		>
@@ -21,11 +26,18 @@ export function Button({ title, disabled, style, ...props }: ButtonProps) {
 }
 
 const styles = StyleSheet.create({
-	button: {
-		backgroundColor: '#C65D24',
+	baseButton: {
 		padding: 15,
 		borderRadius: 8,
 		alignItems: 'center',
+	},
+	buttonPrimary: {
+		backgroundColor: '#C65D24',
+	},
+	buttonSecondary: {
+		backgroundColor: '#262626',
+		borderWidth: 1,
+		borderColor: '#fff',
 	},
 	buttonDisabled: {
 		opacity: 0.5,

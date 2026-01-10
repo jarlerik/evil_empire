@@ -32,7 +32,7 @@ interface ExercisePhase {
 	created_at: string;
 }
 
-type WorkoutState = 'idle' | 'work' | 'rest' | 'done';
+type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -123,15 +123,14 @@ export default function StartWorkout() {
 		return phases[phases.length - 1] || null;
 	};
 
-	// Check if workout is complete
+	const isLastExercise = (): boolean => {
+		return currentExerciseIndex === exercises.length - 1;
+	};
+	const isLastSet = (): boolean => {
+		return currentSetNumber === getTotalSetsForExercise(exercises[currentExerciseIndex].id);
+	};
 	const isWorkoutComplete = (): boolean => {
-		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
-			return false;
-		}
-		if (workoutState !== 'done') {
-			return false;
-		}
-		return currentExerciseIndex >= exercises.length - 1;
+		return isLastExercise() && isLastSet();
 	};
 
 	// Cleanup rest timer
@@ -169,6 +168,9 @@ export default function StartWorkout() {
 			}
 		}
 		if (workoutState === 'rest' && restTimeRemaining === 0) {
+			if (beepSound.current) {
+				beepSound.current.replayAsync();
+			}
 			// Vibrate when timer ends
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
@@ -293,7 +295,7 @@ export default function StartWorkout() {
 	);
 
 	const handleBackPress = () => {
-		if (workoutState === 'work' || workoutState === 'rest') {
+		if (workoutState !== 'workout_done') {
 			Alert.alert(
 				'Abort Workout?',
 				'Your progress will not be saved.',
@@ -320,16 +322,12 @@ export default function StartWorkout() {
 		setRestTimeRemaining(0);
 	};
 
-	const handleRest = () => {
+	const rest = () => {
 		const phase = getCurrentExercisePhase();
 		if (!phase) return;
 		
-		// Check if this is the last set - if so, skip rest and go to done
-		const currentExercise = exercises[currentExerciseIndex];
-		const totalSets = getTotalSetsForExercise(currentExercise.id);
-		if (currentSetNumber >= totalSets) {
-			// Last set completed, move to done state
-			setWorkoutState('done');
+		if (isLastSet()) {
+			setWorkoutState('exercise_done');
 			setRestTimeRemaining(0);
 			return;
 		}
@@ -359,11 +357,11 @@ export default function StartWorkout() {
 			}, 1000);
 		} else {
 			// No rest time, immediately move to next set
-			handleContinue();
+			work();
 		}
 	};
 
-	const handleContinue = () => {
+	const work = () => {
 		if (restTimerIntervalRef.current) {
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
@@ -377,10 +375,20 @@ export default function StartWorkout() {
 			setCurrentSetNumber(currentSetNumber + 1);
 			setWorkoutState('work');
 			setRestTimeRemaining(0);
-		} else {
-			// All sets completed for current exercise
-			setWorkoutState('done');
+			return;
+		}
+		if (!isLastExercise() || !isLastSet()) {
+			setCurrentExerciseIndex(currentExerciseIndex + 1);
+			setCurrentSetNumber(1);
+			setWorkoutState('work');
 			setRestTimeRemaining(0);
+			return;
+		}
+
+		if (isLastExercise() && !isLastSet()) {
+			setWorkoutState('exercise_done');
+			setRestTimeRemaining(0);
+			return;
 		}
 	};
 
@@ -390,10 +398,18 @@ export default function StartWorkout() {
 			restTimerIntervalRef.current = null;
 		}
 		
-		if (currentExerciseIndex < exercises.length - 1) {
+		if (!isLastExercise() && isLastSet()) {
 			setCurrentExerciseIndex(currentExerciseIndex + 1);
 			setCurrentSetNumber(1);
 			setWorkoutState('work');
+			setRestTimeRemaining(0);
+		}
+		if (isLastExercise()) {
+			setWorkoutState('exercise_done');
+			setRestTimeRemaining(0);
+		}
+		if (isLastExercise() && isLastSet()) {
+			setWorkoutState('workout_done');
 			setRestTimeRemaining(0);
 		}
 	};
@@ -404,20 +420,18 @@ export default function StartWorkout() {
 				handleStartWorkout();
 				break;
 			case 'work':
-				handleRest();
+					rest();
 				break;
 			case 'rest':
 				if (restTimeRemaining === 0) {
-					handleContinue();
+					work();
 				}
 				break;
-			case 'done':
-				if (isWorkoutComplete()) {
-					// Workout complete, navigate back
-					router.back();
-				} else {
-					handleNextExercise();
-				}
+			case 'exercise_done':
+				handleNextExercise();
+				break;
+			case 'workout_done':
+				router.back();
 				break;
 		}
 	};
@@ -427,19 +441,20 @@ export default function StartWorkout() {
 			case 'idle':
 				return 'Start workout';
 			case 'work':
-				// Check if this is the last set
-				if (currentExerciseIndex >= 0 && currentExerciseIndex < exercises.length) {
-					const currentExercise = exercises[currentExerciseIndex];
-					const totalSets = getTotalSetsForExercise(currentExercise.id);
-					if (currentSetNumber >= totalSets) {
-						return 'Done';
-					}
+				if (isLastSet()) {
+					return 'Exercise done';
 				}
 				return 'Rest';
 			case 'rest':
-				return restTimeRemaining === 0 ? 'Next set' : 'Next set';
-			case 'done':
-				return isWorkoutComplete() ? 'Finish workout' : 'Next exercise';
+				return 'Next set';
+			case 'exercise_done':
+				if (isLastExercise()) {
+					return 'Finish exercise';
+				} else {
+					return 'Next exercise';
+				}
+			case 'workout_done':
+				return 'Finish workout';
 			default:
 				return 'Start workout';
 		}
@@ -540,13 +555,25 @@ export default function StartWorkout() {
 											</Animated.Text>
 										</>
 									)}
-									{workoutState === 'done' && (
+									{workoutState === 'exercise_done' && (
 										<Text
 											style={styles.timerStateDone}
 											adjustsFontSizeToFit
 											numberOfLines={1}
 										>
-											{isWorkoutComplete() ? 'Done' : 'Exercise Complete'}
+											Exercise done
+										</Text>
+									)}
+									{workoutState === 'exercise_done' && (
+										<Button title="Update completed exercise" variant="secondary"/>
+									)}
+									{workoutState === 'workout_done' && (
+										<Text
+											style={styles.timerStateDone}
+											adjustsFontSizeToFit
+											numberOfLines={1}
+										>
+											Workout done
 										</Text>
 									)}
 								</View>
@@ -608,7 +635,7 @@ const styles = StyleSheet.create({
 	},
 	timerContainer: {
 		flex: 0.9,
-		backgroundColor: '#000',
+		backgroundColor: '#262626',
 		borderWidth: 1,
 		borderColor: '#fff',
 		borderRadius: 8,
@@ -673,7 +700,7 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	exerciseItem: {
-		backgroundColor: '#111',
+		backgroundColor: '#262626',
 		padding: 16,
 		borderRadius: 8,
 		marginBottom: 12,
