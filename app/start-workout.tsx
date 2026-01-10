@@ -32,7 +32,7 @@ interface ExercisePhase {
 	created_at: string;
 }
 
-type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'exercise_finished' | 'workout_done';
+type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -448,9 +448,11 @@ export default function StartWorkout() {
 			case 'rest':
 				return 'Next set';
 			case 'exercise_done':
-				return 'Finish exercise';
-			case 'exercise_finished':
-				return 'Next exercise';
+				if (isLastExercise()) {
+					return 'Finish exercise';
+				} else {
+					return 'Next exercise';
+				}
 			case 'workout_done':
 				return 'Finish workout';
 			default:
