@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { Button } from './Button';
 import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
 import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
@@ -63,7 +63,7 @@ export function EditExecutionModal({
 			const parsed = parseSetInput(input);
 
 			if (!parsed.isValid) {
-				alert(`Invalid format for phase: ${input}. ${parsed.errorMessage || ''}`);
+				Alert.alert('Error', `Invalid format for phase: ${input}. ${parsed.errorMessage || ''}`);
 				setIsLoading(false);
 				return;
 			}
@@ -81,7 +81,7 @@ export function EditExecutionModal({
 				phases: executionPhases,
 			});
 		} catch (error) {
-			alert('Error saving execution log');
+			Alert.alert('Error', 'Error saving execution log');
 		}
 
 		setIsLoading(false);

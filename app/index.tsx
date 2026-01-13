@@ -142,11 +142,11 @@ export default function Index() {
 
 	return (
 		<KeyboardAvoidingView
-			style={{ flex: 1 }}
+			style={styles.flex}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
 			<ScrollView
-				contentContainerStyle={{ flex: 1 }}
+				contentContainerStyle={styles.flex}
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
@@ -157,12 +157,12 @@ export default function Index() {
 						</Pressable>
 					</View>
 
-					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+					<Text style={styles.monthTitle}>
 						{format(selectedDate, 'LLLL yyyy')}
 					</Text>
 
 					{/* Week Selector with Navigation Arrows */}
-					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+					<View style={styles.weekSelectorContainer}>
 						<View style={styles.pickerContainer}>
 							<Pressable 
 								style={[
@@ -189,50 +189,31 @@ export default function Index() {
 					</View>
 
 					{/* Week Day Selector */}
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
+					<View style={styles.daySelector}>
 						{Array.from({ length: 7 }).map((_, i) => {
 							const day = addDays(selectedWeekStart, i);
 							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-							
+
 							return (
 								<Pressable
 									key={i}
 									onPress={() => setSelectedDate(day)}
-									style={{
-										alignItems: 'center',
-										flex: 1,
-										paddingVertical: 4,
-									}}
+									style={styles.dayPressable}
 								>
-									<Text
-										style={{
-											fontWeight: 'bold',
-											fontSize: 13,
-											letterSpacing: 1,
-											textAlign: 'center',
-											color: '#fff',
-										}}
-									>
+									<Text style={styles.dayLabel}>
 										{format(day, 'EEE').toUpperCase()}
 									</Text>
 									<View
-										style={{
-											backgroundColor: isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
-											borderRadius: 20,
-											width: 40,
-											height: 40,
-											alignItems: 'center',
-											justifyContent: 'center',
-											marginTop: 2,
-										}}
+										style={[
+											styles.dayCircle,
+											isSelected ? styles.dayCircleSelected : styles.dayCircleUnselected
+										]}
 									>
 										<Text
-											style={{
-												color: isSelected ? '#000' : '#fff',
-												fontWeight: 'bold',
-												fontSize: 20,
-												textAlign: 'center',
-											}}
+											style={[
+												styles.dayNumber,
+												isSelected ? styles.dayNumberSelected : styles.dayNumberUnselected
+											]}
 										>
 											{format(day, 'd')}
 										</Text>
@@ -242,34 +223,34 @@ export default function Index() {
 						})}
 					</View>
 					{/* List of created workouts */}
-					<View style={{ marginTop: 32 }}>
-						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+					<View style={styles.workoutsSection}>
+						<Text style={styles.workoutDateTitle}>
 							Workout for {format(selectedDate, 'EEEE, LLLL d')}
 						</Text>
 						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
-							<Text style={{ color: '#666' }}>No workout yet.</Text>
+							<Text style={styles.noWorkoutText}>No workout yet.</Text>
 						) : (
 							workouts
 								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
 								.map((w) => (
-									<View key={w.id} style={{ backgroundColor: '#262626', padding: 16, borderRadius: 8, marginBottom: 12 }}>
-										<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: exercises[w.id] && exercises[w.id].length > 0 ? 8 : 0 }}>
-											<View style={{ flex: 1 }}>
-												<Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{w.name}</Text>
+									<View key={w.id} style={styles.workoutCard}>
+										<View style={[styles.workoutCardHeader, exercises[w.id] && exercises[w.id].length > 0 && styles.workoutCardHeaderWithExercises]}>
+											<View style={styles.workoutNameContainer}>
+												<Text style={styles.workoutName}>{w.name}</Text>
 											</View>
-											<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
-												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+											<View style={styles.workoutActions}>
+												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={styles.actionButton}>
 													<Ionicons name="pencil" size={22} color="#fff" />
 												</Pressable>
-												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
+												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={styles.actionButton}>
 													<Ionicons name="play" size={22} color="#fff" />
 												</Pressable>
 											</View>
 										</View>
 										{exercises[w.id] && exercises[w.id].length > 0 && (
-											<View style={{ marginTop: 8 }}>
+											<View style={styles.exercisesList}>
 												{exercises[w.id].map((exercise, index) => (
-													<Text key={exercise.id} style={{ color: '#C65D24', fontSize: 14, marginTop: 2 }}>
+													<Text key={exercise.id} style={styles.exerciseText}>
 														{index + 1}. {exercise.name}
 													</Text>
 												))}
@@ -279,7 +260,7 @@ export default function Index() {
 								))
 						)}
 					</View>
-					<View style={{ marginTop: 'auto' }}>
+					<View style={styles.bottomSection}>
 						<TextInput
 							style={styles.input}
 							value={workoutName}
@@ -290,7 +271,7 @@ export default function Index() {
 							onSubmitEditing={handleCreateWorkout}
 							editable={!isLoading}
 						/>
-						{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+						{error && <Text style={styles.errorText}>{error}</Text>}
 						<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
 					</View>
 				</View>
@@ -300,6 +281,9 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
+	flex: {
+		flex: 1,
+	},
 	container: {
 		flex: 1,
 		backgroundColor: '#171717',
@@ -334,6 +318,18 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		fontSize: 16,
 		marginBottom: 20,
+	},
+	monthTitle: {
+		color: '#fff',
+		fontSize: 28,
+		fontWeight: 'bold',
+		marginBottom: 4,
+	},
+	weekSelectorContainer: {
+		flexDirection: 'row',
+		justifyContent: 'flex-end',
+		alignItems: 'center',
+		marginBottom: 8,
 	},
 	pickerContainer: {
 		width: 160,
@@ -375,10 +371,102 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	// arrowButtonDisabled: {
-	// 	opacity: 0.3,
-	// },
-	// arrowTextDisabled: {
-	// 	color: '#666',
-	// },
+	daySelector: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginBottom: 24,
+	},
+	dayPressable: {
+		alignItems: 'center',
+		flex: 1,
+		paddingVertical: 4,
+	},
+	dayLabel: {
+		fontWeight: 'bold',
+		fontSize: 13,
+		letterSpacing: 1,
+		textAlign: 'center',
+		color: '#fff',
+	},
+	dayCircle: {
+		borderRadius: 20,
+		width: 40,
+		height: 40,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginTop: 2,
+	},
+	dayCircleSelected: {
+		backgroundColor: '#fff',
+	},
+	dayCircleUnselected: {
+		backgroundColor: 'rgba(26, 26, 26, 1.00)',
+	},
+	dayNumber: {
+		fontWeight: 'bold',
+		fontSize: 20,
+		textAlign: 'center',
+	},
+	dayNumberSelected: {
+		color: '#000',
+	},
+	dayNumberUnselected: {
+		color: '#fff',
+	},
+	workoutsSection: {
+		marginTop: 32,
+	},
+	workoutDateTitle: {
+		color: '#fff',
+		fontSize: 20,
+		fontWeight: 'bold',
+		marginBottom: 12,
+	},
+	noWorkoutText: {
+		color: '#666',
+	},
+	workoutCard: {
+		backgroundColor: '#262626',
+		padding: 16,
+		borderRadius: 8,
+		marginBottom: 12,
+	},
+	workoutCardHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	workoutCardHeaderWithExercises: {
+		marginBottom: 8,
+	},
+	workoutNameContainer: {
+		flex: 1,
+	},
+	workoutName: {
+		color: '#fff',
+		fontSize: 16,
+		fontWeight: 'bold',
+	},
+	workoutActions: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginLeft: 'auto',
+	},
+	actionButton: {
+		padding: 8,
+	},
+	exercisesList: {
+		marginTop: 8,
+	},
+	exerciseText: {
+		color: '#C65D24',
+		fontSize: 14,
+		marginTop: 2,
+	},
+	bottomSection: {
+		marginTop: 'auto',
+	},
+	errorText: {
+		color: 'red',
+		marginBottom: 10,
+	},
 });

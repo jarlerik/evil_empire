@@ -67,7 +67,7 @@ export default function EditExercise() {
 		const parsedData = parseSetInput(setInput);
 		if (!parsedData.isValid) {
 			// Show error message to user
-			alert(parsedData.errorMessage || 'Invalid input format');
+			Alert.alert('Error', parsedData.errorMessage || 'Invalid input format');
 			return;
 		}
 		if (!exerciseId || !supabase || !user) return;
@@ -129,7 +129,7 @@ export default function EditExercise() {
 
 			if (rmError || !rmData) {
 				setIsLoading(false);
-				alert(`No 1RM found for "${exerciseName}". Please set your 1RM first.`);
+				Alert.alert('Error', `No 1RM found for "${exerciseName}". Please set your 1RM first.`);
 				return;
 			}
 
@@ -236,7 +236,7 @@ export default function EditExercise() {
 				setEditingPhaseId(null);
 				fetchExercisePhases();
 			} else {
-				alert('Error updating phase');
+				Alert.alert('Error', 'Error updating phase');
 			}
 			setIsLoading(false);
 			return;
@@ -320,7 +320,7 @@ export default function EditExercise() {
 				
 				if (phaseError) {
 					console.error('Error adding wave phase:', phaseError);
-					alert('Error adding wave phase: ' + (phaseError.message || 'Unknown error'));
+					Alert.alert('Error', 'Error adding wave phase: ' + (phaseError.message || 'Unknown error'));
 					setIsLoading(false);
 					return;
 				}
@@ -342,7 +342,7 @@ export default function EditExercise() {
 			fetchExercisePhases();
 		} else {
 			console.error('Error adding phase:', error);
-			alert('Error adding phase: ' + (error.message || 'Unknown error'));
+			Alert.alert('Error', 'Error adding phase: ' + (error.message || 'Unknown error'));
 		}
 		setIsLoading(false);
 	};
@@ -404,7 +404,7 @@ export default function EditExercise() {
 		if (!error) {
 			router.back();
 		} else {
-			alert('Error saving exercise');
+			Alert.alert('Error', 'Error saving exercise');
 		}
 	};
 

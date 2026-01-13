@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Alert } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -86,12 +86,12 @@ export default function RepetitionMaximums() {
 		const weightNum = parseFloat(weight);
 		
 		if (isNaN(repsNum) || repsNum <= 0) {
-			alert('Reps must be a positive number');
+			Alert.alert('Error', 'Reps must be a positive number');
 			return;
 		}
-		
+
 		if (isNaN(weightNum) || weightNum <= 0) {
-			alert('Weight must be a positive number');
+			Alert.alert('Error', 'Weight must be a positive number');
 			return;
 		}
 
@@ -110,7 +110,7 @@ export default function RepetitionMaximums() {
 				.eq('id', editingRm.id);
 			
 			if (error) {
-				alert('Error updating repetition maximum: ' + (error.message || 'Unknown error'));
+				Alert.alert('Error', 'Error updating repetition maximum: ' + (error.message || 'Unknown error'));
 			} else {
 				handleCloseModal();
 				fetchRms();
@@ -128,7 +128,7 @@ export default function RepetitionMaximums() {
 				}]);
 			
 			if (error) {
-				alert('Error creating repetition maximum: ' + (error.message || 'Unknown error'));
+				Alert.alert('Error', 'Error creating repetition maximum: ' + (error.message || 'Unknown error'));
 			} else {
 				handleCloseModal();
 				fetchRms();
@@ -149,7 +149,7 @@ export default function RepetitionMaximums() {
 		if (!error) {
 			fetchRms();
 		} else {
-			alert('Error deleting repetition maximum');
+			Alert.alert('Error', 'Error deleting repetition maximum');
 		}
 		setDeletingId(null);
 	};
