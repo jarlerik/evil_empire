@@ -107,12 +107,12 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 - [x] Create `components/__tests__/EditExecutionModal.test.tsx` (20 tests)
 - [x] Create `components/__tests__/Button.test.tsx` (7 tests)
 
-### 🔴 Missing Context Tests
+### 🟢 Context Tests (COMPLETED)
 
-**Issue:** No tests for context providers
+**Status:** ✅ Completed - Context providers have comprehensive tests
 
-- [ ] Create `contexts/__tests__/AuthContext.test.tsx`
-- [ ] Create `contexts/__tests__/UserSettingsContext.test.tsx`
+- [x] Create `contexts/__tests__/AuthContext.test.tsx` (16 tests)
+- [x] Create `contexts/__tests__/UserSettingsContext.test.tsx` (12 tests)
 
 ### 🟡 `lib/__tests__/parseSetInput.test.ts` - 1423 lines (Critical: >500)
 
@@ -179,7 +179,7 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 | `lib/parseSetInput.ts` | Good (133 tests) | Split tests | [ ] |
 | `hooks/*` | Good (63 tests) | Full coverage | [x] |
 | `components/*` | Good (49 tests) | Full coverage | [x] |
-| `contexts/*` | None | Full coverage | [ ] |
+| `contexts/*` | Good (28 tests) | Full coverage | [x] |
 | `app/*` screens | None | Integration tests | [ ] |
 
 ---
@@ -209,5 +209,5 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
   - [x] Extract `WorkoutExerciseItem` and `WorkoutTimerDisplay` components (start-workout.tsx: 695→508 lines)
   - [x] Extract `WorkoutCard` and `WeekDaySelector` components (index.tsx: 472→321 lines)
   - [x] Use shared `formatExercisePhase` (add-exercises.tsx: 365→272 lines)
-- [x] Add comprehensive test coverage (245 tests total: hooks 63, components 49, parsers 133)
+- [x] Add comprehensive test coverage (273 tests total: hooks 63, components 49, contexts 28, parsers 133)
 - [ ] Extract shared styles and types
