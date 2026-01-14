@@ -1,4 +1,4 @@
-import { parseSetInput, ParsedSetData } from '../parseSetInput';
+import { parseSetInput } from '../parseSetInput';
 
 describe('parseSetInput', () => {
 	describe('valid inputs', () => {
@@ -8,7 +8,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -18,7 +18,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -30,7 +30,7 @@ describe('parseSetInput', () => {
 				weight: 0,
 				isValid: true,
 				weightPercentage: 80,
-				needsRmLookup: true
+				needsRmLookup: true,
 			});
 		});
 
@@ -43,7 +43,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -53,7 +53,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -63,7 +63,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -73,7 +73,7 @@ describe('parseSetInput', () => {
 				sets: 3,
 				reps: 5,
 				weight: 75.5,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -83,7 +83,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -93,7 +93,7 @@ describe('parseSetInput', () => {
 				sets: 1,
 				reps: 1,
 				weight: 1,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -103,7 +103,7 @@ describe('parseSetInput', () => {
 				sets: 10,
 				reps: 20,
 				weight: 100,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -114,7 +114,7 @@ describe('parseSetInput', () => {
 				reps: 4, // Total reps (2 + 2)
 				weight: 50,
 				isValid: true,
-				compoundReps: [2, 2]
+				compoundReps: [2, 2],
 			});
 		});
 
@@ -125,7 +125,7 @@ describe('parseSetInput', () => {
 				reps: 4, // Total reps (1 + 3)
 				weight: 75,
 				isValid: true,
-				compoundReps: [1, 3]
+				compoundReps: [1, 3],
 			});
 		});
 
@@ -136,7 +136,7 @@ describe('parseSetInput', () => {
 				reps: 7, // Total reps (1 + 2 + 2 + 2)
 				weight: 40,
 				isValid: true,
-				compoundReps: [1, 2, 2, 2]
+				compoundReps: [1, 2, 2, 2],
 			});
 		});
 
@@ -147,7 +147,7 @@ describe('parseSetInput', () => {
 				reps: 3, // Total reps (2 + 1)
 				weight: 60,
 				isValid: true,
-				compoundReps: [2, 1]
+				compoundReps: [2, 1],
 			});
 		});
 
@@ -161,7 +161,7 @@ describe('parseSetInput', () => {
 				exerciseType: 'standard',
 				compoundReps: [2, 2],
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -174,7 +174,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				weightPercentage: 60,
 				needsRmLookup: true,
-				compoundReps: [1, 1, 1]
+				compoundReps: [1, 1, 1],
 			});
 		});
 
@@ -187,7 +187,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				weightPercentage: 60,
 				needsRmLookup: true,
-				compoundReps: [1, 2, 2, 2]
+				compoundReps: [1, 2, 2, 2],
 			});
 		});
 
@@ -198,7 +198,7 @@ describe('parseSetInput', () => {
 				reps: 1,
 				weight: 55, // First weight for backward compatibility
 				weights: [55, 60, 65],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -211,7 +211,7 @@ describe('parseSetInput', () => {
 				weights: [60, 70, 75],
 				isValid: true,
 				weightPercentage: 60, // First for backward compatibility
-				needsRmLookup: true
+				needsRmLookup: true,
 			});
 		});
 
@@ -222,7 +222,7 @@ describe('parseSetInput', () => {
 				reps: 5,
 				weight: 100, // First weight for backward compatibility
 				weights: [100, 110, 120, 130],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -233,7 +233,7 @@ describe('parseSetInput', () => {
 				reps: 3,
 				weight: 50.5, // First weight for backward compatibility
 				weights: [50.5, 60.25, 70.75],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -244,7 +244,7 @@ describe('parseSetInput', () => {
 				reps: 1,
 				weight: 50, // First weight for backward compatibility
 				weights: [50, 60, 70],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -254,7 +254,7 @@ describe('parseSetInput', () => {
 				sets: 1,
 				reps: 5,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -265,7 +265,7 @@ describe('parseSetInput', () => {
 				reps: 20,
 				weight: 100, // First weight for backward compatibility
 				weights: [100, 110, 120, 130, 140, 150, 160, 170, 180, 190],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -280,9 +280,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -297,11 +297,11 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 0},
 					{sets: 1, reps: 1, weight: 0},
 					{sets: 1, reps: 1, weight: 0},
-					{sets: 1, reps: 1, weight: 0}
+					{sets: 1, reps: 1, weight: 0},
 				],
 				isValid: true,
 				weightPercentage: 80,
-				needsRmLookup: true
+				needsRmLookup: true,
 			});
 		});
 
@@ -316,9 +316,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -333,9 +333,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -350,9 +350,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 4, weight: 75.5},
 					{sets: 1, reps: 3, weight: 75.5},
 					{sets: 1, reps: 2, weight: 75.5},
-					{sets: 1, reps: 1, weight: 75.5}
+					{sets: 1, reps: 1, weight: 75.5},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -367,9 +367,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -384,9 +384,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 1, weight: 50},
 					{sets: 1, reps: 1, weight: 50},
 					{sets: 1, reps: 1, weight: 50},
-					{sets: 1, reps: 1, weight: 50}
+					{sets: 1, reps: 1, weight: 50},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -401,9 +401,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 8, weight: 100},
 					{sets: 1, reps: 6, weight: 100},
 					{sets: 1, reps: 4, weight: 100},
-					{sets: 1, reps: 2, weight: 100}
+					{sets: 1, reps: 2, weight: 100},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -422,9 +422,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 1, weight: 80},
 					{sets: 1, reps: 1, weight: 80},
 					{sets: 1, reps: 1, weight: 80},
-					{sets: 1, reps: 1, weight: 80}
+					{sets: 1, reps: 1, weight: 80},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -439,9 +439,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -454,8 +454,8 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'circuit',
 				circuitExercises: [
-					{reps: '10', name: 'banded side step'}
-				]
+					{reps: '10', name: 'banded side step'},
+				],
 			});
 		});
 
@@ -469,8 +469,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'banded side step'},
-					{reps: '10', name: 'banded skated walk forward'}
-				]
+					{reps: '10', name: 'banded skated walk forward'},
+				],
 			});
 		});
 
@@ -484,8 +484,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10/10', name: 'banded side step'},
-					{reps: '5/5', name: 'banded skated walk forward'}
-				]
+					{reps: '5/5', name: 'banded skated walk forward'},
+				],
 			});
 		});
 
@@ -500,8 +500,8 @@ describe('parseSetInput', () => {
 				circuitExercises: [
 					{reps: '10/10', name: 'banded side step'},
 					{reps: '15', name: 'banded skated walk forward'},
-					{reps: '5/5', name: 'exercise name'}
-				]
+					{reps: '5/5', name: 'exercise name'},
+				],
 			});
 		});
 
@@ -515,8 +515,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '', name: 'banded side step'},
-					{reps: '10', name: 'exercise with reps'}
-				]
+					{reps: '10', name: 'exercise with reps'},
+				],
 			});
 		});
 
@@ -530,8 +530,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'banded side step'},
-					{reps: '15', name: 'exercise name'}
-				]
+					{reps: '15', name: 'exercise name'},
+				],
 			});
 		});
 
@@ -548,8 +548,8 @@ describe('parseSetInput', () => {
 					{reps: '15', name: 'exercise2'},
 					{reps: '20/20', name: 'exercise3'},
 					{reps: '5', name: 'exercise4'},
-					{reps: '', name: 'exercise5'}
-				]
+					{reps: '', name: 'exercise5'},
+				],
 			});
 		});
 
@@ -563,8 +563,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'Banded Side Step'},
-					{reps: '15', name: 'Exercise Name'}
-				]
+					{reps: '15', name: 'Exercise Name'},
+				],
 			});
 		});
 
@@ -577,8 +577,8 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'circuit',
 				circuitExercises: [
-					{reps: '', name: 'exercise name only'}
-				]
+					{reps: '', name: 'exercise name only'},
+				],
 			});
 		});
 
@@ -592,8 +592,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '100', name: 'exercise1'},
-					{reps: '50/50', name: 'exercise2'}
-				]
+					{reps: '50/50', name: 'exercise2'},
+				],
 			});
 		});
 	});
@@ -606,7 +606,7 @@ describe('parseSetInput', () => {
 				reps: 0,
 				weight: 0,
 				isValid: false,
-				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")'
+				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")',
 			});
 		});
 
@@ -617,7 +617,7 @@ describe('parseSetInput', () => {
 				reps: 0,
 				weight: 0,
 				isValid: false,
-				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")'
+				errorMessage: 'Please enter a valid format (e.g., "3 x 5 @50kg")',
 			});
 		});
 
@@ -677,7 +677,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -730,7 +730,7 @@ describe('parseSetInput', () => {
 			const result = parseSetInput('3 x 1 @50 60 70kg');
 			// This should be valid (3 weights for 3 sets)
 			expect(result.isValid).toBe(true);
-			
+
 			// Test with wrong count
 			const result2 = parseSetInput('3 x 1 @50 60kg');
 			expect(result2.isValid).toBe(false);
@@ -858,7 +858,7 @@ describe('parseSetInput', () => {
 				sets: 999,
 				reps: 999,
 				weight: 999.99,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -868,7 +868,7 @@ describe('parseSetInput', () => {
 				sets: 3,
 				reps: 5,
 				weight: 75.123,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -878,7 +878,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -888,7 +888,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -899,7 +899,7 @@ describe('parseSetInput', () => {
 				reps: 1,
 				weight: 50, // First weight for backward compatibility
 				weights: [50, 60, 70],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -910,7 +910,7 @@ describe('parseSetInput', () => {
 				reps: 5,
 				weight: 999.999, // First weight for backward compatibility
 				weights: [999.999, 888.888, 777.777],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -921,7 +921,7 @@ describe('parseSetInput', () => {
 				reps: 1,
 				weight: 50, // First weight for backward compatibility
 				weights: [50, 60, 70],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -936,9 +936,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -953,9 +953,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 888, weight: 999.99},
 					{sets: 1, reps: 777, weight: 999.99},
 					{sets: 1, reps: 666, weight: 999.99},
-					{sets: 1, reps: 555, weight: 999.99}
+					{sets: 1, reps: 555, weight: 999.99},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -970,9 +970,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 4, weight: 75.123},
 					{sets: 1, reps: 3, weight: 75.123},
 					{sets: 1, reps: 2, weight: 75.123},
-					{sets: 1, reps: 1, weight: 75.123}
+					{sets: 1, reps: 1, weight: 75.123},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -987,9 +987,9 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
-				isValid: true
+				isValid: true,
 			});
 		});
 
@@ -1003,8 +1003,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'banded side step'},
-					{reps: '15', name: 'exercise name'}
-				]
+					{reps: '15', name: 'exercise name'},
+				],
 			});
 		});
 
@@ -1018,8 +1018,8 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'very long exercise name with many words'},
-					{reps: '15', name: 'another long exercise name'}
-				]
+					{reps: '15', name: 'another long exercise name'},
+				],
 			});
 		});
 	});
@@ -1062,7 +1062,7 @@ describe('parseSetInput', () => {
 		it('should maintain compatibility with existing formats (with required units)', () => {
 			const simpleResult = parseSetInput('4 x 3 @50kg');
 			const compoundResult = parseSetInput('4 x 2 + 2@50kg');
-			
+
 			expect(simpleResult.weights).toBeUndefined();
 			expect(compoundResult.weights).toBeUndefined();
 			expect(simpleResult.isValid).toBe(true);
@@ -1077,7 +1077,7 @@ describe('parseSetInput', () => {
 				{sets: 1, reps: 2, weight: 65},
 				{sets: 1, reps: 1, weight: 65},
 				{sets: 1, reps: 1, weight: 65},
-				{sets: 1, reps: 1, weight: 65}
+				{sets: 1, reps: 1, weight: 65},
 			]);
 		});
 
@@ -1085,7 +1085,7 @@ describe('parseSetInput', () => {
 			const simpleResult = parseSetInput('3 x 1 @50kg');
 			const compoundResult = parseSetInput('3 x 2 + 2@50kg');
 			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70kg');
-			
+
 			expect(simpleResult.wavePhases).toBeUndefined();
 			expect(compoundResult.wavePhases).toBeUndefined();
 			expect(multipleWeightsResult.wavePhases).toBeUndefined();
@@ -1093,7 +1093,7 @@ describe('parseSetInput', () => {
 
 		it('should maintain compatibility with wave exercises (with required units)', () => {
 			const waveResult = parseSetInput('3-2-1-1-1 65kg');
-			
+
 			expect(waveResult.weights).toBeUndefined();
 			expect(waveResult.compoundReps).toBeUndefined();
 			expect(waveResult.isValid).toBe(true);
@@ -1107,7 +1107,7 @@ describe('parseSetInput', () => {
 			expect(Array.isArray(result.circuitExercises)).toBe(true);
 			expect(result.circuitExercises).toEqual([
 				{reps: '10', name: 'banded side step'},
-				{reps: '15', name: 'exercise name'}
+				{reps: '15', name: 'exercise name'},
 			]);
 		});
 
@@ -1116,7 +1116,7 @@ describe('parseSetInput', () => {
 			const compoundResult = parseSetInput('3 x 2 + 2@50kg');
 			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70kg');
 			const waveResult = parseSetInput('3-2-1-1-1 65kg');
-			
+
 			expect(simpleResult.circuitExercises).toBeUndefined();
 			expect(compoundResult.circuitExercises).toBeUndefined();
 			expect(multipleWeightsResult.circuitExercises).toBeUndefined();
@@ -1125,7 +1125,7 @@ describe('parseSetInput', () => {
 
 		it('should maintain compatibility with circuit exercises', () => {
 			const circuitResult = parseSetInput('2 x 10 banded side step, 15 exercise name');
-			
+
 			expect(circuitResult.weights).toBeUndefined();
 			expect(circuitResult.compoundReps).toBeUndefined();
 			expect(circuitResult.wavePhases).toBeUndefined();
@@ -1145,7 +1145,7 @@ describe('parseSetInput', () => {
 				reps: 3,
 				weight: 50,
 				isValid: true,
-				restTimeSeconds: 120
+				restTimeSeconds: 120,
 			});
 		});
 
@@ -1156,7 +1156,7 @@ describe('parseSetInput', () => {
 				reps: 3,
 				weight: 50,
 				isValid: true,
-				restTimeSeconds: 120 // 2 minutes = 120 seconds
+				restTimeSeconds: 120, // 2 minutes = 120 seconds
 			});
 		});
 
@@ -1173,7 +1173,7 @@ describe('parseSetInput', () => {
 				reps: 3,
 				weight: 50,
 				isValid: true,
-				restTimeSeconds: 120 // 2 minutes = 120 seconds
+				restTimeSeconds: 120, // 2 minutes = 120 seconds
 			});
 		});
 
@@ -1186,7 +1186,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -1200,7 +1200,7 @@ describe('parseSetInput', () => {
 				weightPercentage: 60,
 				needsRmLookup: true,
 				compoundReps: [1, 2, 2, 2],
-				restTimeSeconds: 120
+				restTimeSeconds: 120,
 			});
 		});
 
@@ -1213,7 +1213,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				weightPercentage: 80,
 				needsRmLookup: true,
-				restTimeSeconds: 90
+				restTimeSeconds: 90,
 			});
 		});
 
@@ -1225,7 +1225,7 @@ describe('parseSetInput', () => {
 				weight: 50, // First weight for backward compatibility
 				weights: [50, 60, 70],
 				isValid: true,
-				restTimeSeconds: 120 // 2 minutes = 120 seconds
+				restTimeSeconds: 120, // 2 minutes = 120 seconds
 			});
 		});
 
@@ -1239,7 +1239,7 @@ describe('parseSetInput', () => {
 				exerciseType: 'standard',
 				rirMin: 2,
 				rirMax: 3,
-				restTimeSeconds: 180
+				restTimeSeconds: 180,
 			});
 		});
 
@@ -1252,7 +1252,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -1265,7 +1265,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 2,
-				rirMax: 3
+				rirMax: 3,
 			});
 		});
 
@@ -1278,7 +1278,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -1291,7 +1291,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -1304,7 +1304,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 2,
-				rirMax: 3
+				rirMax: 3,
 			});
 		});
 
@@ -1317,7 +1317,7 @@ describe('parseSetInput', () => {
 				isValid: true,
 				exerciseType: 'standard',
 				rirMin: 1,
-				rirMax: 1
+				rirMax: 1,
 			});
 		});
 
@@ -1331,7 +1331,7 @@ describe('parseSetInput', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
-				restTimeSeconds: 180 // 3 minutes = 180 seconds
+				restTimeSeconds: 180, // 3 minutes = 180 seconds
 			});
 		});
 
@@ -1345,7 +1345,7 @@ describe('parseSetInput', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
-				restTimeSeconds: 180 // 3 minutes = 180 seconds
+				restTimeSeconds: 180, // 3 minutes = 180 seconds
 			});
 		});
 
@@ -1356,7 +1356,7 @@ describe('parseSetInput', () => {
 				reps: 3,
 				weight: 50,
 				isValid: true,
-				restTimeSeconds: 120
+				restTimeSeconds: 120,
 			});
 		});
 
@@ -1366,7 +1366,7 @@ describe('parseSetInput', () => {
 				sets: 4,
 				reps: 3,
 				weight: 50,
-				isValid: true
+				isValid: true,
 			});
 			expect(result.restTimeSeconds).toBeUndefined();
 		});
@@ -1382,10 +1382,10 @@ describe('parseSetInput', () => {
 					{sets: 1, reps: 2, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
 					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65}
+					{sets: 1, reps: 1, weight: 65},
 				],
 				isValid: true,
-				restTimeSeconds: 90
+				restTimeSeconds: 90,
 			});
 		});
 
@@ -1399,9 +1399,9 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10', name: 'banded side step'},
-					{reps: '15', name: 'exercise name'}
+					{reps: '15', name: 'exercise name'},
 				],
-				restTimeSeconds: 120
+				restTimeSeconds: 120,
 			});
 		});
 
@@ -1415,10 +1415,10 @@ describe('parseSetInput', () => {
 				exerciseType: 'circuit',
 				circuitExercises: [
 					{reps: '10/10', name: 'exercise1'},
-					{reps: '5', name: 'exercise2'}
+					{reps: '5', name: 'exercise2'},
 				],
-				restTimeSeconds: 120 // 2 minutes = 120 seconds
+				restTimeSeconds: 120, // 2 minutes = 120 seconds
 			});
 		});
 	});
-}); 
+});

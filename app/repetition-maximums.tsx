@@ -32,11 +32,12 @@ export default function RepetitionMaximums() {
 			if (user && supabase) {
 				fetchRms();
 			}
-		}, [user])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [user]),
 	);
 
 	const fetchRms = async () => {
-		if (!supabase || !user) return;
+		if (!supabase || !user) {return;}
 		const { data, error } = await supabase
 			.from('repetition_maximums')
 			.select('*')
@@ -61,7 +62,7 @@ export default function RepetitionMaximums() {
 	};
 
 	const handleSave = async (data: RmFormData) => {
-		if (!user || !supabase) return;
+		if (!user || !supabase) {return;}
 
 		setIsLoading(true);
 
@@ -73,7 +74,7 @@ export default function RepetitionMaximums() {
 					exercise_name: data.exerciseName,
 					reps: data.reps,
 					weight: data.weight,
-					date: data.date
+					date: data.date,
 				})
 				.eq('id', editingRm.id);
 
@@ -92,7 +93,7 @@ export default function RepetitionMaximums() {
 					exercise_name: data.exerciseName,
 					reps: data.reps,
 					weight: data.weight,
-					date: data.date
+					date: data.date,
 				}]);
 
 			if (error) {
@@ -107,7 +108,7 @@ export default function RepetitionMaximums() {
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!supabase) return;
+		if (!supabase) {return;}
 		setDeletingId(id);
 		const { error } = await supabase
 			.from('repetition_maximums')
@@ -143,7 +144,7 @@ export default function RepetitionMaximums() {
 	// Convert nested object to array format for rendering
 	const groupedRmsArray = Object.entries(groupedRms).map(([exerciseName, repsMap]) => ({
 		exerciseName,
-		rms: Object.values(repsMap).sort((a, b) => a.reps - b.reps) // Sort by reps ascending
+		rms: Object.values(repsMap).sort((a, b) => a.reps - b.reps), // Sort by reps ascending
 	}));
 
 	return (

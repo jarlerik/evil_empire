@@ -29,7 +29,7 @@ interface Exercise {
 export default function Index() {
 	const [workoutName, setWorkoutName] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [errorState, setErrorState] = useState<string | null>(null);
 	const { user, loading: authLoading } = useAuth();
 	const { loading: settingsLoading } = useUserSettings();
 
@@ -62,9 +62,9 @@ export default function Index() {
 
 	useFocusEffect(
 		useCallback(() => {
-			if (!user || !supabase) return;
+			if (!user || !supabase) {return;}
 			const fetchWorkouts = async () => {
-				if (!supabase) return;
+				if (!supabase) {return;}
 				const { data, error } = await supabase
 					.from('workouts')
 					.select('*')
@@ -76,11 +76,12 @@ export default function Index() {
 				}
 			};
 			fetchWorkouts();
-		}, [supabase, user])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [supabase, user]),
 	);
 
 	const fetchExercises = async (workoutList: Workout[]) => {
-		if (!supabase) return;
+		if (!supabase) {return;}
 
 		const exercisesMap: Record<string, Exercise[]> = {};
 
@@ -100,23 +101,23 @@ export default function Index() {
 	};
 
 	const handleCreateWorkout = async () => {
-		if (!workoutName.trim()) return;
+		if (!workoutName.trim()) {return;}
 		if (!supabase) {
-			setError('Database not available.');
+			setErrorState('Database not available.');
 			return;
 		}
 		if (!user) {
-			setError('You must be signed in to create a workout.');
+			setErrorState('You must be signed in to create a workout.');
 			return;
 		}
 		setIsLoading(true);
-		setError(null);
+		setErrorState(null);
 		const { error: insertError } = await supabase
 			.from('workouts')
 			.insert([{ name: workoutName.trim(), user_id: user.id, workout_date: format(selectedDate, 'yyyy-MM-dd') }]);
 		setIsLoading(false);
 		if (insertError) {
-			setError('Failed to create workout. Please try again.');
+			setErrorState('Failed to create workout. Please try again.');
 			return;
 		}
 		setWorkoutName('');
@@ -209,7 +210,7 @@ export default function Index() {
 							onSubmitEditing={handleCreateWorkout}
 							editable={!isLoading}
 						/>
-						{error && <Text style={styles.errorText}>{error}</Text>}
+						{errorState && <Text style={styles.errorText}>{errorState}</Text>}
 						<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
 					</View>
 				</View>

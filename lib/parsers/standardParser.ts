@@ -43,7 +43,7 @@ export function parseStandard(cleanInput: string, restTimeSeconds?: number): Par
 			// There's trailing content but no valid rest time parsed
 			return {
 				matched: true,
-				data: invalidResult('Invalid format. Rest time requires a unit (s, m, sec, min, etc.). Use "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m"')
+				data: invalidResult('Invalid format. Rest time requires a unit (s, m, sec, min, etc.). Use "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m"'),
 			};
 		}
 
@@ -53,8 +53,8 @@ export function parseStandard(cleanInput: string, restTimeSeconds?: number): Par
 				sets,
 				reps,
 				weight,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 
@@ -82,7 +82,7 @@ export function parseWeightRange(cleanInput: string, restTimeSeconds?: number): 
 	if (minWeight <= 0 || maxWeight <= 0) {
 		return {
 			matched: true,
-			data: invalidResult('Weight must be positive')
+			data: invalidResult('Weight must be positive'),
 		};
 	}
 
@@ -90,7 +90,7 @@ export function parseWeightRange(cleanInput: string, restTimeSeconds?: number): 
 	if (minWeight > maxWeight) {
 		return {
 			matched: true,
-			data: invalidResult('Minimum weight must be less than or equal to maximum weight')
+			data: invalidResult('Minimum weight must be less than or equal to maximum weight'),
 		};
 	}
 
@@ -102,8 +102,8 @@ export function parseWeightRange(cleanInput: string, restTimeSeconds?: number): 
 			weight: minWeight, // Use min for backward compatibility
 			weightMin: minWeight,
 			weightMax: maxWeight,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }
 
@@ -142,7 +142,7 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 	if (hasEmptyValues) {
 		return {
 			matched: true,
-			data: invalidResult('Invalid weight values. Please use numbers only.')
+			data: invalidResult('Invalid weight values. Please use numbers only.'),
 		};
 	}
 
@@ -158,14 +158,14 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 	if (validWeights.length !== sets) {
 		return {
 			matched: true,
-			data: invalidResult(`Expected ${sets} weights for ${sets} sets, but got ${validWeights.length}`)
+			data: invalidResult(`Expected ${sets} weights for ${sets} sets, but got ${validWeights.length}`),
 		};
 	}
 
 	if (!validWeights.every(w => !isNaN(w) && w > 0)) {
 		return {
 			matched: true,
-			data: invalidResult('Invalid weight values. Please use numbers only.')
+			data: invalidResult('Invalid weight values. Please use numbers only.'),
 		};
 	}
 
@@ -177,15 +177,15 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 				reps,
 				weight: validWeights[0], // Keep for backward compatibility
 				weights: validWeights,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	} else if (unit === '%') {
 		// Validate percentages are between 0 and 100
 		if (validWeights.some(w => w <= 0 || w > 100)) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100')
+				data: invalidResult('Percentage must be between 0 and 100'),
 			};
 		}
 		// For percentage multiple weights, use the first one as weightPercentage
@@ -198,8 +198,8 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 				weights: validWeights, // Store all percentages
 				weightPercentage: validWeights[0], // Use first for backward compatibility
 				needsRmLookup: true,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 

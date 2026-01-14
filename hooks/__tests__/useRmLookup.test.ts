@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { renderHook } from '@testing-library/react-native';
 import { useRmLookup } from '../useRmLookup';
 
 // Mock supabase
@@ -8,7 +8,7 @@ const mockOrder = jest.fn(() => ({ limit: mockLimit }));
 const mockEq = jest.fn(() => ({ order: mockOrder }));
 const mockIlike = jest.fn(() => ({ eq: mockEq }));
 const mockSelect = jest.fn(() => ({ eq: mockEq, ilike: mockIlike }));
-const mockFrom = jest.fn(() => ({ select: mockSelect }));
+const mockFrom = jest.fn((_: string) => ({ select: mockSelect }));
 
 jest.mock('../../lib/supabase', () => ({
 	supabase: {
@@ -92,7 +92,7 @@ describe('useRmLookup', () => {
 				{
 					weight: 100,
 					needsRmLookup: false,
-				}
+				},
 			);
 
 			expect(calcResult.success).toBe(true);
@@ -111,7 +111,7 @@ describe('useRmLookup', () => {
 					weight: 0,
 					needsRmLookup: true,
 					weightPercentage: 80,
-				}
+				},
 			);
 
 			expect(calcResult.success).toBe(true);
@@ -131,7 +131,7 @@ describe('useRmLookup', () => {
 					needsRmLookup: true,
 					weightMinPercentage: 80,
 					weightMaxPercentage: 85,
-				}
+				},
 			);
 
 			expect(calcResult.success).toBe(true);
@@ -151,7 +151,7 @@ describe('useRmLookup', () => {
 					needsRmLookup: false,
 					weightMin: 85,
 					weightMax: 90,
-				}
+				},
 			);
 
 			expect(calcResult.success).toBe(true);
@@ -172,7 +172,7 @@ describe('useRmLookup', () => {
 					weight: 0,
 					needsRmLookup: true,
 					weightPercentage: 80,
-				}
+				},
 			);
 
 			expect(calcResult.success).toBe(false);

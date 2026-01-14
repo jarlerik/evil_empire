@@ -26,7 +26,7 @@ export function parseRmBuild(cleanInput: string, restTimeSeconds?: number): Pars
 			weight: 0, // Weight is built up to
 			exerciseType: 'rm_build',
 			targetRm,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }

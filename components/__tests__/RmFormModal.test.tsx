@@ -44,7 +44,7 @@ describe('RmFormModal', () => {
 			};
 
 			const { getByText } = render(
-				<RmFormModal {...defaultProps} editingRm={editingRm} />
+				<RmFormModal {...defaultProps} editingRm={editingRm} />,
 			);
 
 			expect(getByText('Edit RM')).toBeTruthy();
@@ -52,7 +52,7 @@ describe('RmFormModal', () => {
 
 		it('should display all form fields', () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			expect(getByText('Exercise Name')).toBeTruthy();
@@ -89,7 +89,7 @@ describe('RmFormModal', () => {
 			};
 
 			const { getByText } = render(
-				<RmFormModal {...defaultProps} editingRm={editingRm} />
+				<RmFormModal {...defaultProps} editingRm={editingRm} />,
 			);
 
 			expect(getByText('Update')).toBeTruthy();
@@ -97,7 +97,7 @@ describe('RmFormModal', () => {
 
 		it('should show "Saving..." when loading', () => {
 			const { getByText } = render(
-				<RmFormModal {...defaultProps} isLoading={true} />
+				<RmFormModal {...defaultProps} isLoading={true} />,
 			);
 
 			expect(getByText('Saving...')).toBeTruthy();
@@ -107,7 +107,7 @@ describe('RmFormModal', () => {
 	describe('form pre-population', () => {
 		it('should have empty fields when adding new RM', () => {
 			const { getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			const exerciseInput = getByPlaceholderText('e.g., Squat');
@@ -132,7 +132,7 @@ describe('RmFormModal', () => {
 			};
 
 			const { getByDisplayValue } = render(
-				<RmFormModal {...defaultProps} editingRm={editingRm} />
+				<RmFormModal {...defaultProps} editingRm={editingRm} />,
 			);
 
 			expect(getByDisplayValue('Bench Press')).toBeTruthy();
@@ -145,7 +145,7 @@ describe('RmFormModal', () => {
 	describe('validation', () => {
 		it('should show error when exercise name is empty', async () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			// Fill other fields but leave exercise name empty
@@ -161,7 +161,7 @@ describe('RmFormModal', () => {
 
 		it('should show error for invalid reps (zero)', async () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Squat');
@@ -177,7 +177,7 @@ describe('RmFormModal', () => {
 
 		it('should show error for invalid reps (negative)', async () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Squat');
@@ -193,7 +193,7 @@ describe('RmFormModal', () => {
 
 		it('should show error for invalid weight (zero)', async () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Squat');
@@ -209,7 +209,7 @@ describe('RmFormModal', () => {
 
 		it('should show error for non-numeric reps', async () => {
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Squat');
@@ -228,7 +228,7 @@ describe('RmFormModal', () => {
 		it('should call onSave with correct data when form is valid', async () => {
 			const onSave = jest.fn().mockResolvedValue(undefined);
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} onSave={onSave} />
+				<RmFormModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Deadlift');
@@ -250,7 +250,7 @@ describe('RmFormModal', () => {
 		it('should trim exercise name before saving', async () => {
 			const onSave = jest.fn().mockResolvedValue(undefined);
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} onSave={onSave} />
+				<RmFormModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), '  Squat  ');
@@ -263,7 +263,7 @@ describe('RmFormModal', () => {
 				expect(onSave).toHaveBeenCalledWith(
 					expect.objectContaining({
 						exerciseName: 'Squat',
-					})
+					}),
 				);
 			});
 		});
@@ -271,7 +271,7 @@ describe('RmFormModal', () => {
 		it('should handle decimal weight values', async () => {
 			const onSave = jest.fn().mockResolvedValue(undefined);
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} onSave={onSave} />
+				<RmFormModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.changeText(getByPlaceholderText('e.g., Squat'), 'Squat');
@@ -284,7 +284,7 @@ describe('RmFormModal', () => {
 				expect(onSave).toHaveBeenCalledWith(
 					expect.objectContaining({
 						weight: 102.5,
-					})
+					}),
 				);
 			});
 		});
@@ -294,7 +294,7 @@ describe('RmFormModal', () => {
 		it('should call onClose when close button pressed', () => {
 			const onClose = jest.fn();
 			const { getByText } = render(
-				<RmFormModal {...defaultProps} onClose={onClose} />
+				<RmFormModal {...defaultProps} onClose={onClose} />,
 			);
 
 			fireEvent.press(getByText('×'));
@@ -304,7 +304,7 @@ describe('RmFormModal', () => {
 
 		it('should reset form fields when modal closes', () => {
 			const { getByPlaceholderText, getByText, rerender } = render(
-				<RmFormModal {...defaultProps} />
+				<RmFormModal {...defaultProps} />,
 			);
 
 			// Fill in some data
@@ -325,7 +325,7 @@ describe('RmFormModal', () => {
 
 		it('should not render modal content when not visible', () => {
 			const { queryByText } = render(
-				<RmFormModal {...defaultProps} visible={false} />
+				<RmFormModal {...defaultProps} visible={false} />,
 			);
 
 			// When modal is not visible, content is not rendered
@@ -337,7 +337,7 @@ describe('RmFormModal', () => {
 		it('should disable save button when loading', () => {
 			const onSave = jest.fn();
 			const { getByText, getByPlaceholderText } = render(
-				<RmFormModal {...defaultProps} isLoading={true} onSave={onSave} />
+				<RmFormModal {...defaultProps} isLoading={true} onSave={onSave} />,
 			);
 
 			// Fill in valid data
@@ -378,7 +378,7 @@ describe('RmFormModal', () => {
 			};
 
 			const { rerender, getByDisplayValue } = render(
-				<RmFormModal {...defaultProps} editingRm={editingRm1} />
+				<RmFormModal {...defaultProps} editingRm={editingRm1} />,
 			);
 
 			expect(getByDisplayValue('Squat')).toBeTruthy();

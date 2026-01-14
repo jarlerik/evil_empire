@@ -178,6 +178,6 @@ export function parseSetInput(input: string): ParsedSetData {
 		'"2 x 10/10 exercise1, 10 exercise2..." for circuits, ' +
 		'"Build to 8RM" for RM builds, ' +
 		'"2x 10, 2-3RIR" for RIR notation, ' +
-		'or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)'
+		'or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)',
 	);
 }

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -42,7 +42,7 @@ export default function EditExercise() {
 			if (inputValueRef.current) {
 				setSetInput(inputValueRef.current);
 			}
-		}, [])
+		}, []),
 	);
 
 	const handleEditPhase = (phase: ExercisePhase) => {
@@ -72,7 +72,7 @@ export default function EditExercise() {
 	};
 
 	const handleDeleteExercise = async () => {
-		if (!exerciseId || !supabase) return;
+		if (!exerciseId || !supabase) {return;}
 		const { error } = await supabase
 			.from('exercises')
 			.delete()
@@ -92,13 +92,13 @@ export default function EditExercise() {
 					{
 						text: 'Delete exercise',
 						onPress: () => handleDeleteExercise(),
-						style: 'destructive'
+						style: 'destructive',
 					},
 					{
 						text: 'Continue',
-						style: 'cancel'
-					}
-				]
+						style: 'cancel',
+					},
+				],
 			);
 		} else {
 			router.back();
@@ -106,7 +106,7 @@ export default function EditExercise() {
 	};
 
 	const handleSave = async () => {
-		if (!exerciseName.trim() || !exerciseId || !supabase) return;
+		if (!exerciseName.trim() || !exerciseId || !supabase) {return;}
 		// Update the exercise name in the database
 		const { error } = await supabase
 			.from('exercises')
@@ -188,7 +188,7 @@ export default function EditExercise() {
 								key={phase.id}
 								style={[
 									styles.phaseContainer,
-									editingPhaseId === phase.id && styles.phaseContainerEditing
+									editingPhaseId === phase.id && styles.phaseContainerEditing,
 								]}
 							>
 								<Text style={styles.phaseText}>

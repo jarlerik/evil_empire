@@ -26,7 +26,7 @@ export function WorkoutExerciseItem({
 		<View
 			style={[
 				styles.exerciseItem,
-				isActive && styles.exerciseItemActive
+				isActive && styles.exerciseItemActive,
 			]}
 			onLayout={(event) => {
 				if (onLayout) {

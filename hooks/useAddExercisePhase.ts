@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
+import { parseSetInput } from '../lib/parseSetInput';
 import { useExercisePhases } from './useExercisePhases';
 import { useRmLookup } from './useRmLookup';
 
@@ -31,7 +31,7 @@ export function useAddExercisePhase({
 
 	const addExercisePhase = useCallback(async (
 		setInput: string,
-		editingPhaseId: string | null
+		editingPhaseId: string | null,
 	): Promise<AddPhaseResult> => {
 		const parsedData = parseSetInput(setInput);
 
@@ -52,7 +52,7 @@ export function useAddExercisePhase({
 		const weightResult = await calculateWeightsFromParsedData(
 			userId,
 			exerciseName,
-			parsedData
+			parsedData,
 		);
 
 		if (!weightResult.success) {

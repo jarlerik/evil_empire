@@ -25,8 +25,8 @@ export function parseSimpleRir(cleanInput: string, restTimeSeconds?: number): Pa
 			exerciseType: 'standard',
 			rirMin: value,
 			rirMax: value,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }
 
@@ -58,8 +58,8 @@ export function parseStandardWithRir(cleanInput: string, restTimeSeconds?: numbe
 			exerciseType: 'standard',
 			rirMin,
 			rirMax: rirMax || rirMin,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }
 
@@ -90,7 +90,7 @@ export function parseRirWithoutWeight(cleanInput: string, restTimeSeconds?: numb
 			exerciseType: 'standard',
 			rirMin,
 			rirMax: rirMax || rirMin, // If no max, use min as max
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }

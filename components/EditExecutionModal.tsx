@@ -81,6 +81,7 @@ export function EditExecutionModal({
 				phases: executionPhases,
 			});
 		} catch (error) {
+			console.error('Error saving execution log:', error);
 			Alert.alert('Error', 'Error saving execution log');
 		}
 

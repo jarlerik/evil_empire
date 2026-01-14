@@ -89,11 +89,11 @@ export function useWorkoutState({
 	}, [isLastExercise, isLastSet]);
 
 	const handleStartWorkout = useCallback(() => {
-		if (exercises.length === 0) return;
+		if (exercises.length === 0) {return;}
 		LayoutAnimation.configureNext(LayoutAnimation.create(
 			300,
 			LayoutAnimation.Types.easeInEaseOut,
-			LayoutAnimation.Properties.opacity
+			LayoutAnimation.Properties.opacity,
 		));
 		setWorkoutState('work');
 		setCurrentExerciseIndex(0);
@@ -131,7 +131,7 @@ export function useWorkoutState({
 
 	const rest = useCallback(() => {
 		const phase = getCurrentExercisePhase();
-		if (!phase) return;
+		if (!phase) {return;}
 
 		if (isLastSet()) {
 			setWorkoutState('exercise_done');

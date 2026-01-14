@@ -18,13 +18,13 @@ function parseCircuitExercises(exercisesStr: string): CircuitExercise[] {
 		if (exerciseMatch) {
 			circuitExercises.push({
 				reps: exerciseMatch[1],
-				name: exerciseMatch[2]
+				name: exerciseMatch[2],
 			});
 		} else {
 			// If no match, treat entire string as exercise name with no reps
 			circuitExercises.push({
 				reps: '',
-				name: exercise
+				name: exercise,
 			});
 		}
 	}
@@ -63,8 +63,8 @@ export function parseCircuitSetsOf(remainingInput: string, cleanInput: string, r
 				weight: 0, // Circuits typically don't have weights
 				exerciseType: 'circuit',
 				circuitExercises,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 
@@ -115,8 +115,8 @@ export function parseCircuitX(remainingInput: string, cleanInput: string, restTi
 				weight: 0, // Circuits typically don't have weights
 				exerciseType: 'circuit',
 				circuitExercises,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 

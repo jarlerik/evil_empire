@@ -30,7 +30,35 @@ module.exports = [
 			},
 			globals: {
 				React: 'readonly',
-				JSX: 'readonly'
+				JSX: 'readonly',
+				// Node.js globals
+				process: 'readonly',
+				module: 'readonly',
+				require: 'readonly',
+				__dirname: 'readonly',
+				__filename: 'readonly',
+				// Jest globals
+				jest: 'readonly',
+				describe: 'readonly',
+				it: 'readonly',
+				expect: 'readonly',
+				beforeEach: 'readonly',
+				afterEach: 'readonly',
+				beforeAll: 'readonly',
+				afterAll: 'readonly',
+				test: 'readonly',
+				// React Native globals
+				fetch: 'readonly',
+				FormData: 'readonly',
+				requestAnimationFrame: 'readonly',
+				cancelAnimationFrame: 'readonly',
+				setImmediate: 'readonly',
+				clearImmediate: 'readonly',
+				console: 'readonly',
+				setTimeout: 'readonly',
+				clearTimeout: 'readonly',
+				setInterval: 'readonly',
+				clearInterval: 'readonly',
 			}
 		},
 		plugins: {
@@ -47,14 +75,19 @@ module.exports = [
 			'react/react-in-jsx-scope': 'off',
 			'@typescript-eslint/no-explicit-any': 'warn',
 			'@typescript-eslint/explicit-function-return-type': 'off',
-			'@typescript-eslint/no-unused-vars': ['warn', { 
+			'@typescript-eslint/no-unused-vars': ['warn', {
 				argsIgnorePattern: '^_',
 				varsIgnorePattern: '^_'
 			}],
 			'no-unused-vars': 'off',
+			// Disable no-undef for TypeScript - TypeScript compiler handles this much better
+			'no-undef': 'off',
 			'@typescript-eslint/ban-types': 'off',
 			'import/export': 'off',
-			'react-native/no-inline-styles': 'warn'
+			'react-native/no-inline-styles': 'off',
+			'no-useless-escape': 'off',
+			// Disable radix requirement for parseInt - base 10 is the default
+			'radix': 'off',
 		},
 		settings: {
 			react: {

@@ -19,7 +19,7 @@ export function useRmLookup() {
 	 */
 	const lookupRm = async (
 		userId: string,
-		exerciseName: string
+		exerciseName: string,
 	): Promise<RmLookupResult> => {
 		if (!supabase) {
 			return { weight: 0, found: false, error: 'Database not available' };
@@ -67,7 +67,7 @@ export function useRmLookup() {
 						}
 					}
 
-					if (rmData) break;
+					if (rmData) {break;}
 				}
 			}
 		}
@@ -76,7 +76,7 @@ export function useRmLookup() {
 			return {
 				weight: 0,
 				found: false,
-				error: `No 1RM found for "${exerciseName}". Please set your 1RM first.`
+				error: `No 1RM found for "${exerciseName}". Please set your 1RM first.`,
 			};
 		}
 
@@ -88,7 +88,7 @@ export function useRmLookup() {
 	 */
 	const calculateWeightFromPercentage = (
 		rmWeight: number,
-		percentage: number
+		percentage: number,
 	): number => {
 		return Math.round((rmWeight * percentage) / 100);
 	};
@@ -107,11 +107,11 @@ export function useRmLookup() {
 			weightMaxPercentage?: number;
 			weightMin?: number;
 			weightMax?: number;
-		}
+		},
 	): Promise<{ success: boolean; weights: CalculatedWeights; error?: string }> => {
 		let calculatedWeight = parsedData.weight;
-		let calculatedWeightMin: number | undefined = undefined;
-		let calculatedWeightMax: number | undefined = undefined;
+		let calculatedWeightMin: number | undefined;
+		let calculatedWeightMax: number | undefined;
 
 		if (parsedData.needsRmLookup) {
 			const rmResult = await lookupRm(userId, exerciseName);
@@ -120,7 +120,7 @@ export function useRmLookup() {
 				return {
 					success: false,
 					weights: { weight: 0 },
-					error: rmResult.error
+					error: rmResult.error,
 				};
 			}
 
@@ -147,8 +147,8 @@ export function useRmLookup() {
 			weights: {
 				weight: calculatedWeight,
 				weightMin: calculatedWeightMin,
-				weightMax: calculatedWeightMax
-			}
+				weightMax: calculatedWeightMax,
+			},
 		};
 	};
 

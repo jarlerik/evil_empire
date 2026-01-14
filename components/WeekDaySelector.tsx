@@ -27,13 +27,13 @@ export function WeekDaySelector({ weekStart, selectedDate, onSelectDate }: WeekD
 						<View
 							style={[
 								styles.dayCircle,
-								isSelected ? styles.dayCircleSelected : styles.dayCircleUnselected
+								isSelected ? styles.dayCircleSelected : styles.dayCircleUnselected,
 							]}
 						>
 							<Text
 								style={[
 									styles.dayNumber,
-									isSelected ? styles.dayNumberSelected : styles.dayNumberUnselected
+									isSelected ? styles.dayNumberSelected : styles.dayNumberUnselected,
 								]}
 							>
 								{format(day, 'd')}

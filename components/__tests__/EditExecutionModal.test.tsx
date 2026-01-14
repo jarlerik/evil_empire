@@ -43,7 +43,7 @@ const mockPhase = (
 	id: string,
 	sets: number,
 	reps: number,
-	weight: number
+	weight: number,
 ): ExercisePhase => ({
 	id,
 	exercise_id: 'ex-1',
@@ -119,7 +119,7 @@ describe('EditExecutionModal', () => {
 	describe('form initialization', () => {
 		it('should pre-populate inputs with formatted planned values', () => {
 			const { getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} />
+				<EditExecutionModal {...defaultProps} />,
 			);
 
 			expect(getByDisplayValue('3 x 5 @100kg')).toBeTruthy();
@@ -135,7 +135,7 @@ describe('EditExecutionModal', () => {
 	describe('input handling', () => {
 		it('should update input value when text changes', () => {
 			const { getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} />
+				<EditExecutionModal {...defaultProps} />,
 			);
 
 			const input = getByDisplayValue('3 x 5 @100kg');
@@ -168,7 +168,7 @@ describe('EditExecutionModal', () => {
 	describe('validation', () => {
 		it('should show error alert for invalid input format', async () => {
 			const { getByText, getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} />
+				<EditExecutionModal {...defaultProps} />,
 			);
 
 			const input = getByDisplayValue('3 x 5 @100kg');
@@ -179,7 +179,7 @@ describe('EditExecutionModal', () => {
 			await waitFor(() => {
 				expect(Alert.alert).toHaveBeenCalledWith(
 					'Error',
-					expect.stringContaining('Invalid format')
+					expect.stringContaining('Invalid format'),
 				);
 			});
 		});
@@ -189,7 +189,7 @@ describe('EditExecutionModal', () => {
 		it('should call onSave with correct execution data', async () => {
 			const onSave = jest.fn().mockResolvedValue(undefined);
 			const { getByText } = render(
-				<EditExecutionModal {...defaultProps} onSave={onSave} />
+				<EditExecutionModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.press(getByText('Save'));
@@ -213,7 +213,7 @@ describe('EditExecutionModal', () => {
 		it('should handle save errors gracefully', async () => {
 			const onSave = jest.fn().mockRejectedValue(new Error('Save failed'));
 			const { getByText } = render(
-				<EditExecutionModal {...defaultProps} onSave={onSave} />
+				<EditExecutionModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.press(getByText('Save'));
@@ -254,7 +254,7 @@ describe('EditExecutionModal', () => {
 		it('should call onSkip when skip button pressed', () => {
 			const onSkip = jest.fn();
 			const { getByText } = render(
-				<EditExecutionModal {...defaultProps} onSkip={onSkip} />
+				<EditExecutionModal {...defaultProps} onSkip={onSkip} />,
 			);
 
 			fireEvent.press(getByText('Skip'));
@@ -267,7 +267,7 @@ describe('EditExecutionModal', () => {
 		it('should show "Saving..." text when loading', async () => {
 			const onSave = jest.fn().mockImplementation(() => new Promise(() => {}));
 			const { getByText, findByText } = render(
-				<EditExecutionModal {...defaultProps} onSave={onSave} />
+				<EditExecutionModal {...defaultProps} onSave={onSave} />,
 			);
 
 			fireEvent.press(getByText('Save'));
@@ -280,7 +280,7 @@ describe('EditExecutionModal', () => {
 		it('should call onClose when close button pressed', () => {
 			const onClose = jest.fn();
 			const { getByText } = render(
-				<EditExecutionModal {...defaultProps} onClose={onClose} />
+				<EditExecutionModal {...defaultProps} onClose={onClose} />,
 			);
 
 			fireEvent.press(getByText('x'));
@@ -290,7 +290,7 @@ describe('EditExecutionModal', () => {
 
 		it('should reinitialize inputs when modal reopens with new phases', () => {
 			const { rerender, getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} visible={false} />
+				<EditExecutionModal {...defaultProps} visible={false} />,
 			);
 
 			// Rerender with visible true and different phase

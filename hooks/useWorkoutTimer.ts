@@ -69,7 +69,7 @@ export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWork
 	useEffect(() => {
 		const loadSound = async () => {
 			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav')
+				require('../assets/sounds/beep.wav'),
 			);
 			beepSound.current = sound;
 		};
@@ -114,7 +114,7 @@ export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWork
 						duration: 500,
 						useNativeDriver: true,
 					}),
-				])
+				]),
 			);
 			blinkAnimation.start();
 			return () => blinkAnimation.stop();

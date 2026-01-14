@@ -20,7 +20,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 	if (value <= 0) {
 		return {
 			matched: true,
-			data: invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")')
+			data: invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")'),
 		};
 	}
 
@@ -31,7 +31,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 	if (!waveReps.every(r => !isNaN(r) && r > 0)) {
 		return {
 			matched: true,
-			data: invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")')
+			data: invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")'),
 		};
 	}
 
@@ -40,7 +40,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 		const wavePhases = waveReps.map((reps) => ({
 			sets: 1,
 			reps,
-			weight: value // All phases get the same weight
+			weight: value, // All phases get the same weight
 		}));
 
 		return {
@@ -50,15 +50,15 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 				reps: waveReps[0], // First rep count for backward compatibility
 				weight: value,
 				wavePhases,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	} else if (unit === '%') {
 		// Validate percentage is between 0 and 100
 		if (value <= 0 || value > 100) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100')
+				data: invalidResult('Percentage must be between 0 and 100'),
 			};
 		}
 
@@ -66,7 +66,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 		const wavePhases = waveReps.map((reps) => ({
 			sets: 1,
 			reps,
-			weight: 0 // Will be calculated after RM lookup
+			weight: 0, // Will be calculated after RM lookup
 		}));
 
 		return {
@@ -78,8 +78,8 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 				wavePhases,
 				weightPercentage: value,
 				needsRmLookup: true,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 

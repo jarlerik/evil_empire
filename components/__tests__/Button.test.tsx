@@ -38,7 +38,7 @@ describe('Button', () => {
 		it('should not call onPress when disabled', () => {
 			const onPressMock = jest.fn();
 			const { getByText } = render(
-				<Button title="Disabled" onPress={onPressMock} disabled />
+				<Button title="Disabled" onPress={onPressMock} disabled />,
 			);
 
 			fireEvent.press(getByText('Disabled'));
@@ -69,7 +69,7 @@ describe('Button', () => {
 		it('should pass through additional pressable props', () => {
 			const testID = 'test-button';
 			const { getByTestId } = render(
-				<Button title="Props Test" testID={testID} />
+				<Button title="Props Test" testID={testID} />,
 			);
 
 			expect(getByTestId(testID)).toBeTruthy();

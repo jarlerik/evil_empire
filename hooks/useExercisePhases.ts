@@ -48,7 +48,7 @@ function buildPhaseData(
 	parsedData: ParsedSetData,
 	calculatedWeight: number,
 	weightRange?: { min: number; max: number },
-	isUpdate = false
+	isUpdate = false,
 ): PhaseInsertData {
 	const data: PhaseInsertData = {
 		exercise_id: exerciseId,
@@ -128,7 +128,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 	const [isLoading, setIsLoading] = useState(false);
 
 	const fetchExercisePhases = useCallback(async () => {
-		if (!supabase || !exerciseId) return;
+		if (!supabase || !exerciseId) {return;}
 
 		const { data, error } = await supabase
 			.from('exercise_phases')
@@ -150,7 +150,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 	const addPhase = useCallback(async (
 		parsedData: ParsedSetData,
 		calculatedWeight: number,
-		weightRange?: { min: number; max: number }
+		weightRange?: { min: number; max: number },
 	): Promise<{ success: boolean; error?: string }> => {
 		if (!supabase || !exerciseId) {
 			return { success: false, error: 'Database not available' };
@@ -182,7 +182,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 					setIsLoading(false);
 					return {
 						success: false,
-						error: 'Error adding wave phase: ' + (phaseError.message || 'Unknown error')
+						error: 'Error adding wave phase: ' + (phaseError.message || 'Unknown error'),
 					};
 				}
 			}
@@ -202,7 +202,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 			setIsLoading(false);
 			return {
 				success: false,
-				error: 'Error adding phase: ' + (error.message || 'Unknown error')
+				error: 'Error adding phase: ' + (error.message || 'Unknown error'),
 			};
 		}
 
@@ -215,7 +215,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 		phaseId: string,
 		parsedData: ParsedSetData,
 		calculatedWeight: number,
-		weightRange?: { min: number; max: number }
+		weightRange?: { min: number; max: number },
 	): Promise<{ success: boolean; error?: string }> => {
 		if (!supabase || !exerciseId) {
 			return { success: false, error: 'Database not available' };
@@ -227,7 +227,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 		const updateData = buildPhaseData(exerciseIdStr, parsedData, calculatedWeight, weightRange, true);
 
 		// Remove exercise_id from update data as it shouldn't be updated
-		const { exercise_id, ...dataWithoutExerciseId } = updateData;
+		const { ...dataWithoutExerciseId } = updateData;
 
 		const { error } = await supabase
 			.from('exercise_phases')

@@ -22,7 +22,7 @@ export function parsePercentageRange(cleanInput: string, restTimeSeconds?: numbe
 	if (minPercentage <= 0 || minPercentage > 100 || maxPercentage <= 0 || maxPercentage > 100) {
 		return {
 			matched: true,
-			data: invalidResult('Percentage must be between 0 and 100')
+			data: invalidResult('Percentage must be between 0 and 100'),
 		};
 	}
 
@@ -30,7 +30,7 @@ export function parsePercentageRange(cleanInput: string, restTimeSeconds?: numbe
 	if (minPercentage > maxPercentage) {
 		return {
 			matched: true,
-			data: invalidResult('Minimum percentage must be less than or equal to maximum percentage')
+			data: invalidResult('Minimum percentage must be less than or equal to maximum percentage'),
 		};
 	}
 
@@ -43,8 +43,8 @@ export function parsePercentageRange(cleanInput: string, restTimeSeconds?: numbe
 			weightMinPercentage: minPercentage,
 			weightMaxPercentage: maxPercentage,
 			needsRmLookup: true,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }
 
@@ -69,7 +69,7 @@ export function parseSimplePercentage(cleanInput: string, restTimeSeconds?: numb
 	if (value <= 0 || value > 100) {
 		return {
 			matched: true,
-			data: invalidResult('Percentage must be between 0 and 100')
+			data: invalidResult('Percentage must be between 0 and 100'),
 		};
 	}
 
@@ -81,7 +81,7 @@ export function parseSimplePercentage(cleanInput: string, restTimeSeconds?: numb
 			weight: 0, // Will be calculated after RM lookup
 			weightPercentage: value,
 			needsRmLookup: true,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }

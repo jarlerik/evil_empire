@@ -46,7 +46,7 @@ export default function StartWorkout() {
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
@@ -59,7 +59,7 @@ export default function StartWorkout() {
 	};
 
 	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) return;
+		if (!supabase) {return;}
 
 		const phasesMap: Record<string, ExercisePhase[]> = {};
 
@@ -122,7 +122,7 @@ export default function StartWorkout() {
 	useEffect(() => {
 		const loadSound = async () => {
 			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav')
+				require('../assets/sounds/beep.wav'),
 			);
 			beepSound.current = sound;
 		};
@@ -176,7 +176,7 @@ export default function StartWorkout() {
 						duration: 500,
 						useNativeDriver: true,
 					}),
-				])
+				]),
 			);
 			blinkAnimation.start();
 			return () => blinkAnimation.stop();
@@ -188,7 +188,8 @@ export default function StartWorkout() {
 	useFocusEffect(
 		useCallback(() => {
 			fetchExercises();
-		}, [workoutId])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [workoutId]),
 	);
 
 	const handleBackPress = () => {
@@ -201,17 +202,17 @@ export default function StartWorkout() {
 				[
 					{ text: 'Cancel', style: 'cancel' },
 					{ text: 'Abort', style: 'destructive', onPress: () => router.back() },
-				]
+				],
 			);
 		}
 	};
 
 	const handleStartWorkout = () => {
-		if (exercises.length === 0) return;
+		if (exercises.length === 0) {return;}
 		LayoutAnimation.configureNext(LayoutAnimation.create(
 			300,
 			LayoutAnimation.Types.easeInEaseOut,
-			LayoutAnimation.Properties.opacity
+			LayoutAnimation.Properties.opacity,
 		));
 		setWorkoutState('work');
 		setCurrentExerciseIndex(0);
@@ -221,7 +222,7 @@ export default function StartWorkout() {
 
 	const rest = () => {
 		const phase = getCurrentExercisePhase();
-		if (!phase) return;
+		if (!phase) {return;}
 
 		if (isLastSet()) {
 			setWorkoutState('exercise_done');
@@ -358,7 +359,7 @@ export default function StartWorkout() {
 	};
 
 	const handleSaveExecution = async (executionData: ExecutionLogData) => {
-		if (!supabase || !workoutId) return;
+		if (!supabase || !workoutId) {return;}
 
 		for (const phaseData of executionData.phases) {
 			const { parsed } = phaseData;
@@ -407,7 +408,7 @@ export default function StartWorkout() {
 						ref={scrollViewRef}
 						style={[
 							styles.exercisesContainer,
-							workoutState === 'idle' && styles.exercisesContainerExpanded
+							workoutState === 'idle' && styles.exercisesContainerExpanded,
 						]}
 						contentContainerStyle={styles.exercisesContent}
 						keyboardShouldPersistTaps="handled"

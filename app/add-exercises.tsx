@@ -21,10 +21,9 @@ export default function AddExercises() {
 	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 	const [isLoading, setIsLoading] = useState(false);
-	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
@@ -38,33 +37,34 @@ export default function AddExercises() {
 	};
 
 	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) return;
-		
+		if (!supabase) {return;}
+
 		const phasesMap: Record<string, ExercisePhase[]> = {};
-		
+
 		for (const exercise of exerciseList) {
 			const { data, error } = await supabase
 				.from('exercise_phases')
 				.select('*')
 				.eq('exercise_id', exercise.id)
 				.order('created_at', { ascending: true });
-			
+
 			if (!error && data) {
 				phasesMap[exercise.id] = data;
 			}
 		}
-		
+
 		setExercisePhases(phasesMap);
 	};
 
 	useFocusEffect(
 		useCallback(() => {
 			fetchExercises();
-		}, [workoutId])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [workoutId]),
 	);
 
 	const handleAddExercise = async () => {
-		if (!exerciseName.trim() || !workoutId || !supabase) return;
+		if (!exerciseName.trim() || !workoutId || !supabase) {return;}
 		setIsLoading(true);
 
 		const { data, error } = await supabase
@@ -80,33 +80,15 @@ export default function AddExercises() {
 			// Navigate to edit-exercise with the new exercise
 			router.push({
 				pathname: '/edit-exercise',
-				params: { exerciseId: data.id, exerciseName: createdExerciseName }
+				params: { exerciseId: data.id, exerciseName: createdExerciseName },
 			});
 		} else {
 			setIsLoading(false);
 		}
 	};
 
-	const handleDeleteExercise = async (id: string) => {
-		if (!supabase) return;
-		setDeletingId(id);
-		await supabase.from('exercises').delete().eq('id', id);
-		setDeletingId(null);
-		// Refetch exercises and phases
-		if (!workoutId) return;
-		const { data, error } = await supabase
-			.from('exercises')
-			.select('*')
-			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: true });
-		if (!error && data) {
-			setExercises(data);
-			await fetchExercisePhases(data);
-		}
-	};
-
 	const handleDeleteWorkout = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { error } = await supabase
 			.from('workouts')
 			.delete()
@@ -132,7 +114,7 @@ export default function AddExercises() {
 							<Text style={styles.backButtonText}>←</Text>
 						</Pressable>
 						<Text style={styles.title}>{workoutName}</Text>
-						<Pressable 
+						<Pressable
 							onPress={handleDeleteWorkout}
 							style={styles.deleteWorkoutButton}
 						>

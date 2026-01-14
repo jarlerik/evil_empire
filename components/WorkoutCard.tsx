@@ -29,7 +29,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart }: WorkoutCard
 		<View style={styles.workoutCard}>
 			<View style={[
 				styles.workoutCardHeader,
-				exercises.length > 0 && styles.workoutCardHeaderWithExercises
+				exercises.length > 0 && styles.workoutCardHeaderWithExercises,
 			]}>
 				<View style={styles.workoutNameContainer}>
 					<Text style={styles.workoutName}>{workout.name}</Text>

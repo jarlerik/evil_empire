@@ -51,6 +51,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 			try {
 				circuitExercises = JSON.parse(phase.circuit_exercises);
 			} catch (e) {
+				console.error('Error parsing circuit exercises:', e);
 				// If parsing fails, return a fallback
 				return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`, phase.rest_time_seconds);
 			}

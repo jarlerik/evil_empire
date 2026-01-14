@@ -35,7 +35,7 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 		if (value <= 0 || value > 100) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100')
+				data: invalidResult('Percentage must be between 0 and 100'),
 			};
 		}
 
@@ -48,8 +48,8 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 				weightPercentage: value,
 				needsRmLookup: true,
 				compoundReps: repsParts,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	} else if (unit === 'rir') {
 		// RIR format for compound exercises
@@ -63,8 +63,8 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 				compoundReps: repsParts,
 				rirMin: value,
 				rirMax: value,
-				...(restTimeSeconds !== undefined && { restTimeSeconds })
-			})
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
 		};
 	}
 
@@ -96,7 +96,7 @@ export function parseCompoundWeight(cleanInput: string, restTimeSeconds?: number
 	if (repsParts.length < 2) {
 		return {
 			matched: true,
-			data: invalidResult('Invalid compound format. Use "sets x a + b + ... @weight"')
+			data: invalidResult('Invalid compound format. Use "sets x a + b + ... @weight"'),
 		};
 	}
 
@@ -109,7 +109,7 @@ export function parseCompoundWeight(cleanInput: string, restTimeSeconds?: number
 			reps: totalReps, // Total reps for display
 			weight,
 			compoundReps: repsParts,
-			...(restTimeSeconds !== undefined && { restTimeSeconds })
-		})
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
 	};
 }

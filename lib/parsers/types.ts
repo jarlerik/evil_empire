@@ -38,7 +38,7 @@ export function invalidResult(errorMessage: string): ParsedSetData {
 		reps: 0,
 		weight: 0,
 		isValid: false,
-		errorMessage
+		errorMessage,
 	};
 }
 
@@ -48,6 +48,6 @@ export function invalidResult(errorMessage: string): ParsedSetData {
 export function validResult(data: Omit<ParsedSetData, 'isValid'>): ParsedSetData {
 	return {
 		...data,
-		isValid: true
+		isValid: true,
 	};
 }

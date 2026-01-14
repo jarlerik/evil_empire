@@ -30,4 +30,4 @@ if (supabase) {
       supabase.auth.stopAutoRefresh();
     }
   });
-} 
+}
