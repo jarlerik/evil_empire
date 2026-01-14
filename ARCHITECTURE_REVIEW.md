@@ -90,22 +90,22 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 
 ## 3. Test Coverage Gaps
 
-### 🔴 Missing Hook Tests
+### 🟢 Hook Tests (COMPLETED)
 
-**Issue:** No tests for custom hooks
+**Status:** ✅ Completed - All custom hooks have comprehensive tests
 
-- [ ] Create `hooks/__tests__/useExercisePhases.test.ts`
-- [ ] Create `hooks/__tests__/useWorkoutState.test.ts`
-- [ ] Create `hooks/__tests__/useWorkoutTimer.test.ts`
-- [ ] Create `hooks/__tests__/useRmLookup.test.ts`
+- [x] Create `hooks/__tests__/useExercisePhases.test.ts` (18 tests)
+- [x] Create `hooks/__tests__/useWorkoutState.test.ts` (20 tests)
+- [x] Create `hooks/__tests__/useWorkoutTimer.test.ts` (14 tests)
+- [x] Create `hooks/__tests__/useRmLookup.test.ts` (11 tests)
 
-### 🔴 Missing Component Tests
+### 🟢 Component Tests (COMPLETED)
 
-**Issue:** Only `ThemedText` has tests (9 lines)
+**Status:** ✅ Completed - Key components have comprehensive tests
 
-- [ ] Create `components/__tests__/RmFormModal.test.tsx`
-- [ ] Create `components/__tests__/EditExecutionModal.test.tsx`
-- [ ] Create `components/__tests__/Button.test.tsx`
+- [x] Create `components/__tests__/RmFormModal.test.tsx` (22 tests)
+- [x] Create `components/__tests__/EditExecutionModal.test.tsx` (20 tests)
+- [x] Create `components/__tests__/Button.test.tsx` (7 tests)
 
 ### 🔴 Missing Context Tests
 
@@ -165,9 +165,10 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 | 1 | Split `parseSetInput.ts` | High | Medium | [x] |
 | 2 | Use `RmFormModal` in repetition-maximums | Medium | Low | [x] |
 | 3 | Extract `useAddExercisePhase` hook | High | Medium | [x] |
-| 4 | Add hook tests | High | Medium | [ ] |
-| 5 | Split parser tests | Medium | Low | [ ] |
-| 6 | Extract common styles | Low | Low | [ ] |
+| 4 | Add hook tests | High | Medium | [x] |
+| 5 | Add component tests | High | Medium | [x] |
+| 6 | Split parser tests | Medium | Low | [ ] |
+| 7 | Extract common styles | Low | Low | [ ] |
 
 ---
 
@@ -175,9 +176,9 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 
 | Module | Current | Target | Status |
 |--------|---------|--------|--------|
-| `lib/parseSetInput.ts` | Good | Split tests | [ ] |
-| `hooks/*` | None | Full coverage | [ ] |
-| `components/*` | Minimal | Full coverage | [ ] |
+| `lib/parseSetInput.ts` | Good (133 tests) | Split tests | [ ] |
+| `hooks/*` | Good (63 tests) | Full coverage | [x] |
+| `components/*` | Good (49 tests) | Full coverage | [x] |
 | `contexts/*` | None | Full coverage | [ ] |
 | `app/*` screens | None | Integration tests | [ ] |
 
@@ -208,5 +209,5 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
   - [x] Extract `WorkoutExerciseItem` and `WorkoutTimerDisplay` components (start-workout.tsx: 695→508 lines)
   - [x] Extract `WorkoutCard` and `WeekDaySelector` components (index.tsx: 472→321 lines)
   - [x] Use shared `formatExercisePhase` (add-exercises.tsx: 365→272 lines)
-- [ ] Add comprehensive test coverage
+- [x] Add comprehensive test coverage (245 tests total: hooks 63, components 49, parsers 133)
 - [ ] Extract shared styles and types
