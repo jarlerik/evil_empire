@@ -5,9 +5,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, startOfWeek, format, getISOWeek, isSameWeek, subDays } from 'date-fns';
+import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
+import { WorkoutCard } from '../components/WorkoutCard';
+import { WeekDaySelector } from '../components/WeekDaySelector';
 
 interface Workout {
 	id: string;
@@ -47,7 +49,6 @@ export default function Index() {
 	};
 
 	const nextWeek = () => {
-		
 		const nextStart = addDays(selectedWeekStart, 7);
 		setSelectedWeekStart(nextStart);
 		setSelectedDate(nextStart);
@@ -71,7 +72,6 @@ export default function Index() {
 					.order('created_at', { ascending: false });
 				if (!error && data) {
 					setWorkouts(data);
-					// Fetch exercises for each workout
 					await fetchExercises(data);
 				}
 			};
@@ -81,21 +81,21 @@ export default function Index() {
 
 	const fetchExercises = async (workoutList: Workout[]) => {
 		if (!supabase) return;
-		
+
 		const exercisesMap: Record<string, Exercise[]> = {};
-		
+
 		for (const workout of workoutList) {
 			const { data, error } = await supabase
 				.from('exercises')
 				.select('*')
 				.eq('workout_id', workout.id)
 				.order('created_at', { ascending: true });
-			
+
 			if (!error && data) {
 				exercisesMap[workout.id] = data;
 			}
 		}
-		
+
 		setExercises(exercisesMap);
 	};
 
@@ -120,7 +120,6 @@ export default function Index() {
 			return;
 		}
 		setWorkoutName('');
-		// Refetch workouts and exercises after creation
 		const { data, error } = await supabase
 			.from('workouts')
 			.select('*')
@@ -139,6 +138,8 @@ export default function Index() {
 			</View>
 		);
 	}
+
+	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
 
 	return (
 		<KeyboardAvoidingView
@@ -161,103 +162,40 @@ export default function Index() {
 						{format(selectedDate, 'LLLL yyyy')}
 					</Text>
 
-					{/* Week Selector with Navigation Arrows */}
 					<View style={styles.weekSelectorContainer}>
 						<View style={styles.pickerContainer}>
-							<Pressable 
-								style={[
-									styles.arrowButton,
-								]}
-								onPress={prevWeek}
-							>
-								<Text style={[
-									styles.arrowText,
-								]}>‹</Text>
+							<Pressable style={styles.arrowButton} onPress={prevWeek}>
+								<Text style={styles.arrowText}>‹</Text>
 							</Pressable>
-							
-							<Text style={styles.pickerText}>
-								{getCurrentWeek()}
-							</Text>
-							
-							<Pressable 
-								style={styles.arrowButton}
-								onPress={nextWeek}
-							>
+							<Text style={styles.pickerText}>{getCurrentWeek()}</Text>
+							<Pressable style={styles.arrowButton} onPress={nextWeek}>
 								<Text style={styles.arrowText}>›</Text>
 							</Pressable>
 						</View>
 					</View>
 
-					{/* Week Day Selector */}
-					<View style={styles.daySelector}>
-						{Array.from({ length: 7 }).map((_, i) => {
-							const day = addDays(selectedWeekStart, i);
-							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+					<WeekDaySelector
+						weekStart={selectedWeekStart}
+						selectedDate={selectedDate}
+						onSelectDate={setSelectedDate}
+					/>
 
-							return (
-								<Pressable
-									key={i}
-									onPress={() => setSelectedDate(day)}
-									style={styles.dayPressable}
-								>
-									<Text style={styles.dayLabel}>
-										{format(day, 'EEE').toUpperCase()}
-									</Text>
-									<View
-										style={[
-											styles.dayCircle,
-											isSelected ? styles.dayCircleSelected : styles.dayCircleUnselected
-										]}
-									>
-										<Text
-											style={[
-												styles.dayNumber,
-												isSelected ? styles.dayNumberSelected : styles.dayNumberUnselected
-											]}
-										>
-											{format(day, 'd')}
-										</Text>
-									</View>
-								</Pressable>
-							);
-						})}
-					</View>
-					{/* List of created workouts */}
 					<View style={styles.workoutsSection}>
 						<Text style={styles.workoutDateTitle}>
 							Workout for {format(selectedDate, 'EEEE, LLLL d')}
 						</Text>
-						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
+						{filteredWorkouts.length === 0 ? (
 							<Text style={styles.noWorkoutText}>No workout yet.</Text>
 						) : (
-							workouts
-								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
-								.map((w) => (
-									<View key={w.id} style={styles.workoutCard}>
-										<View style={[styles.workoutCardHeader, exercises[w.id] && exercises[w.id].length > 0 && styles.workoutCardHeaderWithExercises]}>
-											<View style={styles.workoutNameContainer}>
-												<Text style={styles.workoutName}>{w.name}</Text>
-											</View>
-											<View style={styles.workoutActions}>
-												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={styles.actionButton}>
-													<Ionicons name="pencil" size={22} color="#fff" />
-												</Pressable>
-												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={styles.actionButton}>
-													<Ionicons name="play" size={22} color="#fff" />
-												</Pressable>
-											</View>
-										</View>
-										{exercises[w.id] && exercises[w.id].length > 0 && (
-											<View style={styles.exercisesList}>
-												{exercises[w.id].map((exercise, index) => (
-													<Text key={exercise.id} style={styles.exerciseText}>
-														{index + 1}. {exercise.name}
-													</Text>
-												))}
-											</View>
-										)}
-									</View>
-								))
+							filteredWorkouts.map((w) => (
+								<WorkoutCard
+									key={w.id}
+									workout={w}
+									exercises={exercises[w.id] || []}
+									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
+									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
+								/>
+							))
 						)}
 					</View>
 					<View style={styles.bottomSection}>
@@ -305,12 +243,6 @@ const styles = StyleSheet.create({
 		color: '#c65d24',
 		textTransform: 'uppercase',
 	},
-	subtitle: {
-		fontSize: 16,
-		color: '#666',
-		marginTop: 8,
-		marginBottom: 40,
-	},
 	input: {
 		backgroundColor: '#262626',
 		color: '#fff',
@@ -349,10 +281,6 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	pickerArrow: {
-		color: '#fff',
-		fontSize: 12,
-	},
 	arrowButton: {
 		padding: 4,
 		backgroundColor: 'transparent',
@@ -371,48 +299,6 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	daySelector: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		marginBottom: 24,
-	},
-	dayPressable: {
-		alignItems: 'center',
-		flex: 1,
-		paddingVertical: 4,
-	},
-	dayLabel: {
-		fontWeight: 'bold',
-		fontSize: 13,
-		letterSpacing: 1,
-		textAlign: 'center',
-		color: '#fff',
-	},
-	dayCircle: {
-		borderRadius: 20,
-		width: 40,
-		height: 40,
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginTop: 2,
-	},
-	dayCircleSelected: {
-		backgroundColor: '#fff',
-	},
-	dayCircleUnselected: {
-		backgroundColor: 'rgba(26, 26, 26, 1.00)',
-	},
-	dayNumber: {
-		fontWeight: 'bold',
-		fontSize: 20,
-		textAlign: 'center',
-	},
-	dayNumberSelected: {
-		color: '#000',
-	},
-	dayNumberUnselected: {
-		color: '#fff',
-	},
 	workoutsSection: {
 		marginTop: 32,
 	},
@@ -424,43 +310,6 @@ const styles = StyleSheet.create({
 	},
 	noWorkoutText: {
 		color: '#666',
-	},
-	workoutCard: {
-		backgroundColor: '#262626',
-		padding: 16,
-		borderRadius: 8,
-		marginBottom: 12,
-	},
-	workoutCardHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	workoutCardHeaderWithExercises: {
-		marginBottom: 8,
-	},
-	workoutNameContainer: {
-		flex: 1,
-	},
-	workoutName: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: 'bold',
-	},
-	workoutActions: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginLeft: 'auto',
-	},
-	actionButton: {
-		padding: 8,
-	},
-	exercisesList: {
-		marginTop: 8,
-	},
-	exerciseText: {
-		color: '#C65D24',
-		fontSize: 14,
-		marginTop: 2,
 	},
 	bottomSection: {
 		marginTop: 'auto',

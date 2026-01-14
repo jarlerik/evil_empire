@@ -1,11 +1,12 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Alert } from 'react-native';
-import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
+import { RmFormModal, RmFormData } from '../components/RmFormModal';
 
 interface RepetitionMaximum {
 	id: string;
@@ -24,10 +25,6 @@ export default function RepetitionMaximums() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isModalVisible, setIsModalVisible] = useState(false);
 	const [editingRm, setEditingRm] = useState<RepetitionMaximum | null>(null);
-	const [exerciseName, setExerciseName] = useState('');
-	const [reps, setReps] = useState('');
-	const [weight, setWeight] = useState('');
-	const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	useFocusEffect(
@@ -47,68 +44,39 @@ export default function RepetitionMaximums() {
 			.order('exercise_name', { ascending: true })
 			.order('reps', { ascending: true })
 			.order('date', { ascending: false });
-		
+
 		if (!error && data) {
 			setRms(data);
 		}
 	};
 
 	const handleOpenModal = (rm?: RepetitionMaximum) => {
-		if (rm) {
-			setEditingRm(rm);
-			setExerciseName(rm.exercise_name);
-			setReps(rm.reps.toString());
-			setWeight(rm.weight.toString());
-			setDate(rm.date);
-		} else {
-			setEditingRm(null);
-			setExerciseName('');
-			setReps('');
-			setWeight('');
-			setDate(format(new Date(), 'yyyy-MM-dd'));
-		}
+		setEditingRm(rm || null);
 		setIsModalVisible(true);
 	};
 
 	const handleCloseModal = () => {
 		setIsModalVisible(false);
 		setEditingRm(null);
-		setExerciseName('');
-		setReps('');
-		setWeight('');
-		setDate(format(new Date(), 'yyyy-MM-dd'));
 	};
 
-	const handleSave = async () => {
-		if (!exerciseName.trim() || !reps || !weight || !date || !user || !supabase) return;
-		
-		const repsNum = parseInt(reps);
-		const weightNum = parseFloat(weight);
-		
-		if (isNaN(repsNum) || repsNum <= 0) {
-			Alert.alert('Error', 'Reps must be a positive number');
-			return;
-		}
-
-		if (isNaN(weightNum) || weightNum <= 0) {
-			Alert.alert('Error', 'Weight must be a positive number');
-			return;
-		}
+	const handleSave = async (data: RmFormData) => {
+		if (!user || !supabase) return;
 
 		setIsLoading(true);
-		
+
 		if (editingRm) {
 			// Update existing RM
 			const { error } = await supabase
 				.from('repetition_maximums')
 				.update({
-					exercise_name: exerciseName.trim(),
-					reps: repsNum,
-					weight: weightNum,
-					date: date
+					exercise_name: data.exerciseName,
+					reps: data.reps,
+					weight: data.weight,
+					date: data.date
 				})
 				.eq('id', editingRm.id);
-			
+
 			if (error) {
 				Alert.alert('Error', 'Error updating repetition maximum: ' + (error.message || 'Unknown error'));
 			} else {
@@ -121,12 +89,12 @@ export default function RepetitionMaximums() {
 				.from('repetition_maximums')
 				.insert([{
 					user_id: user.id,
-					exercise_name: exerciseName.trim(),
-					reps: repsNum,
-					weight: weightNum,
-					date: date
+					exercise_name: data.exerciseName,
+					reps: data.reps,
+					weight: data.weight,
+					date: data.date
 				}]);
-			
+
 			if (error) {
 				Alert.alert('Error', 'Error creating repetition maximum: ' + (error.message || 'Unknown error'));
 			} else {
@@ -134,7 +102,7 @@ export default function RepetitionMaximums() {
 				fetchRms();
 			}
 		}
-		
+
 		setIsLoading(false);
 	};
 
@@ -145,7 +113,7 @@ export default function RepetitionMaximums() {
 			.from('repetition_maximums')
 			.delete()
 			.eq('id', id);
-		
+
 		if (!error) {
 			fetchRms();
 		} else {
@@ -161,14 +129,14 @@ export default function RepetitionMaximums() {
 		}
 		const exerciseGroup = acc[rm.exercise_name];
 		const repsKey = rm.reps.toString();
-		
+
 		// If no entry for this rep count, or if this weight is higher, or if same weight but more recent, use this entry
-		if (!exerciseGroup[repsKey] || 
+		if (!exerciseGroup[repsKey] ||
 			rm.weight > exerciseGroup[repsKey].weight ||
 			(rm.weight === exerciseGroup[repsKey].weight && new Date(rm.date) > new Date(exerciseGroup[repsKey].date))) {
 			exerciseGroup[repsKey] = rm;
 		}
-		
+
 		return acc;
 	}, {} as Record<string, Record<string, RepetitionMaximum>>);
 
@@ -195,8 +163,8 @@ export default function RepetitionMaximums() {
 						<Text style={styles.title}>Max reps</Text>
 					</View>
 
-					<Pressable 
-						style={styles.addButton} 
+					<Pressable
+						style={styles.addButton}
 						onPress={() => handleOpenModal()}
 					>
 						<Ionicons name="add" size={24} color="#fff" />
@@ -224,13 +192,13 @@ export default function RepetitionMaximums() {
 												</Text>
 											</View>
 											<View style={styles.rmActions}>
-												<Pressable 
+												<Pressable
 													onPress={() => handleOpenModal(rm)}
 													style={styles.editButton}
 												>
 													<Ionicons name="pencil-outline" size={20} color="#fff" />
 												</Pressable>
-												<Pressable 
+												<Pressable
 													onPress={() => handleDelete(rm.id)}
 													style={styles.deleteButton}
 													disabled={deletingId === rm.id}
@@ -247,79 +215,13 @@ export default function RepetitionMaximums() {
 				</View>
 			</ScrollView>
 
-			<Modal
+			<RmFormModal
 				visible={isModalVisible}
-				transparent={true}
-				animationType="slide"
-				onRequestClose={handleCloseModal}
-			>
-				<KeyboardAvoidingView
-					style={styles.modalContainer}
-					behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-				>
-					<View style={styles.modalContent}>
-						<View style={styles.modalHeader}>
-							<Text style={styles.modalTitle}>
-								{editingRm ? 'Edit RM' : 'Add RM'}
-							</Text>
-							<Pressable onPress={handleCloseModal} style={styles.closeButton}>
-								<Text style={styles.closeButtonText}>×</Text>
-							</Pressable>
-						</View>
-
-						<View style={styles.form}>
-							<Text style={styles.label}>Exercise Name</Text>
-							<TextInput
-								style={styles.input}
-								value={exerciseName}
-								onChangeText={setExerciseName}
-								placeholder="e.g., Squat"
-								placeholderTextColor="#666"
-								autoCapitalize="words"
-							/>
-
-							<Text style={styles.label}>Reps</Text>
-							<TextInput
-								style={styles.input}
-								value={reps}
-								onChangeText={setReps}
-								placeholder="e.g., 1"
-								placeholderTextColor="#666"
-								keyboardType="numeric"
-							/>
-
-							<Text style={styles.label}>Weight (kg)</Text>
-							<TextInput
-								style={styles.input}
-								value={weight}
-								onChangeText={setWeight}
-								placeholder="e.g., 150"
-								placeholderTextColor="#666"
-								keyboardType="decimal-pad"
-							/>
-
-							<Text style={styles.label}>Date</Text>
-							<TextInput
-								style={styles.input}
-								value={date}
-								onChangeText={setDate}
-								placeholder="yyyy-MM-dd"
-								placeholderTextColor="#666"
-							/>
-
-							<Pressable 
-								style={[styles.saveButton, isLoading && styles.saveButtonDisabled]} 
-								onPress={handleSave}
-								disabled={isLoading}
-							>
-								<Text style={styles.saveButtonText}>
-									{isLoading ? 'Saving...' : (editingRm ? 'Update' : 'Add')}
-								</Text>
-							</Pressable>
-						</View>
-					</View>
-				</KeyboardAvoidingView>
-			</Modal>
+				onClose={handleCloseModal}
+				onSave={handleSave}
+				editingRm={editingRm}
+				isLoading={isLoading}
+			/>
 		</KeyboardAvoidingView>
 	);
 }
@@ -429,67 +331,4 @@ const styles = StyleSheet.create({
 		color: '#666',
 		fontSize: 24,
 	},
-	modalContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		backgroundColor: 'rgba(0, 0, 0, 0.8)',
-	},
-	modalContent: {
-		backgroundColor: '#1a1a1a',
-		borderRadius: 12,
-		width: '90%',
-		maxWidth: 400,
-		padding: 20,
-	},
-	modalHeader: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginBottom: 20,
-	},
-	modalTitle: {
-		fontSize: 24,
-		fontWeight: 'bold',
-		color: '#fff',
-	},
-	closeButton: {
-		padding: 4,
-	},
-	closeButtonText: {
-		color: '#fff',
-		fontSize: 28,
-	},
-	form: {
-		gap: 16,
-	},
-	label: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-		marginBottom: 4,
-	},
-	input: {
-		backgroundColor: '#222',
-		color: '#fff',
-		borderRadius: 8,
-		padding: 15,
-		fontSize: 16,
-	},
-	saveButton: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-		marginTop: 10,
-	},
-	saveButtonDisabled: {
-		opacity: 0.5,
-	},
-	saveButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
 });
-
