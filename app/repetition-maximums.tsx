@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
+import { commonStyles } from '../styles/common';
 
 interface RepetitionMaximum {
 	id: string;
@@ -156,12 +157,12 @@ export default function RepetitionMaximums() {
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton}>
-							<Text style={styles.backButtonText}>←</Text>
+				<View style={commonStyles.container}>
+					<View style={commonStyles.headerRow}>
+						<Pressable onPress={() => router.back()} style={commonStyles.backButton}>
+							<Text style={commonStyles.backButtonText}>←</Text>
 						</Pressable>
-						<Text style={styles.title}>Max reps</Text>
+						<Text style={commonStyles.titleFlex}>Max reps</Text>
 					</View>
 
 					<Pressable
@@ -228,31 +229,6 @@ export default function RepetitionMaximums() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
-	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 20,
-		marginBottom: 30,
-	},
-	backButton: {
-		marginRight: 12,
-	},
-	backButtonText: {
-		color: '#fff',
-		fontSize: 24,
-	},
-	title: {
-		color: '#c65d24',
-		textTransform: 'uppercase',
-		fontSize: 32,
-		fontWeight: 'bold',
-		flex: 1,
-	},
 	addButton: {
 		flexDirection: 'row',
 		alignItems: 'center',

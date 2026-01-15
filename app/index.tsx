@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WeekDaySelector } from '../components/WeekDaySelector';
+import { commonStyles } from '../styles/common';
 
 interface Workout {
 	id: string;
@@ -134,8 +135,8 @@ export default function Index() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={styles.container}>
-				<Text style={styles.title}>Loading...</Text>
+			<View style={commonStyles.container}>
+				<Text style={commonStyles.title}>Loading...</Text>
 			</View>
 		);
 	}
@@ -151,9 +152,9 @@ export default function Index() {
 				contentContainerStyle={styles.flex}
 				keyboardShouldPersistTaps="handled"
 			>
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Text style={styles.title}>Workouts</Text>
+				<View style={commonStyles.container}>
+					<View style={[commonStyles.headerRow, styles.headerRow]}>
+						<Text style={commonStyles.title}>Workouts</Text>
 						<Pressable onPress={() => router.push('/settings')} style={styles.settingsButton}>
 							<Ionicons name="settings-outline" size={24} color="#fff" />
 						</Pressable>
@@ -223,26 +224,12 @@ const styles = StyleSheet.create({
 	flex: {
 		flex: 1,
 	},
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
 	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
 		justifyContent: 'space-between',
-		marginTop: 20,
 		marginBottom: 16,
 	},
 	settingsButton: {
 		padding: 8,
-	},
-	title: {
-		fontSize: 32,
-		fontWeight: 'bold',
-		color: '#c65d24',
-		textTransform: 'uppercase',
 	},
 	input: {
 		backgroundColor: '#262626',

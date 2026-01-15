@@ -133,18 +133,17 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 
 ## 4. Pattern Consistency Issues
 
-### 🟡 Duplicated Styles
+### 🟢 Duplicated Styles (COMPLETED)
 
-**Issue:** Common styles (container, headerRow, backButton, etc.) duplicated across screens
-**Recommendation:** Extract to shared styles module
+**Status:** ✅ Completed - Extracted common styles to `styles/common.ts`
 
-- [ ] Create `styles/common.ts` with shared styles
-- [ ] Update `app/start-workout.tsx` to use shared styles
-- [ ] Update `app/edit-exercise.tsx` to use shared styles
-- [ ] Update `app/repetition-maximums.tsx` to use shared styles
-- [ ] Update `app/add-exercises.tsx` to use shared styles
-- [ ] Update `app/index.tsx` to use shared styles
-- [ ] Update `app/settings.tsx` to use shared styles
+- [x] Create `styles/common.ts` with shared styles (colors, container, headerRow, backButton, title, etc.)
+- [x] Update `app/start-workout.tsx` to use shared styles
+- [x] Update `app/edit-exercise.tsx` to use shared styles
+- [x] Update `app/repetition-maximums.tsx` to use shared styles
+- [x] Update `app/add-exercises.tsx` to use shared styles
+- [x] Update `app/index.tsx` to use shared styles
+- [x] Update `app/settings.tsx` to use shared styles
 
 ### 🟢 Interface Location
 
@@ -169,7 +168,7 @@ Screen component extraction is now complete. All critical files (>400 lines) hav
 | 4 | Add hook tests | High | Medium | [x] |
 | 5 | Add component tests | High | Medium | [x] |
 | 6 | Split parser tests | Medium | Low | [x] |
-| 7 | Extract common styles | Low | Low | [ ] |
+| 7 | Extract common styles | Low | Low | [x] |
 
 ---
 

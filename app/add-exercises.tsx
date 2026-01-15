@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { commonStyles } from '../styles/common';
 
 interface ExerciseDB {
 	id: string;
@@ -108,12 +109,12 @@ export default function AddExercises() {
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton}>
-							<Text style={styles.backButtonText}>←</Text>
+				<View style={commonStyles.container}>
+					<View style={[commonStyles.headerRow, styles.headerRow]}>
+						<Pressable onPress={() => router.back()} style={commonStyles.backButton}>
+							<Text style={commonStyles.backButtonText}>←</Text>
 						</Pressable>
-						<Text style={styles.title}>{workoutName}</Text>
+						<Text style={commonStyles.titleFlex}>{workoutName}</Text>
 						<Pressable
 							onPress={handleDeleteWorkout}
 							style={styles.deleteWorkoutButton}
@@ -166,30 +167,8 @@ export default function AddExercises() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
 	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 20,
 		marginBottom: 40,
-	},
-	backButton: {
-		marginRight: 12,
-	},
-	backButtonText: {
-		color: '#fff',
-		fontSize: 24,
-	},
-	title: {
-		fontSize: 32,
-		fontWeight: 'bold',
-		color: '#c65d24',
-		textTransform: 'uppercase',
-		flex: 1,
 	},
 	input: {
 		backgroundColor: '#262626',

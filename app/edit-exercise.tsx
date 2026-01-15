@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { useAddExercisePhase } from '../hooks/useAddExercisePhase';
+import { commonStyles } from '../styles/common';
 
 export default function EditExercise() {
 	const params = useLocalSearchParams();
@@ -129,12 +130,12 @@ export default function EditExercise() {
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Pressable onPress={handleBackPress} style={styles.backButton}>
-							<Text style={styles.backButtonText}>←</Text>
+				<View style={commonStyles.container}>
+					<View style={[commonStyles.headerRow, styles.headerRow]}>
+						<Pressable onPress={handleBackPress} style={commonStyles.backButton}>
+							<Text style={commonStyles.backButtonText}>←</Text>
 						</Pressable>
-						<Text style={styles.exerciseName}>{exerciseName}</Text>
+						<Text style={commonStyles.titleFlex}>{exerciseName}</Text>
 						<Pressable
 							onPress={() => handleDeleteExercise()}
 							style={styles.deleteExerciseButton}
@@ -145,7 +146,7 @@ export default function EditExercise() {
 
 					<View style={styles.setsSection}>
 						<View style={styles.setsHeader}>
-							<Text style={styles.subtitle}>Sets and repetitions</Text>
+							<Text style={commonStyles.subtitle}>Sets and repetitions</Text>
 							<View style={styles.headerButtons}>
 								<Pressable
 									style={styles.inputOptionsButton}
@@ -221,29 +222,8 @@ export default function EditExercise() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
 	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 20,
 		marginBottom: 40,
-	},
-	backButton: {
-		marginRight: 12,
-	},
-	backButtonText: {
-		color: '#fff',
-		fontSize: 24,
-	},
-	subtitle: {
-		fontSize: 18,
-		color: '#fff',
-		marginTop: 20,
-		marginBottom: 10,
 	},
 	setInput: {
 		backgroundColor: '#222',
@@ -319,13 +299,6 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: 'auto',
-	},
-	exerciseName: {
-		color: '#C65D24',
-		textTransform: 'uppercase',
-		fontSize: 32,
-		fontWeight: 'bold',
-		flex: 1,
 	},
 	setsSection: {
 		borderRadius: 8,

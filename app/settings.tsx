@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { Ionicons } from '@expo/vector-icons';
+import { commonStyles } from '../styles/common';
 
 export default function Settings() {
 	const { user, loading: authLoading } = useAuth();
@@ -46,17 +47,17 @@ export default function Settings() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={styles.container}>
-				<Text style={styles.title}>Loading...</Text>
+			<View style={commonStyles.container}>
+				<Text style={commonStyles.title}>Loading...</Text>
 			</View>
 		);
 	}
 
 	return (
 		<Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
-			<View style={styles.container}>
-				<View style={styles.headerRow}>
-					<Text style={styles.title}>Settings</Text>
+			<View style={commonStyles.container}>
+				<View style={[commonStyles.headerRow, styles.headerRow]}>
+					<Text style={commonStyles.title}>Settings</Text>
 					<Pressable onPress={() => router.push('/')} style={styles.homeButton}>
 						<Ionicons name="home-outline" size={24} color="#fff" />
 					</Pressable>
@@ -147,17 +148,9 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
 	settings: {},
 	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
 		justifyContent: 'space-between',
-		marginTop: 20,
 		marginBottom: 16,
 	},
 	homeButton: {
@@ -207,12 +200,6 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: 'auto',
-	},
-	title: {
-		fontSize: 32,
-		fontWeight: 'bold',
-		color: '#c65d24',
-		textTransform: 'uppercase',
 	},
 	sectionTitle: {
 		fontSize: 24,

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert, LayoutAnimation, UIManager } from 'react-native';
+import { commonStyles } from '../styles/common';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -394,12 +395,12 @@ export default function StartWorkout() {
 			style={{ flex: 1 }}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
-			<View style={styles.container}>
-				<View style={styles.headerRow}>
-					<Pressable onPress={handleBackPress} style={styles.backButton}>
-						<Text style={styles.backButtonText}>←</Text>
+			<View style={commonStyles.container}>
+				<View style={[commonStyles.headerRow, styles.headerRow]}>
+					<Pressable onPress={handleBackPress} style={commonStyles.backButton}>
+						<Text style={commonStyles.backButtonText}>←</Text>
 					</Pressable>
-					<Text style={styles.title}>{workoutName}</Text>
+					<Text style={commonStyles.titleFlex}>{workoutName}</Text>
 				</View>
 
 				<View style={styles.mainContent}>
@@ -459,30 +460,8 @@ export default function StartWorkout() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#171717',
-		padding: 20,
-	},
 	headerRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 20,
 		marginBottom: 40,
-	},
-	backButton: {
-		marginRight: 12,
-	},
-	backButtonText: {
-		color: '#fff',
-		fontSize: 24,
-	},
-	title: {
-		fontSize: 32,
-		fontWeight: 'bold',
-		color: '#c65d24',
-		textTransform: 'uppercase',
-		flex: 1,
 	},
 	mainContent: {
 		flex: 1,
