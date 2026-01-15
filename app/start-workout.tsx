@@ -388,7 +388,6 @@ export default function StartWorkout() {
 
 	const currentExercise = currentExerciseIndex >= 0 ? exercises[currentExerciseIndex] : null;
 	const currentPhase = getCurrentExercisePhase();
-	const totalSets = currentExercise ? getTotalSetsForExercise(currentExercise.id) : 0;
 
 	return (
 		<KeyboardAvoidingView
