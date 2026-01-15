@@ -5,30 +5,13 @@ import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
+import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 
 interface ExerciseDB {
 	id: string;
 	name: string;
 	workout_id: string;
 	created_at?: string;
-}
-
-interface ExercisePhase {
-	id: string;
-	exercise_id: string;
-	sets: number;
-	repetitions: number;
-	weight: number;
-	weights?: number[];
-	compound_reps?: number[];
-	exercise_type?: string;
-	notes?: string;
-	target_rm?: number;
-	rir_min?: number;
-	rir_max?: number;
-	circuit_exercises?: Array<{reps: string, name: string}> | string;
-	rest_time_seconds?: number;
-	created_at: string;
 }
 
 export default function AddExercises() {
@@ -38,10 +21,9 @@ export default function AddExercises() {
 	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 	const [isLoading, setIsLoading] = useState(false);
-	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
@@ -55,109 +37,34 @@ export default function AddExercises() {
 	};
 
 	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) return;
-		
+		if (!supabase) {return;}
+
 		const phasesMap: Record<string, ExercisePhase[]> = {};
-		
+
 		for (const exercise of exerciseList) {
 			const { data, error } = await supabase
 				.from('exercise_phases')
 				.select('*')
 				.eq('exercise_id', exercise.id)
 				.order('created_at', { ascending: true });
-			
+
 			if (!error && data) {
 				phasesMap[exercise.id] = data;
 			}
 		}
-		
-		setExercisePhases(phasesMap);
-	};
 
-	const formatExercisePhase = (phase: ExercisePhase) => {
-		// Helper function to append rest time
-		const appendRestTime = (str: string): string => {
-			if (phase.rest_time_seconds !== undefined && phase.rest_time_seconds !== null) {
-				return `${str} ${phase.rest_time_seconds}s`;
-			}
-			return str;
-		};
-		
-		// Handle RM build format
-		if (phase.exercise_type === 'rm_build' && phase.target_rm) {
-			return appendRestTime(`Build to ${phase.target_rm}RM`);
-		}
-		
-		// Handle circuit format
-		if (phase.exercise_type === 'circuit' && phase.circuit_exercises) {
-			let circuitExercises: Array<{reps: string, name: string}> = [];
-			
-			// Handle JSONB string from database
-			if (typeof phase.circuit_exercises === 'string') {
-				try {
-					circuitExercises = JSON.parse(phase.circuit_exercises);
-				} catch (e) {
-					return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`);
-				}
-			} else {
-				circuitExercises = phase.circuit_exercises;
-			}
-			
-			if (circuitExercises.length > 0) {
-				const exercisesStr = circuitExercises.map(ex => {
-					if (ex.reps && ex.name) {
-						return `${ex.reps} ${ex.name}`;
-					} else if (ex.name) {
-						return ex.name;
-					}
-					return '';
-				}).filter(s => s.length > 0).join(', ');
-				
-				return appendRestTime(`${phase.sets}× ${exercisesStr}`);
-			}
-		}
-		
-		// Handle RIR format
-		if (phase.rir_min !== undefined && phase.rir_min !== null) {
-			const rirStr = phase.rir_max && phase.rir_max !== phase.rir_min 
-				? `${phase.rir_min}-${phase.rir_max}RIR`
-				: `${phase.rir_min}RIR`;
-			
-			// If there's a weight, include it
-			if (phase.weight > 0) {
-				const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-				return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}, ${rirStr}`);
-			} else {
-				return appendRestTime(`${phase.sets}×${phase.repetitions}, ${rirStr}`);
-			}
-		}
-		
-		// Handle compound exercises
-		if (phase.compound_reps && phase.compound_reps.length > 0) {
-			const compoundRepsStr = phase.compound_reps.join(' + ');
-			const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-			return appendRestTime(`${phase.sets}×${compoundRepsStr} @ ${weightStr}`);
-		}
-		
-		// Handle multiple weights
-		if (phase.weights && phase.weights.length > 1) {
-			const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
-			return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
-		}
-		
-		// Handle simple format
-		const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
-		return appendRestTime(`${phase.sets}×${phase.repetitions} @ ${weightStr}`);
+		setExercisePhases(phasesMap);
 	};
 
 	useFocusEffect(
 		useCallback(() => {
 			fetchExercises();
-		}, [workoutId])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [workoutId]),
 	);
 
 	const handleAddExercise = async () => {
-		if (!exerciseName.trim() || !workoutId || !supabase) return;
+		if (!exerciseName.trim() || !workoutId || !supabase) {return;}
 		setIsLoading(true);
 
 		const { data, error } = await supabase
@@ -173,33 +80,15 @@ export default function AddExercises() {
 			// Navigate to edit-exercise with the new exercise
 			router.push({
 				pathname: '/edit-exercise',
-				params: { exerciseId: data.id, exerciseName: createdExerciseName }
+				params: { exerciseId: data.id, exerciseName: createdExerciseName },
 			});
 		} else {
 			setIsLoading(false);
 		}
 	};
 
-	const handleDeleteExercise = async (id: string) => {
-		if (!supabase) return;
-		setDeletingId(id);
-		await supabase.from('exercises').delete().eq('id', id);
-		setDeletingId(null);
-		// Refetch exercises and phases
-		if (!workoutId) return;
-		const { data, error } = await supabase
-			.from('exercises')
-			.select('*')
-			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: true });
-		if (!error && data) {
-			setExercises(data);
-			await fetchExercisePhases(data);
-		}
-	};
-
 	const handleDeleteWorkout = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { error } = await supabase
 			.from('workouts')
 			.delete()
@@ -225,7 +114,7 @@ export default function AddExercises() {
 							<Text style={styles.backButtonText}>←</Text>
 						</Pressable>
 						<Text style={styles.title}>{workoutName}</Text>
-						<Pressable 
+						<Pressable
 							onPress={handleDeleteWorkout}
 							style={styles.deleteWorkoutButton}
 						>

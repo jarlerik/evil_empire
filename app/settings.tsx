@@ -17,10 +17,11 @@ export default function Settings() {
 		if (!authLoading && !user) {
 			router.replace('/(auth)/sign-in');
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user, authLoading]);
 
 	const handleWeightEdit = () => {
-		if (!settings) return;
+		if (!settings) {return;}
 		setIsEditingWeight(true);
 		setTempWeight(settings.user_weight);
 	};
@@ -65,8 +66,7 @@ export default function Settings() {
 						<Text style={styles.sectionTitle}>Email</Text>
 						<Text style={styles.subtitle}>{user?.email}</Text>
 					</View>
-					<View style={styles.units}>
-					</View>
+					<View style={styles.units} />
 
 					<Text style={styles.sectionTitle}>Units</Text>
 					<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
@@ -91,7 +91,7 @@ export default function Settings() {
 								>
 									<Text style={[
 										styles.unitOptionText,
-										settings?.weight_unit === 'kg' && styles.selectedUnit
+										settings?.weight_unit === 'kg' && styles.selectedUnit,
 									]}>Kilograms (kg)</Text>
 								</Pressable>
 								<Pressable
@@ -100,7 +100,7 @@ export default function Settings() {
 								>
 									<Text style={[
 										styles.unitOptionText,
-										settings?.weight_unit === 'lbs' && styles.selectedUnit
+										settings?.weight_unit === 'lbs' && styles.selectedUnit,
 									]}>Pounds (lbs)</Text>
 								</Pressable>
 								<Pressable
@@ -112,7 +112,7 @@ export default function Settings() {
 							</View>
 						</View>
 					</Modal>
-					
+
 				</View>
 				<View style={styles.weightContainer}>
 					<Text style={styles.weightTitle}>Weight</Text>

@@ -28,11 +28,12 @@ export default function SignUp() {
       Alert.alert(
         'Success',
         'Please check your email for verification instructions.',
-        [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+        [{ text: 'OK', onPress: () => router.replace('/sign-in') }],
       );
-    } catch (error: any) {
+    } catch (error) {
       let message = 'An error occurred during sign up';
-      
+
+      if (error instanceof Error) {
       // Handle specific error cases
       if (error?.message?.includes('429')) {
         message = 'Too many attempts. Please try again later.';
@@ -41,8 +42,9 @@ export default function SignUp() {
       } else if (error?.message?.includes('password')) {
         message = 'Password is too weak';
       }
-      
+
       Alert.alert('Error', message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -77,8 +79,8 @@ export default function SignUp() {
             returnKeyType="done"
             onSubmitEditing={handleSignUp}
           />
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleSignUp}
             disabled={isLoading}
           >
@@ -88,7 +90,7 @@ export default function SignUp() {
               <Text style={styles.buttonText}>Sign Up</Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push('/sign-in')}
             disabled={isLoading}
           >
@@ -136,4 +138,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-}); 
+});

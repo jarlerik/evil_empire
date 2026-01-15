@@ -43,6 +43,7 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 			try {
 				circuitExercises = JSON.parse(phase.circuit_exercises);
 			} catch (e) {
+				console.error('Error parsing circuit exercises:', e);
 				return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`);
 			}
 		} else {

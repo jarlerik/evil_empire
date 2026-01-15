@@ -1,24 +1,34 @@
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
-import { parseSetInput, reverseParsePhase } from '../lib/parseSetInput';
+import { reverseParsePhase } from '../lib/parseSetInput';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
+import { useAddExercisePhase } from '../hooks/useAddExercisePhase';
 
 export default function EditExercise() {
 	const params = useLocalSearchParams();
 	const { exerciseId, exerciseName: initialExerciseName } = params;
 	const [exerciseName] = useState(initialExerciseName as string);
 	const [setInput, setSetInput] = useState('');
-	const [exercisePhases, setExercisePhases] = useState<ExercisePhase[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
 	const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 	const { user } = useAuth();
 	const inputValueRef = useRef<string>('');
+
+	const {
+		exercisePhases,
+		isLoading,
+		addExercisePhase,
+		deletePhase,
+	} = useAddExercisePhase({
+		exerciseId,
+		exerciseName,
+		userId: user?.id,
+	});
 
 	// Save input value whenever it changes
 	useEffect(() => {
@@ -32,26 +42,8 @@ export default function EditExercise() {
 			if (inputValueRef.current) {
 				setSetInput(inputValueRef.current);
 			}
-		}, [])
+		}, []),
 	);
-
-	useEffect(() => {
-		if (!exerciseId || !supabase) return;
-		fetchExercisePhases();
-	}, [exerciseId]);
-
-	const fetchExercisePhases = async () => {
-		if (!supabase || !exerciseId) return;
-		const { data, error } = await supabase
-			.from('exercise_phases')
-			.select('*')
-			.eq('exercise_id', exerciseId)
-			.order('created_at', { ascending: true });
-		
-		if (!error && data) {
-			setExercisePhases(data);
-		}
-	};
 
 	const handleEditPhase = (phase: ExercisePhase) => {
 		setEditingPhaseId(phase.id);
@@ -64,303 +56,23 @@ export default function EditExercise() {
 	};
 
 	const handleAddSet = async () => {
-		const parsedData = parseSetInput(setInput);
-		if (!parsedData.isValid) {
-			// Show error message to user
-			alert(parsedData.errorMessage || 'Invalid input format');
-			return;
-		}
-		if (!exerciseId || !supabase || !user) return;
-		
-		setIsLoading(true);
+		const result = await addExercisePhase(setInput, editingPhaseId);
 
-		// Handle percentage-based weights (RM lookup needed)
-		let calculatedWeight = parsedData.weight;
-		let calculatedWeightMin: number | undefined = undefined;
-		let calculatedWeightMax: number | undefined = undefined;
-		
-		if (parsedData.needsRmLookup) {
-			// First, try exact match on exercise name
-			let { data: rmData, error: rmError } = await supabase
-				.from('repetition_maximums')
-				.select('weight')
-				.eq('user_id', user.id)
-				.ilike('exercise_name', exerciseName.trim())
-				.eq('reps', 1) // Always use 1RM for percentage calculations
-				.order('date', { ascending: false })
-				.limit(1)
-				.maybeSingle();
-
-			// If no exact match, try to find a matching base exercise
-			// For compound exercises like "Muscle clean + Push press...", look for "Clean" in existing RMs
-			if ((rmError || !rmData) && exerciseName.includes('+')) {
-				// Get all user's 1RMs to search for partial matches
-				const { data: allRms, error: allRmsError } = await supabase
-					.from('repetition_maximums')
-					.select('exercise_name, weight')
-					.eq('user_id', user.id)
-					.eq('reps', 1)
-					.order('date', { ascending: false });
-
-				if (!allRmsError && allRms && allRms.length > 0) {
-					// Split compound exercise name by '+' and check each part
-					const exerciseParts = exerciseName.split('+').map(part => part.trim().toLowerCase());
-					
-					// Find the first RM where the exercise name is contained in any part of the compound exercise
-					// or where any part of the compound exercise is contained in the RM exercise name
-					for (const rm of allRms) {
-						const rmNameLower = rm.exercise_name.toLowerCase();
-						
-						// Check if any part of the compound exercise matches the RM name
-						for (const part of exerciseParts) {
-							// Check if RM name contains the part (e.g., "Clean" in "Muscle clean")
-							// or if the part contains the RM name (e.g., "clean" contains "clean")
-							if (rmNameLower.includes(part) || part.includes(rmNameLower)) {
-								rmData = { weight: rm.weight };
-								rmError = null;
-								break;
-							}
-						}
-						
-						if (rmData) break;
-					}
-				}
-			}
-
-			if (rmError || !rmData) {
-				setIsLoading(false);
-				alert(`No 1RM found for "${exerciseName}". Please set your 1RM first.`);
-				return;
-			}
-
-			// Handle percentage ranges
-			if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {
-				calculatedWeightMin = Math.round((rmData.weight * parsedData.weightMinPercentage) / 100);
-				calculatedWeightMax = Math.round((rmData.weight * parsedData.weightMaxPercentage) / 100);
-				calculatedWeight = calculatedWeightMin; // Use min for backward compatibility
-			} else if (parsedData.weightPercentage !== undefined) {
-				// Single percentage
-				calculatedWeight = Math.round((rmData.weight * parsedData.weightPercentage) / 100);
-			}
-		}
-		
-		// Handle absolute weight ranges (already calculated, just need to store)
-		if (parsedData.weightMin !== undefined && parsedData.weightMax !== undefined) {
-			calculatedWeightMin = parsedData.weightMin;
-			calculatedWeightMax = parsedData.weightMax;
-			calculatedWeight = calculatedWeightMin; // Use min for backward compatibility
-		}
-
-		// If we're editing an existing phase, update it instead of creating a new one
-		if (editingPhaseId) {
-			const updateData: any = {
-				sets: parsedData.sets,
-				repetitions: parsedData.reps,
-				weight: calculatedWeight
-			};
-
-			// Add compound_reps if it's a compound exercise
-			if (parsedData.compoundReps) {
-				updateData.compound_reps = parsedData.compoundReps;
-			} else {
-				updateData.compound_reps = null; // Clear compound_reps if not present
-			}
-
-			// Add weights array if multiple weights are specified
-			if (parsedData.weights) {
-				updateData.weights = parsedData.weights;
-			} else {
-				updateData.weights = null; // Clear weights if not present
-			}
-
-			// Add exercise type
-			if (parsedData.exerciseType) {
-				updateData.exercise_type = parsedData.exerciseType;
-			} else {
-				updateData.exercise_type = 'standard';
-			}
-
-			// Add notes if present
-			if (parsedData.notes) {
-				updateData.notes = parsedData.notes;
-			} else {
-				updateData.notes = null;
-			}
-
-			// Add target RM if present
-			if (parsedData.targetRm) {
-				updateData.target_rm = parsedData.targetRm;
-			} else {
-				updateData.target_rm = null;
-			}
-
-			// Add RIR values if present
-			if (parsedData.rirMin !== undefined) {
-				updateData.rir_min = parsedData.rirMin;
-				updateData.rir_max = parsedData.rirMax || parsedData.rirMin;
-			} else {
-				updateData.rir_min = null;
-				updateData.rir_max = null;
-			}
-
-			// Add circuit exercises if present
-			if (parsedData.circuitExercises && parsedData.circuitExercises.length > 0) {
-				updateData.circuit_exercises = parsedData.circuitExercises;
-			} else {
-				updateData.circuit_exercises = null;
-			}
-
-			// Add weight ranges if present
-			if (calculatedWeightMin !== undefined && calculatedWeightMax !== undefined) {
-				updateData.weight_min = calculatedWeightMin;
-				updateData.weight_max = calculatedWeightMax;
-			} else {
-				updateData.weight_min = null;
-				updateData.weight_max = null;
-			}
-
-			// Add rest time if present
-			if (parsedData.restTimeSeconds !== undefined) {
-				updateData.rest_time_seconds = parsedData.restTimeSeconds;
-			} else {
-				updateData.rest_time_seconds = null;
-			}
-
-			const { error } = await supabase
-				.from('exercise_phases')
-				.update(updateData)
-				.eq('id', editingPhaseId);
-
-			if (!error) {
-				setSetInput('');
-				setEditingPhaseId(null);
-				fetchExercisePhases();
-			} else {
-				alert('Error updating phase');
-			}
-			setIsLoading(false);
+		if (!result.success) {
+			Alert.alert('Error', result.error || 'Unknown error');
 			return;
 		}
 
-		const insertData: any = {
-			exercise_id: exerciseId,
-			sets: parsedData.sets,
-			repetitions: parsedData.reps,
-			weight: calculatedWeight
-		};
-
-		// Add compound_reps if it's a compound exercise
-		if (parsedData.compoundReps) {
-			insertData.compound_reps = parsedData.compoundReps;
-		}
-
-		// Add weights array if multiple weights are specified
-		if (parsedData.weights) {
-			insertData.weights = parsedData.weights;
-		}
-
-		// Add exercise type
-		if (parsedData.exerciseType) {
-			insertData.exercise_type = parsedData.exerciseType;
-		} else {
-			insertData.exercise_type = 'standard';
-		}
-
-		// Add notes if present
-		if (parsedData.notes) {
-			insertData.notes = parsedData.notes;
-		}
-
-		// Add target RM if present
-		if (parsedData.targetRm) {
-			insertData.target_rm = parsedData.targetRm;
-		}
-
-		// Add RIR values if present
-		if (parsedData.rirMin !== undefined) {
-			insertData.rir_min = parsedData.rirMin;
-			insertData.rir_max = parsedData.rirMax || parsedData.rirMin;
-		}
-
-		// Add circuit exercises if present
-		if (parsedData.circuitExercises && parsedData.circuitExercises.length > 0) {
-			insertData.circuit_exercises = parsedData.circuitExercises;
-		}
-
-		// Add weight ranges if present
-		if (calculatedWeightMin !== undefined && calculatedWeightMax !== undefined) {
-			insertData.weight_min = calculatedWeightMin;
-			insertData.weight_max = calculatedWeightMax;
-		}
-
-		// Add rest time if present
-		if (parsedData.restTimeSeconds !== undefined) {
-			insertData.rest_time_seconds = parsedData.restTimeSeconds;
-		}
-
-		// Add wave phases if it's a wave exercise
-		if (parsedData.wavePhases) {
-			// Create multiple phases for wave exercise
-			for (const phase of parsedData.wavePhases) {
-				const phaseData: any = {
-					exercise_id: exerciseId,
-					sets: phase.sets,
-					repetitions: phase.reps,
-					weight: phase.weight
-				};
-				
-				// Add rest time to wave phases if present
-				if (parsedData.restTimeSeconds !== undefined) {
-					phaseData.rest_time_seconds = parsedData.restTimeSeconds;
-				}
-				
-				const { error: phaseError } = await supabase
-					.from('exercise_phases')
-					.insert(phaseData);
-				
-				if (phaseError) {
-					console.error('Error adding wave phase:', phaseError);
-					alert('Error adding wave phase: ' + (phaseError.message || 'Unknown error'));
-					setIsLoading(false);
-					return;
-				}
-			}
-			
-			// Clear input and refresh phases
-			setSetInput('');
-			fetchExercisePhases();
-			setIsLoading(false);
-			return;
-		}
-
-		const { error } = await supabase
-			.from('exercise_phases')
-			.insert([insertData]);
-
-		if (!error) {
-			setSetInput('');
-			fetchExercisePhases();
-		} else {
-			console.error('Error adding phase:', error);
-			alert('Error adding phase: ' + (error.message || 'Unknown error'));
-		}
-		setIsLoading(false);
+		setSetInput('');
+		setEditingPhaseId(null);
 	};
 
 	const handleDeletePhase = async (phaseId: string) => {
-		if (!supabase) return;
-		const { error } = await supabase
-			.from('exercise_phases')
-			.delete()
-			.eq('id', phaseId);
-
-		if (!error) {
-			fetchExercisePhases();
-		}
+		await deletePhase(phaseId);
 	};
 
 	const handleDeleteExercise = async () => {
-		if (!exerciseId || !supabase) return;
+		if (!exerciseId || !supabase) {return;}
 		const { error } = await supabase
 			.from('exercises')
 			.delete()
@@ -380,13 +92,13 @@ export default function EditExercise() {
 					{
 						text: 'Delete exercise',
 						onPress: () => handleDeleteExercise(),
-						style: 'destructive'
+						style: 'destructive',
 					},
 					{
 						text: 'Continue',
-						style: 'cancel'
-					}
-				]
+						style: 'cancel',
+					},
+				],
 			);
 		} else {
 			router.back();
@@ -394,7 +106,7 @@ export default function EditExercise() {
 	};
 
 	const handleSave = async () => {
-		if (!exerciseName.trim() || !exerciseId || !supabase) return;
+		if (!exerciseName.trim() || !exerciseId || !supabase) {return;}
 		// Update the exercise name in the database
 		const { error } = await supabase
 			.from('exercises')
@@ -404,7 +116,7 @@ export default function EditExercise() {
 		if (!error) {
 			router.back();
 		} else {
-			alert('Error saving exercise');
+			Alert.alert('Error', 'Error saving exercise');
 		}
 	};
 
@@ -423,7 +135,7 @@ export default function EditExercise() {
 							<Text style={styles.backButtonText}>←</Text>
 						</Pressable>
 						<Text style={styles.exerciseName}>{exerciseName}</Text>
-						<Pressable 
+						<Pressable
 							onPress={() => handleDeleteExercise()}
 							style={styles.deleteExerciseButton}
 						>
@@ -435,15 +147,15 @@ export default function EditExercise() {
 						<View style={styles.setsHeader}>
 							<Text style={styles.subtitle}>Sets and repetitions</Text>
 							<View style={styles.headerButtons}>
-								<Pressable 
-									style={styles.inputOptionsButton} 
+								<Pressable
+									style={styles.inputOptionsButton}
 									onPress={() => router.push('/exercise-input-help')}
 								>
 									<Text style={styles.inputOptionsButtonText}>Input options</Text>
 								</Pressable>
 								{editingPhaseId && (
-									<Pressable 
-										style={styles.cancelButton} 
+									<Pressable
+										style={styles.cancelButton}
 										onPress={handleCancelEdit}
 									>
 										<Text style={styles.cancelButtonText}>Cancel</Text>
@@ -451,7 +163,7 @@ export default function EditExercise() {
 								)}
 							</View>
 						</View>
-						
+
 						<TextInput
 							style={styles.setInput}
 							value={setInput}
@@ -472,24 +184,24 @@ export default function EditExercise() {
 					</View>
 
 					{exercisePhases.map((phase) => (
-							<View 
-								key={phase.id} 
+							<View
+								key={phase.id}
 								style={[
 									styles.phaseContainer,
-									editingPhaseId === phase.id && styles.phaseContainerEditing
+									editingPhaseId === phase.id && styles.phaseContainerEditing,
 								]}
 							>
 								<Text style={styles.phaseText}>
 									{formatExercisePhase(phase)}
 								</Text>
 							<View style={styles.phaseButtons}>
-								<Pressable 
+								<Pressable
 									onPress={() => handleEditPhase(phase)}
 									style={styles.editButton}
 								>
 									<Ionicons name="pencil-outline" size={22} color="#fff" />
 								</Pressable>
-								<Pressable 
+								<Pressable
 									onPress={() => handleDeletePhase(phase.id)}
 									style={styles.deleteButton}
 								>
@@ -533,42 +245,6 @@ const styles = StyleSheet.create({
 		marginTop: 20,
 		marginBottom: 10,
 	},
-	input: {
-		backgroundColor: '#111',
-		color: '#fff',
-		padding: 15,
-		borderRadius: 8,
-		fontSize: 16,
-		marginBottom: 20,
-	},
-	setInputContainer: {
-		backgroundColor: '#111',
-		borderRadius: 8,
-		padding: 15,
-		marginBottom: 20,
-	},
-	inputRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-	},
-	inputWrapper: {
-		alignItems: 'center',
-	},
-	label: {
-		color: '#666',
-		fontSize: 12,
-		marginBottom: 4,
-	},
-	numberInput: {
-		backgroundColor: '#222',
-		color: '#fff',
-		borderRadius: 4,
-		padding: 8,
-		width: 50,
-		textAlign: 'center',
-		fontSize: 16,
-	},
 	setInput: {
 		backgroundColor: '#222',
 		color: '#fff',
@@ -577,16 +253,6 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		width: '100%',
 		minHeight: 90,
-	},
-	separator: {
-		color: '#666',
-		fontSize: 16,
-		marginHorizontal: 8,
-	},
-	unit: {
-		color: '#666',
-		fontSize: 16,
-		marginLeft: 8,
 	},
 	headerButtons: {
 		flexDirection: 'row',
@@ -643,9 +309,6 @@ const styles = StyleSheet.create({
 	},
 	editButton: {
 		padding: 8,
-	},
-	editButtonText: {
-		fontSize: 16,
 	},
 	deleteButton: {
 		padding: 8,

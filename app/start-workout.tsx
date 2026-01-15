@@ -6,8 +6,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
-import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '../lib/formatExercisePhase';
 import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutionModal';
+import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
+import { WorkoutTimerDisplay } from '../components/WorkoutTimerDisplay';
 
 interface ExerciseDB {
 	id: string;
@@ -28,7 +30,7 @@ export default function StartWorkout() {
 	const { workoutName, workoutId } = params;
 	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
-	
+
 	// Workout state management
 	const [workoutState, setWorkoutState] = useState<WorkoutState>('idle');
 	const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(-1);
@@ -44,7 +46,7 @@ export default function StartWorkout() {
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) return;
+		if (!workoutId || !supabase) {return;}
 		const { data, error } = await supabase
 			.from('exercises')
 			.select('*')
@@ -52,53 +54,42 @@ export default function StartWorkout() {
 			.order('created_at', { ascending: true });
 		if (!error && data) {
 			setExercises(data);
-			// Fetch phases for each exercise
 			await fetchExercisePhases(data);
 		}
 	};
 
 	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) return;
-		
+		if (!supabase) {return;}
+
 		const phasesMap: Record<string, ExercisePhase[]> = {};
-		
+
 		for (const exercise of exerciseList) {
 			const { data, error } = await supabase
 				.from('exercise_phases')
 				.select('*')
 				.eq('exercise_id', exercise.id)
 				.order('created_at', { ascending: true });
-			
+
 			if (!error && data) {
 				phasesMap[exercise.id] = data;
 			}
 		}
-		
+
 		setExercisePhases(phasesMap);
 	};
 
-	// Helper function to format time as MM:SS
-	const formatTime = (seconds: number): string => {
-		const mins = Math.floor(seconds / 60);
-		const secs = seconds % 60;
-		return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-	};
-
-	// Get total sets for an exercise (sum of all phases' sets)
 	const getTotalSetsForExercise = (exerciseId: string): number => {
 		const phases = exercisePhases[exerciseId] || [];
 		return phases.reduce((total, phase) => total + phase.sets, 0);
 	};
 
-	// Get current exercise phase data
 	const getCurrentExercisePhase = (): ExercisePhase | null => {
 		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
 			return null;
 		}
 		const currentExercise = exercises[currentExerciseIndex];
 		const phases = exercisePhases[currentExercise.id] || [];
-		
-		// Find which phase the current set belongs to
+
 		let setCount = 0;
 		for (const phase of phases) {
 			if (currentSetNumber <= setCount + phase.sets) {
@@ -106,18 +97,16 @@ export default function StartWorkout() {
 			}
 			setCount += phase.sets;
 		}
-		
+
 		return phases[phases.length - 1] || null;
 	};
 
 	const isLastExercise = (): boolean => {
 		return currentExerciseIndex === exercises.length - 1;
 	};
+
 	const isLastSet = (): boolean => {
 		return currentSetNumber === getTotalSetsForExercise(exercises[currentExerciseIndex].id);
-	};
-	const isWorkoutComplete = (): boolean => {
-		return isLastExercise() && isLastSet();
 	};
 
 	// Cleanup rest timer
@@ -133,7 +122,7 @@ export default function StartWorkout() {
 	useEffect(() => {
 		const loadSound = async () => {
 			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav')
+				require('../assets/sounds/beep.wav'),
 			);
 			beepSound.current = sound;
 		};
@@ -149,7 +138,6 @@ export default function StartWorkout() {
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
 		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
-			// Play beep sound for final 5 seconds
 			if (beepSound.current) {
 				beepSound.current.replayAsync();
 			}
@@ -158,7 +146,6 @@ export default function StartWorkout() {
 			if (beepSound.current) {
 				beepSound.current.replayAsync();
 			}
-			// Vibrate when timer ends
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
 	}, [restTimeRemaining, workoutState]);
@@ -168,7 +155,6 @@ export default function StartWorkout() {
 		if (currentExerciseIndex >= 0 && scrollViewRef.current) {
 			const yPosition = exercisePositions.current[currentExerciseIndex];
 			if (yPosition !== undefined) {
-				// Offset to show some context above the current exercise
 				const scrollOffset = Math.max(0, yPosition - 12);
 				scrollViewRef.current.scrollTo({ y: scrollOffset, animated: true });
 			}
@@ -190,7 +176,7 @@ export default function StartWorkout() {
 						duration: 500,
 						useNativeDriver: true,
 					}),
-				])
+				]),
 			);
 			blinkAnimation.start();
 			return () => blinkAnimation.stop();
@@ -202,30 +188,31 @@ export default function StartWorkout() {
 	useFocusEffect(
 		useCallback(() => {
 			fetchExercises();
-		}, [workoutId])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [workoutId]),
 	);
 
 	const handleBackPress = () => {
-		if (workoutState !== 'workout_done') {
+		if (workoutState === 'idle' || workoutState === 'workout_done') {
+			router.back();
+		} else {
 			Alert.alert(
 				'Abort Workout?',
 				'Your progress will not be saved.',
 				[
 					{ text: 'Cancel', style: 'cancel' },
 					{ text: 'Abort', style: 'destructive', onPress: () => router.back() },
-				]
+				],
 			);
-		} else {
-			router.back();
 		}
 	};
 
 	const handleStartWorkout = () => {
-		if (exercises.length === 0) return;
+		if (exercises.length === 0) {return;}
 		LayoutAnimation.configureNext(LayoutAnimation.create(
 			300,
 			LayoutAnimation.Types.easeInEaseOut,
-			LayoutAnimation.Properties.opacity
+			LayoutAnimation.Properties.opacity,
 		));
 		setWorkoutState('work');
 		setCurrentExerciseIndex(0);
@@ -235,25 +222,23 @@ export default function StartWorkout() {
 
 	const rest = () => {
 		const phase = getCurrentExercisePhase();
-		if (!phase) return;
-		
+		if (!phase) {return;}
+
 		if (isLastSet()) {
 			setWorkoutState('exercise_done');
 			setRestTimeRemaining(0);
 			return;
 		}
-		
+
 		const restTime = phase.rest_time_seconds || 0;
 		if (restTime > 0) {
 			setRestTimeRemaining(restTime);
 			setWorkoutState('rest');
-			
-			// Clear any existing interval
+
 			if (restTimerIntervalRef.current) {
 				clearInterval(restTimerIntervalRef.current);
 			}
-			
-			// Start countdown
+
 			restTimerIntervalRef.current = setInterval(() => {
 				setRestTimeRemaining((prev) => {
 					if (prev <= 1) {
@@ -267,7 +252,6 @@ export default function StartWorkout() {
 				});
 			}, 1000);
 		} else {
-			// No rest time, immediately move to next set
 			work();
 		}
 	};
@@ -277,11 +261,10 @@ export default function StartWorkout() {
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
 		}
-		
-		// Move to next set
+
 		const currentExercise = exercises[currentExerciseIndex];
 		const totalSets = getTotalSetsForExercise(currentExercise.id);
-		
+
 		if (currentSetNumber < totalSets) {
 			setCurrentSetNumber(currentSetNumber + 1);
 			setWorkoutState('work');
@@ -308,7 +291,7 @@ export default function StartWorkout() {
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
 		}
-		
+
 		if (!isLastExercise() && isLastSet()) {
 			setCurrentExerciseIndex(currentExerciseIndex + 1);
 			setCurrentSetNumber(1);
@@ -331,7 +314,7 @@ export default function StartWorkout() {
 				handleStartWorkout();
 				break;
 			case 'work':
-					rest();
+				rest();
 				break;
 			case 'rest':
 				if (restTimeRemaining === 0) {
@@ -376,7 +359,7 @@ export default function StartWorkout() {
 	};
 
 	const handleSaveExecution = async (executionData: ExecutionLogData) => {
-		if (!supabase || !workoutId) return;
+		if (!supabase || !workoutId) {return;}
 
 		for (const phaseData of executionData.phases) {
 			const { parsed } = phaseData;
@@ -403,6 +386,10 @@ export default function StartWorkout() {
 		setIsEditModalVisible(false);
 	};
 
+	const currentExercise = currentExerciseIndex >= 0 ? exercises[currentExerciseIndex] : null;
+	const currentPhase = getCurrentExercisePhase();
+	const totalSets = currentExercise ? getTotalSetsForExercise(currentExercise.id) : 0;
+
 	return (
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
@@ -421,112 +408,36 @@ export default function StartWorkout() {
 						ref={scrollViewRef}
 						style={[
 							styles.exercisesContainer,
-							workoutState === 'idle' && styles.exercisesContainerExpanded
+							workoutState === 'idle' && styles.exercisesContainerExpanded,
 						]}
 						contentContainerStyle={styles.exercisesContent}
 						keyboardShouldPersistTaps="handled"
 					>
-						{exercises.map((exercise, index) => {
-							const isActive = currentExerciseIndex === index && workoutState !== 'idle';
-							return (
-								<View
-									key={exercise.id}
-									style={[
-										styles.exerciseItem,
-										isActive && styles.exerciseItemActive
-									]}
-									onLayout={(event) => {
-										exercisePositions.current[index] = event.nativeEvent.layout.y;
-									}}
-								>
-									<View style={styles.exerciseHeader}>
-										<View style={styles.exerciseNameContainer}>
-											<Text style={styles.exerciseName}>{exercise.name}</Text>
-										</View>
-									</View>
-									{exercisePhases[exercise.id] && exercisePhases[exercise.id].length > 0 && (
-										<View style={styles.phasesContainer}>
-											{exercisePhases[exercise.id].map((phase) => (
-												<Text key={phase.id} style={styles.phaseText}>
-													{formatExercisePhase(phase)}
-												</Text>
-											))}
-										</View>
-									)}
-								</View>
-							);
-						})}
+						{exercises.map((exercise, index) => (
+							<WorkoutExerciseItem
+								key={exercise.id}
+								exercise={exercise}
+								phases={exercisePhases[exercise.id] || []}
+								isActive={currentExerciseIndex === index && workoutState !== 'idle'}
+								onLayout={(y) => {
+									exercisePositions.current[index] = y;
+								}}
+							/>
+						))}
 					</ScrollView>
 
-					<View style={[
-						styles.timerContainer,
-						workoutState === 'idle' && styles.timerContainerHidden
-					]}>
-						{workoutState !== 'idle' && currentExerciseIndex >= 0 && (
-							<>
-								{/* Top half: Exercise name, set number, repetitions */}
-								<View style={styles.timerTopHalf}>
-									{(() => {
-										const currentExercise = exercises[currentExerciseIndex];
-										const totalSets = getTotalSetsForExercise(currentExercise.id);
-										const phase = getCurrentExercisePhase();
-										const reps = phase?.repetitions || 0;
-
-										return (
-											<>
-												<Text style={styles.timerExerciseName}>
-													{currentSetNumber}/{totalSets} {currentExercise.name}
-												</Text>
-												<Text style={styles.timerRepetitions}>
-													{reps} {reps === 1 ? 'repetition' : 'repetitions'}
-												</Text>
-											</>
-										);
-									})()}
-								</View>
-
-								{/* Bottom half: State and countdown */}
-								<View style={styles.timerBottomHalf}>
-									{workoutState === 'work' && (
-										<Animated.Text style={[styles.timerStateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
-									)}
-									{workoutState === 'rest' && (
-										<>
-											<Animated.Text style={[styles.timerStateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
-											<Animated.Text style={[styles.timerCountdown, { opacity: blinkOpacity }]}>
-												{formatTime(restTimeRemaining)}
-											</Animated.Text>
-										</>
-									)}
-									{workoutState === 'exercise_done' && (
-										<Text
-											style={styles.timerStateDone}
-											adjustsFontSizeToFit
-											numberOfLines={1}
-										>
-											Exercise done
-										</Text>
-									)}
-									{workoutState === 'exercise_done' && (
-										<Button
-											title="Edit finished exercise"
-											variant="secondary"
-											onPress={handleEditFinishedExercise}
-										/>
-									)}
-									{workoutState === 'workout_done' && (
-										<Text
-											style={styles.timerStateDone}
-											adjustsFontSizeToFit
-											numberOfLines={1}
-										>
-											Workout done
-										</Text>
-									)}
-								</View>
-							</>
-						)}
-					</View>
+					{workoutState !== 'idle' && currentExercise && (
+						<WorkoutTimerDisplay
+							workoutState={workoutState}
+							currentSetNumber={currentSetNumber}
+							totalSets={totalSets}
+							exerciseName={currentExercise.name}
+							repetitions={currentPhase?.repetitions || 0}
+							restTimeRemaining={restTimeRemaining}
+							blinkOpacity={blinkOpacity}
+							onEditFinishedExercise={handleEditFinishedExercise}
+						/>
+					)}
 				</View>
 
 				<View style={styles.bottomContainer}>
@@ -538,15 +449,15 @@ export default function StartWorkout() {
 				</View>
 			</View>
 
-			{currentExerciseIndex >= 0 && exercises[currentExerciseIndex] && (
+			{currentExercise && (
 				<EditExecutionModal
 					visible={isEditModalVisible}
 					onClose={() => setIsEditModalVisible(false)}
 					onSave={handleSaveExecution}
 					onSkip={handleSkipExecution}
-					exerciseName={exercises[currentExerciseIndex].name}
-					exerciseId={exercises[currentExerciseIndex].id}
-					phases={exercisePhases[exercises[currentExerciseIndex].id] || []}
+					exerciseName={currentExercise.name}
+					exerciseId={currentExercise.id}
+					phases={exercisePhases[currentExercise.id] || []}
 				/>
 			)}
 		</KeyboardAvoidingView>
@@ -592,103 +503,7 @@ const styles = StyleSheet.create({
 	exercisesContent: {
 		paddingBottom: 12,
 	},
-	timerContainer: {
-		flex: 0.9,
-		backgroundColor: '#262626',
-		borderWidth: 1,
-		borderColor: '#fff',
-		borderRadius: 8,
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 20,
-		overflow: 'hidden',
-	},
-	timerContainerHidden: {
-		flex: 0,
-		height: 0,
-		padding: 0,
-		borderWidth: 0,
-	},
-	timerTopHalf: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		width: '100%',
-	},
-	timerBottomHalf: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		width: '100%',
-	},
-	timerExerciseName: {
-		color: '#fff',
-		fontSize: 24,
-		fontWeight: 'bold',
-		textAlign: 'center',
-		marginBottom: 12,
-	},
-	timerRepetitions: {
-		color: '#fff',
-		fontSize: 18,
-		textAlign: 'center',
-	},
-	timerStateWork: {
-		color: '#fff',
-		fontSize: 48,
-		fontWeight: 'bold',
-		textAlign: 'center',
-	},
-	timerStateRest: {
-		color: '#fff',
-		fontSize: 48,
-		fontWeight: 'bold',
-		textAlign: 'center',
-		marginBottom: 12,
-	},
-	timerStateDone: {
-		color: '#C65D24',
-		fontSize: 48,
-		fontWeight: 'bold',
-		textAlign: 'center',
-	},
-	timerCountdown: {
-		color: '#fff',
-		fontSize: 48,
-		fontWeight: 'bold',
-		textAlign: 'center',
-	},
-	exerciseItem: {
-		backgroundColor: '#262626',
-		padding: 16,
-		borderRadius: 8,
-		marginBottom: 12,
-	},
-	exerciseItemActive: {
-		borderWidth: 1,
-		borderColor: '#fff',
-	},
-	exerciseHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	exerciseNameContainer: {
-		flex: 1,
-	},
-	exerciseName: {
-		color: '#fff',
-		fontSize: 16,
-	},
 	bottomContainer: {
 		marginTop: 20,
 	},
-	phasesContainer: {
-		marginTop: 12,
-	},
-	phaseText: {
-		color: '#C65D24',
-		fontSize: 14,
-		marginTop: 4,
-	},
 });
-

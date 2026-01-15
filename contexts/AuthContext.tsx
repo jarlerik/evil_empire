@@ -17,11 +17,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [currentSession, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {return;}
 
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -54,9 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status: error.status,
       message: error.message,
       name: error.name,
-      stack: error.stack
+      stack: error.stack,
     });
-    
+
     if (error.message.includes('Email not confirmed')) {
       throw new Error('Please check your email and confirm your account before signing in.');
     }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error.message.includes('Invalid login credentials')) {
       throw new Error('Invalid email or password');
     }
-    
+
     if (error.status === 400) {
       if (error.message.includes('password')) {
         throw new Error('Invalid password format');
@@ -75,24 +75,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('400 error details:', error);
       throw new Error('Invalid credentials. Please check your email and password.');
     }
-    
+
     if (error.status === 429) {
       throw new Error('Too many attempts. Please try again in a few minutes.');
     }
-    
+
     if (error.status === 422) {
       throw new Error('Email address is invalid or already taken.');
     }
-    
+
     throw new Error(`Authentication failed: ${error.message}`);
   };
 
   const value = {
-    session,
+    session: currentSession,
     user,
     loading,
     signUp: async (email: string, password: string) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
+      if (!supabase) {throw new Error('Supabase client not initialized');}
       try {
         console.log('Attempting sign up for:', email);
         const { data, error } = await supabase.auth.signUp({
@@ -103,17 +103,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         });
         console.log('Sign up response:', { data, error });
-        if (error) throw handleAuthError(error);
+        if (error) {throw handleAuthError(error);}
         if (data?.user?.identities?.length === 0) {
           throw new Error('This email is already registered. Please sign in instead.');
         }
       } catch (error) {
-        if (error instanceof Error) throw error;
+        if (error instanceof Error) {throw error;}
         throw new Error('An unexpected error occurred during sign up');
       }
     },
     signIn: async (email: string, password: string) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
+      if (!supabase) {throw new Error('Supabase client not initialized');}
       try {
         console.log('Attempting sign in for:', email);
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -121,23 +121,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password,
         });
         console.log('Sign in response:', { data, error });
-        if (error) throw handleAuthError(error);
+        if (error) {throw handleAuthError(error);}
         if (!data.session) {
           throw new Error('No session created. Please try again.');
         }
       } catch (error) {
         console.error('Sign in error:', error);
-        if (error instanceof Error) throw error;
+        if (error instanceof Error) {throw error;}
         throw new Error('An unexpected error occurred during sign in');
       }
     },
     signOut: async () => {
-      if (!supabase) throw new Error('Supabase client not initialized');
+      if (!supabase) {throw new Error('Supabase client not initialized');}
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {throw error;}
     },
     resendVerificationEmail: async (email: string) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
+      if (!supabase) {throw new Error('Supabase client not initialized');}
       try {
         const { error } = await supabase.auth.resend({
           type: 'signup',
@@ -146,9 +146,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             emailRedirectTo: 'evil-empire://sign-in',
           },
         });
-        if (error) throw handleAuthError(error);
+        if (error) {throw handleAuthError(error);}
       } catch (error) {
-        if (error instanceof Error) throw error;
+        if (error instanceof Error) {throw error;}
         throw new Error('Failed to resend verification email');
       }
     },
@@ -163,4 +163,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

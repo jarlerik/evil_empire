@@ -5,9 +5,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, startOfWeek, format, getISOWeek, isSameWeek, subDays } from 'date-fns';
+import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
+import { WorkoutCard } from '../components/WorkoutCard';
+import { WeekDaySelector } from '../components/WeekDaySelector';
 
 interface Workout {
 	id: string;
@@ -27,7 +29,7 @@ interface Exercise {
 export default function Index() {
 	const [workoutName, setWorkoutName] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [errorState, setErrorState] = useState<string | null>(null);
 	const { user, loading: authLoading } = useAuth();
 	const { loading: settingsLoading } = useUserSettings();
 
@@ -47,7 +49,6 @@ export default function Index() {
 	};
 
 	const nextWeek = () => {
-		
 		const nextStart = addDays(selectedWeekStart, 7);
 		setSelectedWeekStart(nextStart);
 		setSelectedDate(nextStart);
@@ -61,9 +62,9 @@ export default function Index() {
 
 	useFocusEffect(
 		useCallback(() => {
-			if (!user || !supabase) return;
+			if (!user || !supabase) {return;}
 			const fetchWorkouts = async () => {
-				if (!supabase) return;
+				if (!supabase) {return;}
 				const { data, error } = await supabase
 					.from('workouts')
 					.select('*')
@@ -71,56 +72,55 @@ export default function Index() {
 					.order('created_at', { ascending: false });
 				if (!error && data) {
 					setWorkouts(data);
-					// Fetch exercises for each workout
 					await fetchExercises(data);
 				}
 			};
 			fetchWorkouts();
-		}, [supabase, user])
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [supabase, user]),
 	);
 
 	const fetchExercises = async (workoutList: Workout[]) => {
-		if (!supabase) return;
-		
+		if (!supabase) {return;}
+
 		const exercisesMap: Record<string, Exercise[]> = {};
-		
+
 		for (const workout of workoutList) {
 			const { data, error } = await supabase
 				.from('exercises')
 				.select('*')
 				.eq('workout_id', workout.id)
 				.order('created_at', { ascending: true });
-			
+
 			if (!error && data) {
 				exercisesMap[workout.id] = data;
 			}
 		}
-		
+
 		setExercises(exercisesMap);
 	};
 
 	const handleCreateWorkout = async () => {
-		if (!workoutName.trim()) return;
+		if (!workoutName.trim()) {return;}
 		if (!supabase) {
-			setError('Database not available.');
+			setErrorState('Database not available.');
 			return;
 		}
 		if (!user) {
-			setError('You must be signed in to create a workout.');
+			setErrorState('You must be signed in to create a workout.');
 			return;
 		}
 		setIsLoading(true);
-		setError(null);
+		setErrorState(null);
 		const { error: insertError } = await supabase
 			.from('workouts')
 			.insert([{ name: workoutName.trim(), user_id: user.id, workout_date: format(selectedDate, 'yyyy-MM-dd') }]);
 		setIsLoading(false);
 		if (insertError) {
-			setError('Failed to create workout. Please try again.');
+			setErrorState('Failed to create workout. Please try again.');
 			return;
 		}
 		setWorkoutName('');
-		// Refetch workouts and exercises after creation
 		const { data, error } = await supabase
 			.from('workouts')
 			.select('*')
@@ -140,13 +140,15 @@ export default function Index() {
 		);
 	}
 
+	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
+
 	return (
 		<KeyboardAvoidingView
-			style={{ flex: 1 }}
+			style={styles.flex}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
 			<ScrollView
-				contentContainerStyle={{ flex: 1 }}
+				contentContainerStyle={styles.flex}
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={styles.container}>
@@ -157,129 +159,47 @@ export default function Index() {
 						</Pressable>
 					</View>
 
-					<Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+					<Text style={styles.monthTitle}>
 						{format(selectedDate, 'LLLL yyyy')}
 					</Text>
 
-					{/* Week Selector with Navigation Arrows */}
-					<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+					<View style={styles.weekSelectorContainer}>
 						<View style={styles.pickerContainer}>
-							<Pressable 
-								style={[
-									styles.arrowButton,
-								]}
-								onPress={prevWeek}
-							>
-								<Text style={[
-									styles.arrowText,
-								]}>‹</Text>
+							<Pressable style={styles.arrowButton} onPress={prevWeek}>
+								<Text style={styles.arrowText}>‹</Text>
 							</Pressable>
-							
-							<Text style={styles.pickerText}>
-								{getCurrentWeek()}
-							</Text>
-							
-							<Pressable 
-								style={styles.arrowButton}
-								onPress={nextWeek}
-							>
+							<Text style={styles.pickerText}>{getCurrentWeek()}</Text>
+							<Pressable style={styles.arrowButton} onPress={nextWeek}>
 								<Text style={styles.arrowText}>›</Text>
 							</Pressable>
 						</View>
 					</View>
 
-					{/* Week Day Selector */}
-					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
-						{Array.from({ length: 7 }).map((_, i) => {
-							const day = addDays(selectedWeekStart, i);
-							const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-							
-							return (
-								<Pressable
-									key={i}
-									onPress={() => setSelectedDate(day)}
-									style={{
-										alignItems: 'center',
-										flex: 1,
-										paddingVertical: 4,
-									}}
-								>
-									<Text
-										style={{
-											fontWeight: 'bold',
-											fontSize: 13,
-											letterSpacing: 1,
-											textAlign: 'center',
-											color: '#fff',
-										}}
-									>
-										{format(day, 'EEE').toUpperCase()}
-									</Text>
-									<View
-										style={{
-											backgroundColor: isSelected ? '#fff' : 'rgba(26, 26, 26, 1.00)',
-											borderRadius: 20,
-											width: 40,
-											height: 40,
-											alignItems: 'center',
-											justifyContent: 'center',
-											marginTop: 2,
-										}}
-									>
-										<Text
-											style={{
-												color: isSelected ? '#000' : '#fff',
-												fontWeight: 'bold',
-												fontSize: 20,
-												textAlign: 'center',
-											}}
-										>
-											{format(day, 'd')}
-										</Text>
-									</View>
-								</Pressable>
-							);
-						})}
-					</View>
-					{/* List of created workouts */}
-					<View style={{ marginTop: 32 }}>
-						<Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+					<WeekDaySelector
+						weekStart={selectedWeekStart}
+						selectedDate={selectedDate}
+						onSelectDate={setSelectedDate}
+					/>
+
+					<View style={styles.workoutsSection}>
+						<Text style={styles.workoutDateTitle}>
 							Workout for {format(selectedDate, 'EEEE, LLLL d')}
 						</Text>
-						{workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd')).length === 0 ? (
-							<Text style={{ color: '#666' }}>No workout yet.</Text>
+						{filteredWorkouts.length === 0 ? (
+							<Text style={styles.noWorkoutText}>No workout yet.</Text>
 						) : (
-							workouts
-								.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'))
-								.map((w) => (
-									<View key={w.id} style={{ backgroundColor: '#262626', padding: 16, borderRadius: 8, marginBottom: 12 }}>
-										<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: exercises[w.id] && exercises[w.id].length > 0 ? 8 : 0 }}>
-											<View style={{ flex: 1 }}>
-												<Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{w.name}</Text>
-											</View>
-											<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
-												<Pressable onPress={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
-													<Ionicons name="pencil" size={22} color="#fff" />
-												</Pressable>
-												<Pressable onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })} style={{ padding: 8 }}>
-													<Ionicons name="play" size={22} color="#fff" />
-												</Pressable>
-											</View>
-										</View>
-										{exercises[w.id] && exercises[w.id].length > 0 && (
-											<View style={{ marginTop: 8 }}>
-												{exercises[w.id].map((exercise, index) => (
-													<Text key={exercise.id} style={{ color: '#C65D24', fontSize: 14, marginTop: 2 }}>
-														{index + 1}. {exercise.name}
-													</Text>
-												))}
-											</View>
-										)}
-									</View>
-								))
+							filteredWorkouts.map((w) => (
+								<WorkoutCard
+									key={w.id}
+									workout={w}
+									exercises={exercises[w.id] || []}
+									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
+									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
+								/>
+							))
 						)}
 					</View>
-					<View style={{ marginTop: 'auto' }}>
+					<View style={styles.bottomSection}>
 						<TextInput
 							style={styles.input}
 							value={workoutName}
@@ -290,7 +210,7 @@ export default function Index() {
 							onSubmitEditing={handleCreateWorkout}
 							editable={!isLoading}
 						/>
-						{error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+						{errorState && <Text style={styles.errorText}>{errorState}</Text>}
 						<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
 					</View>
 				</View>
@@ -300,6 +220,9 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
+	flex: {
+		flex: 1,
+	},
 	container: {
 		flex: 1,
 		backgroundColor: '#171717',
@@ -321,12 +244,6 @@ const styles = StyleSheet.create({
 		color: '#c65d24',
 		textTransform: 'uppercase',
 	},
-	subtitle: {
-		fontSize: 16,
-		color: '#666',
-		marginTop: 8,
-		marginBottom: 40,
-	},
 	input: {
 		backgroundColor: '#262626',
 		color: '#fff',
@@ -334,6 +251,18 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		fontSize: 16,
 		marginBottom: 20,
+	},
+	monthTitle: {
+		color: '#fff',
+		fontSize: 28,
+		fontWeight: 'bold',
+		marginBottom: 4,
+	},
+	weekSelectorContainer: {
+		flexDirection: 'row',
+		justifyContent: 'flex-end',
+		alignItems: 'center',
+		marginBottom: 8,
 	},
 	pickerContainer: {
 		width: 160,
@@ -353,10 +282,6 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	pickerArrow: {
-		color: '#fff',
-		fontSize: 12,
-	},
 	arrowButton: {
 		padding: 4,
 		backgroundColor: 'transparent',
@@ -375,10 +300,23 @@ const styles = StyleSheet.create({
 		textAlignVertical: 'center',
 		includeFontPadding: false,
 	},
-	// arrowButtonDisabled: {
-	// 	opacity: 0.3,
-	// },
-	// arrowTextDisabled: {
-	// 	color: '#666',
-	// },
+	workoutsSection: {
+		marginTop: 32,
+	},
+	workoutDateTitle: {
+		color: '#fff',
+		fontSize: 20,
+		fontWeight: 'bold',
+		marginBottom: 12,
+	},
+	noWorkoutText: {
+		color: '#666',
+	},
+	bottomSection: {
+		marginTop: 'auto',
+	},
+	errorText: {
+		color: 'red',
+		marginBottom: 10,
+	},
 });

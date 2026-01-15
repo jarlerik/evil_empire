@@ -22,9 +22,11 @@ export default function SignIn() {
     try {
       await signIn(email, password);
       router.replace('/');
-    } catch (error: any) {
+    } catch (error) {
       let message = 'An error occurred during sign in';
-      
+
+      if (error instanceof Error) {
+
       if (error.message.includes('Email not confirmed')) {
         setShowResend(true);
         message = 'Please verify your email address before signing in.';
@@ -33,8 +35,9 @@ export default function SignIn() {
       } else if (error.message.includes('429')) {
         message = 'Too many attempts. Please try again later.';
       }
-      
+
       Alert.alert('Error', message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -53,11 +56,13 @@ export default function SignIn() {
         'Success',
         'Verification email has been resent. Please check your inbox.',
       );
-    } catch (error: any) {
+    } catch (error) {
+      if (error instanceof Error) {
       Alert.alert(
         'Error',
-        error.message || 'Failed to resend verification email'
-      );
+          error.message || 'Failed to resend verification email',
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -92,8 +97,8 @@ export default function SignIn() {
             returnKeyType="done"
             onSubmitEditing={handleSignIn}
           />
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleSignIn}
             disabled={isLoading}
           >
@@ -103,9 +108,9 @@ export default function SignIn() {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
-          
+
           {showResend && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.resendButton, isLoading && styles.buttonDisabled]}
               onPress={handleResendVerification}
               disabled={isLoading}
@@ -114,7 +119,7 @@ export default function SignIn() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push('/sign-up')}
             disabled={isLoading}
           >
@@ -176,4 +181,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-}); 
+});

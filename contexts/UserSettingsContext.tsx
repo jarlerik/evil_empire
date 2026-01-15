@@ -28,11 +28,12 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
     }
 
     fetchUserSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchUserSettings = async () => {
     try {
-      if (!supabase || !user) return;
+      if (!supabase || !user) {return;}
 
       const { data, error } = await supabase
         .from('user_settings')
@@ -40,7 +41,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
         .eq('user_id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       if (data) {
         setSettings({
@@ -65,7 +66,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
 
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
     try {
-      if (!supabase || !user) return;
+      if (!supabase || !user) {return;}
 
       // Ensure we have all required fields by merging with current settings
       const currentSettings = settings || { weight_unit: 'kg', user_weight: '85' };
@@ -99,7 +100,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {throw insertError;}
       } else if (updateError) {
         throw updateError;
       }
@@ -127,4 +128,4 @@ export function useUserSettings() {
     throw new Error('useUserSettings must be used within a UserSettingsProvider');
   }
   return context;
-} 
+}
