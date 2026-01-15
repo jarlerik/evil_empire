@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../contexts/AuthContext';
 import { UserSettingsProvider } from '../contexts/UserSettingsContext';
+import { StrictMode } from 'react';
 
 const styles = StyleSheet.create({
 	container: {
@@ -19,6 +20,7 @@ const styles = StyleSheet.create({
 
 export default function Layout() {
 	return (
+		<StrictMode>
 		<AuthProvider>
 			<UserSettingsProvider>
 				<GestureHandlerRootView style={{ flex: 1 }}>
@@ -44,5 +46,6 @@ export default function Layout() {
 				</GestureHandlerRootView>
 			</UserSettingsProvider>
 		</AuthProvider>
+		</StrictMode>
 	);
 }

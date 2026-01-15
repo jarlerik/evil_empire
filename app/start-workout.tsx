@@ -33,7 +33,7 @@ export default function StartWorkout() {
 
 	// Workout state management
 	const [workoutState, setWorkoutState] = useState<WorkoutState>('idle');
-	const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(-1);
+	const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(0);
 	const [currentSetNumber, setCurrentSetNumber] = useState<number>(1);
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
@@ -425,19 +425,14 @@ export default function StartWorkout() {
 							/>
 						))}
 					</ScrollView>
-
-					{workoutState !== 'idle' && currentExercise && (
 						<WorkoutTimerDisplay
 							workoutState={workoutState}
-							currentSetNumber={currentSetNumber}
-							totalSets={totalSets}
-							exerciseName={currentExercise.name}
-							repetitions={currentPhase?.repetitions || 0}
+							exerciseName={currentExercise?.name}
+							exercisePhase={currentPhase}
 							restTimeRemaining={restTimeRemaining}
 							blinkOpacity={blinkOpacity}
 							onEditFinishedExercise={handleEditFinishedExercise}
 						/>
-					)}
 				</View>
 
 				<View style={styles.bottomContainer}>

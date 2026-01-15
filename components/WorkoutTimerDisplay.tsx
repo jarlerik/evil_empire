@@ -1,15 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Button } from './Button';
+import { ExercisePhase } from '@/lib/formatExercisePhase';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
 interface WorkoutTimerDisplayProps {
 	workoutState: WorkoutState;
-	currentSetNumber: number;
-	totalSets: number;
-	exerciseName: string;
-	repetitions: number;
+	exerciseName: string | undefined;
+	exercisePhase: ExercisePhase | null;
 	restTimeRemaining: number;
 	blinkOpacity: Animated.Value;
 	onEditFinishedExercise: () => void;
@@ -21,34 +20,55 @@ function formatTime(seconds: number): string {
 	return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function parseSetsAndReps(exercisePhase: ExercisePhase | null): string {
+	if (!exercisePhase) {
+		return '';
+	}
+	const sets = exercisePhase.sets;
+
+	if (exercisePhase.compound_reps) {
+		const reps = exercisePhase.compound_reps.join(' + ');
+		return `${sets} x ${reps}`;
+	}
+	const reps = exercisePhase.repetitions;
+	return `${sets} x ${reps}`;
+}
+
+function parseWeight(exercisePhase: ExercisePhase | null): string {
+	if (!exercisePhase) {
+		return '';
+	}
+	return `@${exercisePhase.weight}kg`;
+}
 export function WorkoutTimerDisplay({
 	workoutState,
-	currentSetNumber,
-	totalSets,
 	exerciseName,
-	repetitions,
+	exercisePhase,
 	restTimeRemaining,
 	blinkOpacity,
 	onEditFinishedExercise,
 }: WorkoutTimerDisplayProps) {
-	if (workoutState === 'idle') {
-		return null;
-	}
 
+	const setsAndReps = parseSetsAndReps(exercisePhase);
+	const weight = parseWeight(exercisePhase);
 	return (
 		<View style={styles.timerContainer}>
 			{/* Top half: Exercise name, set number, repetitions */}
 			<View style={styles.timerTopHalf}>
 				<Text style={styles.timerExerciseName}>
-					{currentSetNumber}/{totalSets} {exerciseName}
+					{exerciseName}
 				</Text>
 				<Text style={styles.timerRepetitions}>
-					{repetitions} {repetitions === 1 ? 'repetition' : 'repetitions'}
+					{setsAndReps}
 				</Text>
+				<Text style={styles.timerWeight}>{weight}</Text>
 			</View>
 
 			{/* Bottom half: State and countdown */}
 			<View style={styles.timerBottomHalf}>
+				{workoutState === 'idle' && (
+					<Text style={styles.timerStateIdle}>NOT STARTED</Text>
+				)}
 				{workoutState === 'work' && (
 					<Animated.Text style={[styles.timerStateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
 				)}
@@ -122,8 +142,21 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	timerRepetitions: {
+		color: '#C65D24',
+		fontSize: 24,
+		fontWeight: 'bold',
+		textAlign: 'center',
+	},
+	timerWeight: {
+		color: '#C65D24',
+		fontSize: 36,
+		fontWeight: 'bold',
+		textAlign: 'center',
+	},
+	timerStateIdle: {
 		color: '#fff',
-		fontSize: 18,
+		fontSize: 48,
+		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	timerStateWork: {
