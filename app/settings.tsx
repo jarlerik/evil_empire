@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { Ionicons } from '@expo/vector-icons';
 import { commonStyles } from '../styles/common';
+import { NavigationBar } from '../components/NavigationBar';
 
 export default function Settings() {
 	const { user, loading: authLoading } = useAuth();
@@ -54,107 +54,115 @@ export default function Settings() {
 	}
 
 	return (
-		<Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
-			<View style={commonStyles.container}>
-				<View style={[commonStyles.headerRow, styles.headerRow]}>
-					<Text style={commonStyles.title}>Settings</Text>
-					<Pressable onPress={() => router.push('/')} style={styles.homeButton}>
-						<Ionicons name="home-outline" size={24} color="#fff" />
-					</Pressable>
-				</View>
-				<View style={styles.settings}>
-					<View style={styles.email}>
-						<Text style={styles.sectionTitle}>Email</Text>
-						<Text style={styles.subtitle}>{user?.email}</Text>
-					</View>
-					<View style={styles.units} />
-
-					<Text style={styles.sectionTitle}>Units</Text>
-					<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
-						<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
-						<Text style={styles.dropdownArrow}>▼</Text>
-					</Pressable>
-					<Pressable onPress={() => router.push('/repetition-maximums')}>
-						<Text style={styles.editWeightButton}>Repetition Maximums</Text>
-					</Pressable>
-					<Modal
-						visible={isEditingUnit}
-						transparent={true}
-						animationType="slide"
-						onRequestClose={() => setIsEditingUnit(false)}
-					>
-						<View style={styles.modalContainer}>
-							<View style={styles.modalContent}>
-								<Text style={styles.modalTitle}>Select Weight Unit</Text>
-								<Pressable
-									style={styles.unitOption}
-									onPress={() => handleUnitSelect('kg')}
-								>
-									<Text style={[
-										styles.unitOptionText,
-										settings?.weight_unit === 'kg' && styles.selectedUnit,
-									]}>Kilograms (kg)</Text>
-								</Pressable>
-								<Pressable
-									style={styles.unitOption}
-									onPress={() => handleUnitSelect('lbs')}
-								>
-									<Text style={[
-										styles.unitOptionText,
-										settings?.weight_unit === 'lbs' && styles.selectedUnit,
-									]}>Pounds (lbs)</Text>
-								</Pressable>
-								<Pressable
-									style={styles.closeButton}
-									onPress={() => setIsEditingUnit(false)}
-								>
-									<Text style={styles.closeButtonText}>Cancel</Text>
-								</Pressable>
+		<View style={styles.screen}>
+			<Pressable onPress={Keyboard.dismiss} style={styles.flex} accessible={false}>
+				<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+					<View style={commonStyles.container}>
+						<View style={[commonStyles.headerRow, styles.headerRow]}>
+							<Text style={commonStyles.title}>Settings</Text>
+						</View>
+						<View style={styles.settings}>
+							<View style={styles.email}>
+								<Text style={styles.sectionTitle}>Email</Text>
+								<Text style={styles.subtitle}>{user?.email}</Text>
 							</View>
-						</View>
-					</Modal>
+							<View style={styles.units} />
 
-				</View>
-				<View style={styles.weightContainer}>
-					<Text style={styles.weightTitle}>Weight</Text>
-					{isEditingWeight ? (
-						<View style={styles.weightEditContainer}>
-							<TextInput
-								style={styles.weightInput}
-								value={tempWeight}
-								onChangeText={setTempWeight}
-								keyboardType="numeric"
-								maxLength={5}
-								returnKeyType="done"
-								onSubmitEditing={Keyboard.dismiss}
-							/>
-							<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
-							<Pressable style={styles.saveButton} onPress={handleWeightSave}>
-								<Text style={styles.saveButtonText}>Save</Text>
+							<Text style={styles.sectionTitle}>Units</Text>
+							<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
+								<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
+								<Text style={styles.dropdownArrow}>▼</Text>
 							</Pressable>
-						</View>
-					) : (
-						<View style={styles.weightEditContainer}>
-							<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
-							<Pressable onPress={handleWeightEdit}>
-								<Text style={styles.editWeightButton}>Change your weight</Text>
+							<Pressable onPress={() => router.push('/repetition-maximums')}>
+								<Text style={styles.editWeightButton}>Repetition Maximums</Text>
 							</Pressable>
+							<Modal
+								visible={isEditingUnit}
+								transparent={true}
+								animationType="slide"
+								onRequestClose={() => setIsEditingUnit(false)}
+							>
+								<View style={styles.modalContainer}>
+									<View style={styles.modalContent}>
+										<Text style={styles.modalTitle}>Select Weight Unit</Text>
+										<Pressable
+											style={styles.unitOption}
+											onPress={() => handleUnitSelect('kg')}
+										>
+											<Text style={[
+												styles.unitOptionText,
+												settings?.weight_unit === 'kg' && styles.selectedUnit,
+											]}>Kilograms (kg)</Text>
+										</Pressable>
+										<Pressable
+											style={styles.unitOption}
+											onPress={() => handleUnitSelect('lbs')}
+										>
+											<Text style={[
+												styles.unitOptionText,
+												settings?.weight_unit === 'lbs' && styles.selectedUnit,
+											]}>Pounds (lbs)</Text>
+										</Pressable>
+										<Pressable
+											style={styles.closeButton}
+											onPress={() => setIsEditingUnit(false)}
+										>
+											<Text style={styles.closeButtonText}>Cancel</Text>
+										</Pressable>
+									</View>
+								</View>
+							</Modal>
+
 						</View>
-					)}
-				</View>
-			</View>
-		</Pressable>
+						<View style={styles.weightContainer}>
+							<Text style={styles.weightTitle}>Weight</Text>
+							{isEditingWeight ? (
+								<View style={styles.weightEditContainer}>
+									<TextInput
+										style={styles.weightInput}
+										value={tempWeight}
+										onChangeText={setTempWeight}
+										keyboardType="numeric"
+										maxLength={5}
+										returnKeyType="done"
+										onSubmitEditing={Keyboard.dismiss}
+									/>
+									<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
+									<Pressable style={styles.saveButton} onPress={handleWeightSave}>
+										<Text style={styles.saveButtonText}>Save</Text>
+									</Pressable>
+								</View>
+							) : (
+								<View style={styles.weightEditContainer}>
+									<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
+									<Pressable onPress={handleWeightEdit}>
+										<Text style={styles.editWeightButton}>Change your weight</Text>
+									</Pressable>
+								</View>
+							)}
+						</View>
+					</View>
+				</ScrollView>
+			</Pressable>
+			<NavigationBar />
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
+	screen: {
+		flex: 1,
+	},
+	flex: {
+		flex: 1,
+	},
+	scrollContent: {
+		flexGrow: 1,
+	},
 	settings: {},
 	headerRow: {
 		justifyContent: 'space-between',
 		marginBottom: 16,
-	},
-	homeButton: {
-		padding: 8,
 	},
 	email: {
 		flex: 1,

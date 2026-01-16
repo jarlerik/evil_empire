@@ -4,28 +4,14 @@ import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { Ionicons } from '@expo/vector-icons';
 import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WeekDaySelector } from '../components/WeekDaySelector';
 import { commonStyles } from '../styles/common';
-
-interface Workout {
-	id: string;
-	name: string;
-	user_id: string;
-	created_at?: string;
-	workout_date?: string;
-}
-
-interface Exercise {
-	id: string;
-	name: string;
-	workout_id: string;
-	created_at?: string;
-}
+import { Exercise, Workout } from '../types/workout';
+import { NavigationBar } from '../components/NavigationBar';
 
 export default function Index() {
 	const [workoutName, setWorkoutName] = useState('');
@@ -143,93 +129,93 @@ export default function Index() {
 
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
 
-	return (
-		<KeyboardAvoidingView
-			style={styles.flex}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<ScrollView
-				contentContainerStyle={styles.flex}
-				keyboardShouldPersistTaps="handled"
+		return (
+			<KeyboardAvoidingView
+				style={styles.flex}
+				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 			>
-				<View style={commonStyles.container}>
-					<View style={[commonStyles.headerRow, styles.headerRow]}>
-						<Text style={commonStyles.title}>Workouts</Text>
-						<Pressable onPress={() => router.push('/settings')} style={styles.settingsButton}>
-							<Ionicons name="settings-outline" size={24} color="#fff" />
-						</Pressable>
-					</View>
+				<View style={styles.flex}>
+					<ScrollView
+						contentContainerStyle={styles.scrollContent}
+						keyboardShouldPersistTaps="handled"
+					>
+						<View style={commonStyles.container}>
+							<View style={[commonStyles.headerRow, styles.headerRow]}>
+								<Text style={commonStyles.title}>Workouts</Text>
+							</View>
 
-					<Text style={styles.monthTitle}>
-						{format(selectedDate, 'LLLL yyyy')}
-					</Text>
+							<Text style={styles.monthTitle}>
+								{format(selectedDate, 'LLLL yyyy')}
+							</Text>
 
-					<View style={styles.weekSelectorContainer}>
-						<View style={styles.pickerContainer}>
-							<Pressable style={styles.arrowButton} onPress={prevWeek}>
-								<Text style={styles.arrowText}>‹</Text>
-							</Pressable>
-							<Text style={styles.pickerText}>{getCurrentWeek()}</Text>
-							<Pressable style={styles.arrowButton} onPress={nextWeek}>
-								<Text style={styles.arrowText}>›</Text>
-							</Pressable>
-						</View>
-					</View>
+							<View style={styles.weekSelectorContainer}>
+								<View style={styles.pickerContainer}>
+									<Pressable style={styles.arrowButton} onPress={prevWeek}>
+										<Text style={styles.arrowText}>‹</Text>
+									</Pressable>
+									<Text style={styles.pickerText}>{getCurrentWeek()}</Text>
+									<Pressable style={styles.arrowButton} onPress={nextWeek}>
+										<Text style={styles.arrowText}>›</Text>
+									</Pressable>
+								</View>
+							</View>
 
-					<WeekDaySelector
-						weekStart={selectedWeekStart}
-						selectedDate={selectedDate}
-						onSelectDate={setSelectedDate}
-					/>
+							<WeekDaySelector
+								weekStart={selectedWeekStart}
+								selectedDate={selectedDate}
+								onSelectDate={setSelectedDate}
+							/>
 
-					<View style={styles.workoutsSection}>
-						<Text style={styles.workoutDateTitle}>
-							Workout for {format(selectedDate, 'EEEE, LLLL d')}
-						</Text>
-						{filteredWorkouts.length === 0 ? (
-							<Text style={styles.noWorkoutText}>No workout yet.</Text>
-						) : (
-							filteredWorkouts.map((w) => (
-								<WorkoutCard
-									key={w.id}
-									workout={w}
-									exercises={exercises[w.id] || []}
-									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
-									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
+							<View style={styles.workoutsSection}>
+								<Text style={styles.workoutDateTitle}>
+									Workout for {format(selectedDate, 'EEEE, LLLL d')}
+								</Text>
+								{filteredWorkouts.length === 0 ? (
+									<Text style={styles.noWorkoutText}>No workout yet.</Text>
+								) : (
+									filteredWorkouts.map((w) => (
+										<WorkoutCard
+											key={w.id}
+											workout={w}
+											exercises={exercises[w.id] || []}
+											onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
+											onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
+										/>
+									))
+								)}
+							</View>
+							<View style={styles.bottomSection}>
+								<TextInput
+									style={styles.input}
+									value={workoutName}
+									onChangeText={setWorkoutName}
+									placeholder="Workout name"
+									placeholderTextColor="#666"
+									returnKeyType="done"
+									onSubmitEditing={handleCreateWorkout}
+									editable={!isLoading}
 								/>
-							))
-						)}
-					</View>
-					<View style={styles.bottomSection}>
-						<TextInput
-							style={styles.input}
-							value={workoutName}
-							onChangeText={setWorkoutName}
-							placeholder="Workout name"
-							placeholderTextColor="#666"
-							returnKeyType="done"
-							onSubmitEditing={handleCreateWorkout}
-							editable={!isLoading}
-						/>
-						{errorState && <Text style={styles.errorText}>{errorState}</Text>}
-						<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
-					</View>
+								{errorState && <Text style={styles.errorText}>{errorState}</Text>}
+								<Button title={isLoading ? 'Creating...' : 'Create'} onPress={handleCreateWorkout} disabled={isLoading} />
+							</View>
+						</View>
+					</ScrollView>
+					<NavigationBar />
 				</View>
-			</ScrollView>
-		</KeyboardAvoidingView>
-	);
+			</KeyboardAvoidingView>
+		);
 }
 
 const styles = StyleSheet.create({
 	flex: {
 		flex: 1,
 	},
+	scrollContent: {
+		flexGrow: 1,
+	},
 	headerRow: {
 		justifyContent: 'space-between',
 		marginBottom: 16,
-	},
-	settingsButton: {
-		padding: 8,
 	},
 	input: {
 		backgroundColor: '#262626',

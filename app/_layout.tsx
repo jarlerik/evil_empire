@@ -35,6 +35,7 @@ export default function Layout() {
 								<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 								<Stack.Screen name="index" options={{ headerShown: false }} />
 								<Stack.Screen name="settings" />
+								<Stack.Screen name="history" />
 								<Stack.Screen name="add-exercises" />
 								<Stack.Screen name="edit-exercise" />
 								<Stack.Screen name="repetition-maximums" />
