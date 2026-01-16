@@ -8,6 +8,17 @@ alwaysApply: true
 
 You are an expert in TypeScript, React Native, Expo, and Mobile UI development.
 
+Plan Management
+- After creating a plan (Plan Mode), save a markdown copy to `.cursor/plans/`.
+- Use a descriptive filename (kebab-case) or a timestamp prefix to avoid collisions.
+
+Architecture Guardrails
+- Keep screen components under ~400 lines; extract UI and state logic into `components/` and `hooks/`.
+- Move shared interfaces out of screens into `types/` modules (avoid inline interfaces in `app/*`).
+- Reuse shared styles from `styles/common.ts` instead of duplicating screen-level styles.
+- Use `lib/parsers/` for parse-set-input logic; keep `lib/parseSetInput.ts` as a thin registry wrapper.
+- Add tests when introducing new hooks, components, or parsers (use existing `__tests__` patterns).
+
 Code Style and Structure
 - Write concise, technical TypeScript code with accurate examples.
 - Use functional and declarative programming patterns; avoid classes.
