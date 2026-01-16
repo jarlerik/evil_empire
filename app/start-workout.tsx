@@ -102,6 +102,66 @@ export default function StartWorkout() {
 		return phases[phases.length - 1] || null;
 	};
 
+	const getNextPhase = (): ExercisePhase | null => {
+		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+			return null;
+		}
+		const currentExercise = exercises[currentExerciseIndex];
+		const phases = exercisePhases[currentExercise.id] || [];
+
+		let setCount = 0;
+		for (let i = 0; i < phases.length; i++) {
+			const phase = phases[i];
+			if (currentSetNumber <= setCount + phase.sets) {
+				// Check if we're on the last set of this phase
+				if (currentSetNumber === setCount + phase.sets) {
+					// Return the next phase if it exists
+					return phases[i + 1] || null;
+				}
+				return null; // Not on last set of phase
+			}
+			setCount += phase.sets;
+		}
+
+		return null;
+	};
+
+	const isLastSetOfCurrentPhase = (): boolean => {
+		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+			return false;
+		}
+		const currentExercise = exercises[currentExerciseIndex];
+		const phases = exercisePhases[currentExercise.id] || [];
+
+		let setCount = 0;
+		for (const phase of phases) {
+			if (currentSetNumber <= setCount + phase.sets) {
+				return currentSetNumber === setCount + phase.sets;
+			}
+			setCount += phase.sets;
+		}
+
+		return false;
+	};
+
+	const getCurrentSetInPhase = (): number => {
+		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+			return 1;
+		}
+		const currentExercise = exercises[currentExerciseIndex];
+		const phases = exercisePhases[currentExercise.id] || [];
+
+		let setCount = 0;
+		for (const phase of phases) {
+			if (currentSetNumber <= setCount + phase.sets) {
+				return currentSetNumber - setCount;
+			}
+			setCount += phase.sets;
+		}
+
+		return 1;
+	};
+
 	const isLastExercise = (): boolean => {
 		return currentExerciseIndex === exercises.length - 1;
 	};
@@ -389,6 +449,9 @@ export default function StartWorkout() {
 
 	const currentExercise = currentExerciseIndex >= 0 ? exercises[currentExerciseIndex] : null;
 	const currentPhase = getCurrentExercisePhase();
+	const nextPhase = getNextPhase();
+	const showNextPhase = workoutState === 'rest' && isLastSetOfCurrentPhase() && nextPhase !== null;
+	const currentSetInPhase = getCurrentSetInPhase();
 
 	return (
 		<KeyboardAvoidingView
@@ -429,6 +492,9 @@ export default function StartWorkout() {
 							workoutState={workoutState}
 							exerciseName={currentExercise?.name}
 							exercisePhase={currentPhase}
+							allPhases={currentExercise ? exercisePhases[currentExercise.id] || [] : []}
+							nextPhase={showNextPhase ? nextPhase : null}
+							currentSetInPhase={currentSetInPhase}
 							restTimeRemaining={restTimeRemaining}
 							blinkOpacity={blinkOpacity}
 							onEditFinishedExercise={handleEditFinishedExercise}

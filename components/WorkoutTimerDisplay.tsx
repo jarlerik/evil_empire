@@ -9,6 +9,9 @@ interface WorkoutTimerDisplayProps {
 	workoutState: WorkoutState;
 	exerciseName: string | undefined;
 	exercisePhase: ExercisePhase | null;
+	allPhases: ExercisePhase[];
+	nextPhase: ExercisePhase | null;
+	currentSetInPhase: number;
 	restTimeRemaining: number;
 	blinkOpacity: Animated.Value;
 	onEditFinishedExercise: () => void;
@@ -20,18 +23,15 @@ function formatTime(seconds: number): string {
 	return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function parseSetsAndReps(exercisePhase: ExercisePhase | null): string {
+function parseReps(exercisePhase: ExercisePhase | null): string {
 	if (!exercisePhase) {
 		return '';
 	}
-	const sets = exercisePhase.sets;
 
 	if (exercisePhase.compound_reps) {
-		const reps = exercisePhase.compound_reps.join(' + ');
-		return `${sets} x ${reps}`;
+		return exercisePhase.compound_reps.join(' + ');
 	}
-	const reps = exercisePhase.repetitions;
-	return `${sets} x ${reps}`;
+	return String(exercisePhase.repetitions);
 }
 
 function parseWeight(exercisePhase: ExercisePhase | null): string {
@@ -40,65 +40,113 @@ function parseWeight(exercisePhase: ExercisePhase | null): string {
 	}
 	return `@${exercisePhase.weight}kg`;
 }
+
+function formatPhaseForDisplay(phase: ExercisePhase): string {
+	const sets = phase.sets;
+	const reps = phase.compound_reps
+		? phase.compound_reps.join(' + ')
+		: String(phase.repetitions);
+	const weight = `@${phase.weight}kg`;
+	return `${sets} x ${reps} ${weight}`;
+}
+
 export function WorkoutTimerDisplay({
 	workoutState,
 	exerciseName,
 	exercisePhase,
+	allPhases,
+	nextPhase,
+	currentSetInPhase,
 	restTimeRemaining,
 	blinkOpacity,
 	onEditFinishedExercise,
 }: WorkoutTimerDisplayProps) {
 
-	const setsAndReps = parseSetsAndReps(exercisePhase);
-	const weight = parseWeight(exercisePhase);
+	// Determine which phase to display (current or next)
+	const displayPhase = nextPhase || exercisePhase;
+	const reps = parseReps(displayPhase);
+	const weight = parseWeight(displayPhase);
+
+	// Set info: if showing next phase, show "1 of X", otherwise show current set
+	const setNumber = nextPhase ? 1 : currentSetInPhase;
+	const totalSets = displayPhase?.sets || 0;
+
+	// Render exercise done state with all phases
+	if (workoutState === 'exercise_done') {
+		return (
+			<View style={styles.timerContainer}>
+				<View style={styles.doneTopSection}>
+					<Text style={styles.exerciseName}>
+						{exerciseName}
+					</Text>
+					<View style={styles.phasesList}>
+						{allPhases.map((phase, index) => (
+							<Text key={phase.id || index} style={styles.phaseItem}>
+								{formatPhaseForDisplay(phase)}
+							</Text>
+						))}
+					</View>
+				</View>
+
+				<View style={styles.doneBottomSection}>
+					<Text
+						style={styles.stateDone}
+						adjustsFontSizeToFit
+						numberOfLines={1}
+					>
+						Exercise done
+					</Text>
+					<Button
+						title="Edit finished exercise"
+						variant="secondary"
+						onPress={onEditFinishedExercise}
+					/>
+				</View>
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.timerContainer}>
-			{/* Top half: Exercise name, set number, repetitions */}
-			<View style={styles.timerTopHalf}>
-				<Text style={styles.timerExerciseName}>
+			{/* Top section: Exercise info */}
+			<View style={styles.timerTopSection}>
+				<Text style={styles.exerciseName}>
 					{exerciseName}
 				</Text>
-				<Text style={styles.timerRepetitions}>
-					{setsAndReps}
-				</Text>
-				<Text style={styles.timerWeight}>{weight}</Text>
+
+				{nextPhase && (
+					<Text style={styles.nextPhaseLabel}>Next phase:</Text>
+				)}
+
+				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
+					<Text style={styles.setInfo}>
+						{setNumber} of {totalSets} sets
+					</Text>
+				)}
+
+				<Text style={styles.reps}>{reps}</Text>
+				<Text style={styles.weight}>{weight}</Text>
 			</View>
 
-			{/* Bottom half: State and countdown */}
-			<View style={styles.timerBottomHalf}>
+			{/* Bottom section: State and countdown */}
+			<View style={styles.timerBottomSection}>
 				{workoutState === 'idle' && (
-					<Text style={styles.timerStateIdle}>NOT STARTED</Text>
+					<Text style={styles.stateIdle}>NOT STARTED</Text>
 				)}
 				{workoutState === 'work' && (
-					<Animated.Text style={[styles.timerStateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
+					<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
 				)}
 				{workoutState === 'rest' && (
 					<>
-						<Animated.Text style={[styles.timerStateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
-						<Animated.Text style={[styles.timerCountdown, { opacity: blinkOpacity }]}>
+						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
+						<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
 							{formatTime(restTimeRemaining)}
 						</Animated.Text>
 					</>
 				)}
-				{workoutState === 'exercise_done' && (
-					<>
-						<Text
-							style={styles.timerStateDone}
-							adjustsFontSizeToFit
-							numberOfLines={1}
-						>
-							Exercise done
-						</Text>
-						<Button
-							title="Edit finished exercise"
-							variant="secondary"
-							onPress={onEditFinishedExercise}
-						/>
-					</>
-				)}
 				{workoutState === 'workout_done' && (
 					<Text
-						style={styles.timerStateDone}
+						style={styles.stateDone}
 						adjustsFontSizeToFit
 						numberOfLines={1}
 					>
@@ -122,63 +170,97 @@ const styles = StyleSheet.create({
 		padding: 20,
 		overflow: 'hidden',
 	},
-	timerTopHalf: {
+	timerTopSection: {
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
 	},
-	timerBottomHalf: {
+	timerBottomSection: {
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
 	},
-	timerExerciseName: {
+	doneTopSection: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+	},
+	doneBottomSection: {
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+	},
+	exerciseName: {
 		color: '#fff',
 		fontSize: 24,
 		fontWeight: 'bold',
 		textAlign: 'center',
-		marginBottom: 12,
+		marginBottom: 8,
 	},
-	timerRepetitions: {
+	phasesList: {
+		alignItems: 'center',
+		marginTop: 8,
+	},
+	phaseItem: {
 		color: '#C65D24',
-		fontSize: 24,
+		fontSize: 20,
+		fontWeight: 'bold',
+		textAlign: 'center',
+		marginBottom: 4,
+	},
+	nextPhaseLabel: {
+		color: '#C65D24',
+		fontSize: 18,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerWeight: {
+	setInfo: {
+		color: '#fff',
+		fontSize: 20,
+		fontWeight: 'bold',
+		textAlign: 'center',
+		marginBottom: 4,
+	},
+	reps: {
 		color: '#C65D24',
-		fontSize: 36,
+		fontSize: 32,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerStateIdle: {
+	weight: {
+		color: '#C65D24',
+		fontSize: 32,
+		fontWeight: 'bold',
+		textAlign: 'center',
+	},
+	stateIdle: {
 		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerStateWork: {
+	stateWork: {
 		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerStateRest: {
+	stateRest: {
 		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
-		marginBottom: 12,
 	},
-	timerStateDone: {
+	stateDone: {
 		color: '#C65D24',
 		fontSize: 48,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
-	timerCountdown: {
+	countdown: {
 		color: '#fff',
 		fontSize: 48,
 		fontWeight: 'bold',
