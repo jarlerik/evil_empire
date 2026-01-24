@@ -1,0 +1,11 @@
+{
+  "name": "@evil-empire/static-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "sam build",
+    "deploy": "./deploy.sh",
+    "deploy:infra": "sam build && sam deploy --config-env dev",
+    "validate": "sam validate --lint"
+  }
+}

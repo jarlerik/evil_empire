@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "echo 'Web app not yet implemented'",
-    "build": "echo 'Web app not yet implemented'",
-    "lint": "echo 'Web app not yet implemented'"
+    "dev": "npx serve .",
+    "build": "echo 'Static site - no build required'",
+    "lint": "echo 'Static site - no lint configured'"
   }
 }
