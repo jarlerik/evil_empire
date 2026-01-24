@@ -1,1 +1,1 @@
-console.log('Evil Empire web app loaded');
+console.log('Vaikia.dev web app loaded');

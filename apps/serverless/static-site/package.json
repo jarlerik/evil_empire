@@ -6,6 +6,7 @@
     "build": "sam build",
     "deploy": "./deploy.sh",
     "deploy:infra": "sam build && sam deploy --config-env dev",
+    "deploy:app": "./deploy-app.sh",
     "validate": "sam validate --lint"
   }
 }
