@@ -1,0 +1,10 @@
+{
+  "name": "@evil-empire/docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Docs not yet implemented'",
+    "build": "echo 'Docs not yet implemented'",
+    "lint": "echo 'Docs not yet implemented'"
+  }
+}

@@ -36,4 +36,13 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Turbo
+.turbo/
+
+# Build outputs
+packages/*/dist/
+
+# Test coverage
+coverage/
+
 app-example

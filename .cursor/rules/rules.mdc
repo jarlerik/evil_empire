@@ -1,25 +1,66 @@
 ---
-description: React Native/Expo mobile app development rules for kakkahata_88
-globs: ["apps/mobile/kakkahata_88/**/*.ts", "apps/mobile/kakkahata_88/**/*.tsx", "apps/mobile/kakkahata_88/**/*.js", "apps/mobile/kakkahata_88/**/*.jsx"]
+description: React Native/Expo mobile app development rules for Evil Empire monorepo
+globs: ["apps/mobile/**/*.ts", "apps/mobile/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx"]
 alwaysApply: true
 ---
 
 # React Native/Expo Development Rules
 
-You are an expert in TypeScript, React Native, Expo, and Mobile UI development.
+You are an expert in TypeScript, React Native, Expo, Turborepo monorepos, and Mobile UI development.
 
-Plan Management
+## Monorepo Structure
+
+This is a Turborepo monorepo with pnpm workspaces:
+
+```
+evil_empire/
+├── apps/
+│   ├── mobile/              # React Native/Expo app (@evil-empire/mobile)
+│   ├── web/                 # Future web app
+│   └── docs/                # Future documentation
+├── packages/
+│   ├── parsers/             # Shared parser (@evil-empire/parsers)
+│   ├── types/               # Shared types (@evil-empire/types)
+│   ├── eslint-config/       # Shared ESLint config
+│   └── typescript-config/   # Shared TS configs
+└── supabase/                # Database migrations
+```
+
+## Workspace Commands
+
+```bash
+# From root
+pnpm dev:mobile       # Start mobile app
+pnpm build            # Build all packages
+pnpm test             # Run all tests
+pnpm lint             # Lint all packages
+pnpm typecheck        # Type check all packages
+
+# Filter to specific package
+pnpm build --filter=@evil-empire/parsers
+pnpm test --filter=@evil-empire/mobile
+```
+
+## Plan Management
 - After creating a plan (Plan Mode), save a markdown copy to `.cursor/plans/`.
 - Use a descriptive filename (kebab-case) or a timestamp prefix to avoid collisions.
 
-Architecture Guardrails
+## Architecture Guardrails
+
+### Mobile App (apps/mobile)
 - Keep screen components under ~400 lines; extract UI and state logic into `components/` and `hooks/`.
 - Move shared interfaces out of screens into `types/` modules (avoid inline interfaces in `app/*`).
 - Reuse shared styles from `styles/common.ts` instead of duplicating screen-level styles.
-- Use `lib/parsers/` for parse-set-input logic; keep `lib/parseSetInput.ts` as a thin registry wrapper.
+- Import parsers from `@evil-empire/parsers` (via local wrapper `lib/parseSetInput.ts`).
 - Add tests when introducing new hooks, components, or parsers (use existing `__tests__` patterns).
 
-Code Style and Structure
+### Shared Packages (packages/*)
+- Keep packages focused and minimal - each should have a single responsibility.
+- Use `tsup` for building packages that need to be compiled.
+- Export types using `export type` syntax for isolatedModules compatibility.
+- Packages should have their own `tsconfig.json` extending from `@evil-empire/typescript-config`.
+
+## Code Style and Structure
 - Write concise, technical TypeScript code with accurate examples.
 - Use functional and declarative programming patterns; avoid classes.
 - Prefer iteration and modularization over code duplication.
@@ -27,23 +68,25 @@ Code Style and Structure
 - Structure files: exported component, subcomponents, helpers, static content, types.
 - Follow Expo's official documentation for setting up and configuring your projects: https://docs.expo.dev/
 
-Naming Conventions
+## Naming Conventions
 - Use lowercase with dashes for directories (e.g., components/auth-wizard).
 - Favor named exports for components.
+- Package names use `@evil-empire/` scope.
 
-TypeScript Usage
+## TypeScript Usage
 - Use TypeScript for all code; prefer interfaces over types.
 - Avoid enums; use maps instead.
 - Use functional components with TypeScript interfaces.
 - Use strict mode in TypeScript for better type safety.
+- Use `export type` for type-only exports (isolatedModules compatibility).
 
-Syntax and Formatting
+## Syntax and Formatting
 - Use the "function" keyword for pure functions.
 - Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
 - Use declarative JSX.
 - Use Prettier for consistent code formatting.
 
-UI and Styling
+## UI and Styling
 - Use Expo's built-in components for common UI patterns and layouts.
 - Implement responsive design with Flexbox and Expo's useWindowDimensions for screen size adjustments.
 - Use styled-components or Tailwind CSS for component styling.
@@ -51,13 +94,13 @@ UI and Styling
 - Ensure high accessibility (a11y) standards using ARIA roles and native accessibility props.
 - Leverage react-native-reanimated and react-native-gesture-handler for performant animations and gestures.
 
-Safe Area Management
+## Safe Area Management
 - Use SafeAreaProvider from react-native-safe-area-context to manage safe areas globally in your app.
 - Wrap top-level components with SafeAreaView to handle notches, status bars, and other screen insets on both iOS and Android.
 - Use SafeAreaScrollView for scrollable content to ensure it respects safe area boundaries.
 - Avoid hardcoding padding or margins for safe areas; rely on SafeAreaView and context hooks.
 
-Performance Optimization
+## Performance Optimization
 - Minimize the use of useState and useEffect; prefer context and reducers for state management.
 - Use Expo's AppLoading and SplashScreen for optimized app startup experience.
 - Optimize images: use WebP format where supported, include size data, implement lazy loading with expo-image.
@@ -65,18 +108,18 @@ Performance Optimization
 - Profile and monitor performance using React Native's built-in tools and Expo's debugging features.
 - Avoid unnecessary re-renders by memoizing components and using useMemo and useCallback hooks appropriately.
 
-Navigation
+## Navigation
 - Use react-navigation for routing and navigation; follow its best practices for stack, tab, and drawer navigators.
 - Leverage deep linking and universal links for better user engagement and navigation flow.
 - Use dynamic routes with expo-router for better navigation handling.
 
-State Management
+## State Management
 - Use React Context and useReducer for managing global state.
 - Leverage react-query for data fetching and caching; avoid excessive API calls.
 - For complex state management, consider using Zustand or Redux Toolkit.
 - Handle URL search parameters using libraries like expo-linking.
 
-Error Handling and Validation
+## Error Handling and Validation
 - Use Zod for runtime validation and error handling.
 - Implement proper error logging using Sentry or a similar service.
 - Prioritize error handling and edge cases:
@@ -86,50 +129,55 @@ Error Handling and Validation
   - Implement global error boundaries to catch and handle unexpected errors.
 - Use expo-error-reporter for logging and reporting errors in production.
 
-Testing
+## Testing
 - Write unit tests using Jest and React Native Testing Library.
 - Implement integration tests for critical user flows using Detox.
 - Use Expo's testing tools for running tests in different environments.
 - Consider snapshot testing for components to ensure UI consistency.
+- Parser tests are in `packages/parsers/__tests__/`.
+- App tests are in `apps/mobile/**/__tests__/`.
 
-Security
+## Security
 - Sanitize user inputs to prevent XSS attacks.
 - Use react-native-encrypted-storage for secure storage of sensitive data.
 - Ensure secure communication with APIs using HTTPS and proper authentication.
 - Use Expo's Security guidelines to protect your app: https://docs.expo.dev/guides/security/
 
-Internationalization (i18n)
+## Internationalization (i18n)
 - Use react-native-i18n or expo-localization for internationalization and localization.
 - Support multiple languages and RTL layouts.
 - Ensure text scaling and font adjustments for accessibility.
 
-Package Management (pnpm)
+## Package Management (pnpm)
 - Use pnpm as the primary package manager
-- Required version: pnpm >= 8.x
-- Global setup: `curl -fsSL https://get.pnpm.io/install.sh | sh -`
-- Install global packages with pnpm:
-  - expo-cli: `pnpm add -g expo-cli`
-  - eas-cli: `pnpm add -g eas-cli`
+- Required version: pnpm >= 9.x
+- Use workspace protocol for internal dependencies: `"@evil-empire/parsers": "workspace:*"`
 - Configure .npmrc for pnpm:
   ```
-  engine-strict=true
-  auto-install-peers=true
+  node-linker=hoisted
+  shamefully-hoist=true
   strict-peer-dependencies=false
-  prefer-workspace-packages=true
+  auto-install-peers=true
   ```
 - Use pnpm-workspace.yaml for monorepo configuration
 - Always commit pnpm-lock.yaml
 - Use `pnpm install --frozen-lockfile` in CI environments
 
-Environment Setup
+## Turborepo Usage
+- Use `turbo.json` to define build pipelines
+- Tasks with `^` in dependsOn run dependencies first: `"dependsOn": ["^build"]`
+- Use filters to run commands on specific packages: `pnpm build --filter=@evil-empire/mobile`
+- Leverage caching for faster builds
+
+## Environment Setup
 - Required Versions
-  - Node.js >= 18.x (LTS recommended)
-  - pnpm >= 8.x (preferred package manager)
+  - Node.js >= 22.x (see .nvmrc)
+  - pnpm >= 9.x (preferred package manager)
   - Expo CLI latest version
   - Xcode 14+ (for iOS development)
   - Android Studio Latest (for Android development)
 
-Version Control Guidelines
+## Version Control Guidelines
 - Git Workflow
   - Use feature branches branched from main/master
   - Branch naming: `type/description` (e.g., feature/auth-flow, fix/crash-on-startup)
@@ -143,7 +191,7 @@ Version Control Guidelines
   - Write descriptive messages in present tense
   - Include ticket/issue numbers if applicable
 
-CI/CD Guidelines
+## CI/CD Guidelines
 - Build Process
   - Use EAS Build for consistent builds across environments
   - Configure build profiles in eas.json for different environments
@@ -177,4 +225,4 @@ CI/CD Guidelines
 
 Follow Expo's official documentation for detailed information on EAS Build and Submit:
 https://docs.expo.dev/build/introduction/
-https://docs.expo.dev/submit/introduction/ 
+https://docs.expo.dev/submit/introduction/
