@@ -28,6 +28,7 @@ confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
 image_repositories = []
+parameter_overrides = "DomainName=vaikia.dev CertificateArn=arn:aws:acm:us-east-1:738394721489:certificate/c819c3ba-e571-4642-97ac-9140b3b85697"
 
 [dev.global.parameters]
 region = "eu-north-1"
