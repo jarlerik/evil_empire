@@ -28,6 +28,7 @@ confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
 image_repositories = []
+parameter_overrides = "DomainName=getpeaktrack.com CertificateArn=arn:aws:acm:us-east-1:738394721489:certificate/6df252c8-98b1-4456-a5bd-594372739b88"
 
 [dev.global.parameters]
 region = "eu-north-1"
