@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Static website hosting with S3 and CloudFront
+Parameters:
+  DomainName:
+    Type: String
+    Description: Custom domain name (e.g., www.example.com)
+    Default: ''
+  CertificateArn:
+    Type: String
+    Description: ACM Certificate ARN (must be in us-east-1)
+    Default: ''
+Conditions:
+  HasCustomDomain:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: DomainName
+      - ''
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-website-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: WebsiteBucket
+      PolicyDocument:
+        Statement:
+        - Sid: AllowCloudFrontServicePrincipal
+          Effect: Allow
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Action: s3:GetObject
+          Resource:
+            Fn::Sub: ${WebsiteBucket.Arn}/*
+          Condition:
+            StringEquals:
+              AWS:SourceArn:
+                Fn::Sub: arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name:
+          Fn::Sub: ${AWS::StackName}-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+        - Id: S3Origin
+          DomainName:
+            Fn::GetAtt:
+            - WebsiteBucket
+            - RegionalDomainName
+          OriginAccessControlId:
+            Ref: CloudFrontOAC
+          S3OriginConfig:
+            OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        Aliases:
+          Fn::If:
+          - HasCustomDomain
+          - - Ref: DomainName
+          - Ref: AWS::NoValue
+        ViewerCertificate:
+          Fn::If:
+          - HasCustomDomain
+          - AcmCertificateArn:
+              Ref: CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        CustomErrorResponses:
+        - ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+        - ErrorCode: 404
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+Outputs:
+  WebsiteBucketName:
+    Description: S3 bucket name for website files
+    Value:
+      Ref: WebsiteBucket
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID
+    Value:
+      Ref: CloudFrontDistribution
+  CloudFrontDomainName:
+    Description: CloudFront domain name
+    Value:
+      Fn::GetAtt:
+      - CloudFrontDistribution
+      - DomainName
+  WebsiteURL:
+    Description: Website URL
+    Value:
+      Fn::If:
+      - HasCustomDomain
+      - Fn::Sub: https://${DomainName}
+      - Fn::Sub: https://${CloudFrontDistribution.DomainName}

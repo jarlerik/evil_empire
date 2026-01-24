@@ -1,0 +1,33 @@
+# Static site SAM configuration
+version = 0.1
+
+[default.global.parameters]
+stack_name = "getpeaktrack-static-site"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[default.package.parameters]
+resolve_s3 = true
+
+[dev.deploy.parameters]
+stack_name = "getpeaktrack-static-site"
+resolve_s3 = true
+s3_prefix = "getpeaktrack-static-site"
+profile = "hooseedev"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []
+
+[dev.global.parameters]
+region = "eu-north-1"
