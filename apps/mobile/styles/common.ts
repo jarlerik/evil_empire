@@ -13,6 +13,7 @@ export const colors = {
 	text: '#fff',
 	textMuted: '#666',
 	textSecondary: '#666666',
+	error: '#ef4444',
 };
 
 /**

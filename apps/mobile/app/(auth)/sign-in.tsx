@@ -9,36 +9,31 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [showResend, setShowResend] = useState(false);
   const router = useRouter();
   const { signIn, resendVerificationEmail } = useAuth();
   const passwordInputRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
+    setErrorMessage('');
+
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorMessage('Please fill in all fields');
       return;
     }
 
     setIsLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/');
     } catch (error) {
-      let message = 'An error occurred during sign in';
-
       if (error instanceof Error) {
-
-      if (error.message.includes('Email not confirmed')) {
-        setShowResend(true);
-        message = 'Please verify your email address before signing in.';
-      } else if (error.message.includes('Invalid login credentials')) {
-        message = 'Invalid email or password';
-      } else if (error.message.includes('429')) {
-        message = 'Too many attempts. Please try again later.';
-      }
-
-      Alert.alert('Error', message);
+        if (error.message.includes('check your email and confirm')) {
+          setShowResend(true);
+        }
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('An error occurred during sign in');
       }
     } finally {
       setIsLoading(false);
@@ -102,6 +97,9 @@ export default function SignIn() {
             returnKeyType="done"
             onSubmitEditing={handleSignIn}
           />
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
           {isLoading ? (
             <ActivityIndicator color={colors.primary} style={styles.loader} />
           ) : (
@@ -143,6 +141,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     fontSize: 16,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
   loader: {
     padding: 15,
