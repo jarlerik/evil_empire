@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { colors, commonStyles } from '../../styles/common';
+import { Button } from '../../components/Button';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -70,12 +72,15 @@ export default function SignIn() {
 
   return (
     <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }} accessible={false}>
-      <View style={styles.container}>
+      <View style={commonStyles.container}>
+        <View style={commonStyles.headerRow}>
+          <Text style={commonStyles.title}>Sign In</Text>
+        </View>
         <View style={styles.form}>
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -89,7 +94,7 @@ export default function SignIn() {
             ref={passwordInputRef}
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -97,26 +102,23 @@ export default function SignIn() {
             returnKeyType="done"
             onSubmitEditing={handleSignIn}
           />
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleSignIn}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loader} />
+          ) : (
+            <Button
+              title="Sign In"
+              onPress={handleSignIn}
+              disabled={isLoading}
+            />
+          )}
 
           {showResend && (
-            <TouchableOpacity
-              style={[styles.resendButton, isLoading && styles.buttonDisabled]}
+            <Button
+              title="Resend Verification Email"
+              variant="secondary"
               onPress={handleResendVerification}
               disabled={isLoading}
-            >
-              <Text style={styles.resendButtonText}>Resend Verification Email</Text>
-            </TouchableOpacity>
+            />
           )}
 
           <TouchableOpacity
@@ -132,52 +134,21 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   form: {
     gap: 16,
   },
   input: {
-    height: 48,
+    backgroundColor: colors.backgroundInput,
+    color: colors.text,
+    padding: 15,
     borderRadius: 8,
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 16,
-    color: '#fff',
-  },
-  button: {
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
-  resendButton: {
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  resendButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
+  loader: {
+    padding: 15,
   },
   link: {
-    color: '#007AFF',
+    color: colors.primary,
     textAlign: 'center',
     marginTop: 16,
   },
