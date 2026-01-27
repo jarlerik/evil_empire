@@ -11,11 +11,16 @@ import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';
 
+interface CompletedWorkout {
+	workout: Workout;
+	exercises: Exercise[];
+	executedAt: string;
+}
+
 export default function History() {
 	const { user, loading: authLoading } = useAuth();
 	const { loading: settingsLoading } = useUserSettings();
-	const [workout, setWorkout] = useState<Workout | null>(null);
-	const [exercises, setExercises] = useState<Exercise[]>([]);
+	const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [errorState, setErrorState] = useState<string | null>(null);
 
@@ -28,52 +33,84 @@ export default function History() {
 	useFocusEffect(
 		useCallback(() => {
 			if (!user || !supabase) {return;}
-			const fetchLatestWorkout = async () => {
+			const fetchCompletedWorkouts = async () => {
 				if (!supabase) {
-					setWorkout(null);
-					setExercises([]);
+					setCompletedWorkouts([]);
 					return;
 				}
 				setIsLoading(true);
 				setErrorState(null);
-				const cutoffDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-				const { data, error } = await supabase
+
+				const cutoffDate = subDays(new Date(), 30).toISOString();
+
+				// Fetch execution logs from the last 30 days
+				const { data: logs, error: logsError } = await supabase
+					.from('workout_execution_logs')
+					.select('workout_id, executed_at')
+					.gte('executed_at', cutoffDate)
+					.order('executed_at', { ascending: false });
+
+				if (logsError) {
+					setErrorState('Failed to load workout history.');
+					setCompletedWorkouts([]);
+					setIsLoading(false);
+					return;
+				}
+
+				if (!logs || logs.length === 0) {
+					setCompletedWorkouts([]);
+					setIsLoading(false);
+					return;
+				}
+
+				// Group by workout_id, keeping the most recent executed_at per workout
+				const workoutMap = new Map<string, string>();
+				for (const log of logs) {
+					if (!workoutMap.has(log.workout_id)) {
+						workoutMap.set(log.workout_id, log.executed_at);
+					}
+				}
+
+				const workoutIds = [...workoutMap.keys()];
+
+				// Fetch workout details
+				const { data: workouts, error: workoutsError } = await supabase
 					.from('workouts')
 					.select('*')
-					.eq('user_id', user.id)
-					.gte('workout_date', cutoffDate)
-					.order('workout_date', { ascending: false })
-					.limit(1);
-				if (error) {
-					setErrorState('Failed to load workout history.');
-					setWorkout(null);
-					setExercises([]);
+					.in('id', workoutIds)
+					.eq('user_id', user.id);
+
+				if (workoutsError || !workouts) {
+					setErrorState('Failed to load workout details.');
+					setCompletedWorkouts([]);
 					setIsLoading(false);
 					return;
 				}
-				if (!data || data.length === 0) {
-					setWorkout(null);
-					setExercises([]);
-					setIsLoading(false);
-					return;
-				}
-				const latestWorkout = data[0];
-				if (!supabase) {
-					setWorkout(latestWorkout);
-					setExercises([]);
-					setIsLoading(false);
-					return;
-				}
-				const { data: exerciseData } = await supabase
+
+				// Fetch exercises for all workouts
+				const { data: allExercises } = await supabase
 					.from('exercises')
 					.select('*')
-					.eq('workout_id', latestWorkout.id)
+					.in('workout_id', workoutIds)
 					.order('created_at', { ascending: true });
-				setWorkout(latestWorkout);
-				setExercises(exerciseData ?? []);
+
+				// Combine into CompletedWorkout[], sorted by most recent execution
+				const completed: CompletedWorkout[] = workoutIds
+					.map((id) => {
+						const workout = workouts.find((w) => w.id === id);
+						if (!workout) {return null;}
+						return {
+							workout,
+							exercises: (allExercises ?? []).filter((e) => e.workout_id === id),
+							executedAt: workoutMap.get(id)!,
+						};
+					})
+					.filter((entry): entry is CompletedWorkout => entry !== null);
+
+				setCompletedWorkouts(completed);
 				setIsLoading(false);
 			};
-			fetchLatestWorkout();
+			fetchCompletedWorkouts();
 		}, [user]),
 	);
 
@@ -85,12 +122,6 @@ export default function History() {
 		);
 	}
 
-	const workoutDateLabel = workout?.workout_date
-		? format(parseISO(workout.workout_date), 'EEEE, LLLL d')
-		: workout?.created_at
-			? format(parseISO(workout.created_at), 'EEEE, LLLL d')
-			: null;
-
 	return (
 		<View style={styles.screen}>
 			<ScrollView contentContainerStyle={styles.scrollContent}>
@@ -98,25 +129,26 @@ export default function History() {
 					<View style={[commonStyles.headerRow, styles.headerRow]}>
 						<Text style={commonStyles.title}>History</Text>
 					</View>
-					<Text style={styles.subtitle}>Last workout in the past 30 days</Text>
+					<Text style={styles.subtitle}>Completed workouts in the last 30 days</Text>
 					{errorState && <Text style={styles.errorText}>{errorState}</Text>}
-					{!errorState && !workout && (
-						<Text style={styles.emptyText}>No workouts logged in the last 30 days.</Text>
+					{!errorState && completedWorkouts.length === 0 && (
+						<Text style={styles.emptyText}>No completed workouts in the last 30 days.</Text>
 					)}
-					{workout && (
-						<View style={styles.cardSection}>
-							{workoutDateLabel && (
-								<Text style={styles.dateText}>{workoutDateLabel}</Text>
-							)}
-							<WorkoutCard
-								workout={workout}
-								exercises={exercises}
-								isReadOnly
-								onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: workout.name, workoutId: workout.id } })}
-								onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
-							/>
-						</View>
-					)}
+					{completedWorkouts.map(({ workout, exercises, executedAt }) => {
+						const dateLabel = format(parseISO(executedAt), 'EEEE, LLLL d');
+						return (
+							<View key={workout.id} style={styles.cardSection}>
+								<Text style={styles.dateText}>{dateLabel}</Text>
+								<WorkoutCard
+									workout={workout}
+									exercises={exercises}
+									isReadOnly
+									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: workout.name, workoutId: workout.id } })}
+									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
+								/>
+							</View>
+						);
+					})}
 				</View>
 			</ScrollView>
 			<NavigationBar />
