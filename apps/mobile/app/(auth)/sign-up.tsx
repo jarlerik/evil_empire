@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, Pressable, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, commonStyles } from '../../styles/common';
@@ -9,43 +9,47 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
   const { signUp } = useAuth();
   const passwordInputRef = useRef<TextInput>(null);
 
   const handleSignUp = async () => {
+    setErrorMessage('');
+
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorMessage('Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      setErrorMessage('Password must be at least 6 characters long');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage('Unable to validate email address: invalid format');
       return;
     }
 
     setIsLoading(true);
     try {
       await signUp(email, password);
-      Alert.alert(
-        'Success',
-        'Please check your email for verification instructions.',
-        [{ text: 'OK', onPress: () => router.replace('/sign-in') }],
-      );
+      router.replace('/sign-in');
     } catch (error) {
-      let message = 'An error occurred during sign up';
+      const errMsg = error instanceof Error ? error.message : '';
 
-      if (error instanceof Error) {
-      // Handle specific error cases
-      if (error?.message?.includes('429')) {
-        message = 'Too many attempts. Please try again later.';
-      } else if (error?.message?.includes('email')) {
-        message = 'Invalid email address';
-      } else if (error?.message?.includes('password')) {
-        message = 'Password is too weak';
-      }
-
-      Alert.alert('Error', message);
+      if (errMsg.includes('Unable to validate email address')) {
+        setErrorMessage('Unable to validate email address: invalid format');
+      } else if (errMsg.includes('429')) {
+        setErrorMessage('Too many attempts. Please try again later.');
+      } else if (errMsg.includes('email')) {
+        setErrorMessage('Invalid email address');
+      } else if (errMsg.includes('password')) {
+        setErrorMessage('Password is too weak');
+      } else {
+        setErrorMessage('An error occurred during sign up');
       }
     } finally {
       setIsLoading(false);
@@ -84,6 +88,9 @@ export default function SignUp() {
             returnKeyType="done"
             onSubmitEditing={handleSignUp}
           />
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
           {isLoading ? (
             <ActivityIndicator color={colors.primary} style={styles.loader} />
           ) : (
@@ -115,6 +122,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     fontSize: 16,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
   loader: {
     padding: 15,
