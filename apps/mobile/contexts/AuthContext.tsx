@@ -134,7 +134,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut: async () => {
       if (!supabase) {throw new Error('Supabase client not initialized');}
       const { error } = await supabase.auth.signOut();
-      if (error) {throw error;}
+      if (error && error.message !== 'Auth session missing!') {throw error;}
+      setSession(null);
+      setUser(null);
     },
     resendVerificationEmail: async (email: string) => {
       if (!supabase) {throw new Error('Supabase client not initialized');}
