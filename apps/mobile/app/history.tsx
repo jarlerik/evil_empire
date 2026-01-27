@@ -5,8 +5,10 @@ import { router } from 'expo-router';
 import { format, parseISO, subDays } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { supabase } from '../lib/supabase';
 import { commonStyles, colors } from '../styles/common';
+import { fetchRecentExecutionLogs } from '../services/workoutExecutionLogService';
+import { fetchWorkoutsByIds } from '../services/workoutService';
+import { fetchExercisesByWorkoutIds } from '../services/exerciseService';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';
@@ -32,23 +34,15 @@ export default function History() {
 
 	useFocusEffect(
 		useCallback(() => {
-			if (!user || !supabase) {return;}
+			if (!user) {return;}
 			const fetchCompletedWorkouts = async () => {
-				if (!supabase) {
-					setCompletedWorkouts([]);
-					return;
-				}
 				setIsLoading(true);
 				setErrorState(null);
 
 				const cutoffDate = subDays(new Date(), 30).toISOString();
 
 				// Fetch execution logs from the last 30 days
-				const { data: logs, error: logsError } = await supabase
-					.from('workout_execution_logs')
-					.select('workout_id, executed_at')
-					.gte('executed_at', cutoffDate)
-					.order('executed_at', { ascending: false });
+				const { data: logs, error: logsError } = await fetchRecentExecutionLogs(cutoffDate);
 
 				if (logsError) {
 					setErrorState('Failed to load workout history.');
@@ -74,11 +68,7 @@ export default function History() {
 				const workoutIds = [...workoutMap.keys()];
 
 				// Fetch workout details
-				const { data: workouts, error: workoutsError } = await supabase
-					.from('workouts')
-					.select('*')
-					.in('id', workoutIds)
-					.eq('user_id', user.id);
+				const { data: workouts, error: workoutsError } = await fetchWorkoutsByIds(workoutIds, user.id);
 
 				if (workoutsError || !workouts) {
 					setErrorState('Failed to load workout details.');
@@ -88,11 +78,7 @@ export default function History() {
 				}
 
 				// Fetch exercises for all workouts
-				const { data: allExercises } = await supabase
-					.from('exercises')
-					.select('*')
-					.in('workout_id', workoutIds)
-					.order('created_at', { ascending: true });
+				const { data: allExercises } = await fetchExercisesByWorkoutIds(workoutIds);
 
 				// Combine into CompletedWorkout[], sorted by most recent execution
 				const completed: CompletedWorkout[] = workoutIds

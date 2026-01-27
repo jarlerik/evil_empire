@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { lookupExactRm, fetchAllRmsByReps } from '../services/repetitionMaximumService';
 
 interface RmLookupResult {
 	weight: number;
@@ -21,31 +21,16 @@ export function useRmLookup() {
 		userId: string,
 		exerciseName: string,
 	): Promise<RmLookupResult> => {
-		if (!supabase) {
-			return { weight: 0, found: false, error: 'Database not available' };
-		}
-
 		// First, try exact match on exercise name
-		let { data: rmData, error: rmError } = await supabase
-			.from('repetition_maximums')
-			.select('weight')
-			.eq('user_id', userId)
-			.ilike('exercise_name', exerciseName.trim())
-			.eq('reps', 1) // Always use 1RM for percentage calculations
-			.order('date', { ascending: false })
-			.limit(1)
-			.maybeSingle();
+		const { data: rmData, error: rmError } = await lookupExactRm(userId, exerciseName, 1);
+
+		let foundWeight: number | null = rmData?.weight ?? null;
 
 		// If no exact match, try to find a matching base exercise
 		// For compound exercises like "Muscle clean + Push press...", look for "Clean" in existing RMs
-		if ((rmError || !rmData) && exerciseName.includes('+')) {
+		if ((rmError || !foundWeight) && exerciseName.includes('+')) {
 			// Get all user's 1RMs to search for partial matches
-			const { data: allRms, error: allRmsError } = await supabase
-				.from('repetition_maximums')
-				.select('exercise_name, weight')
-				.eq('user_id', userId)
-				.eq('reps', 1)
-				.order('date', { ascending: false });
+			const { data: allRms, error: allRmsError } = await fetchAllRmsByReps(userId, 1);
 
 			if (!allRmsError && allRms && allRms.length > 0) {
 				// Split compound exercise name by '+' and check each part
@@ -58,21 +43,18 @@ export function useRmLookup() {
 
 					// Check if any part of the compound exercise matches the RM name
 					for (const part of exerciseParts) {
-						// Check if RM name contains the part (e.g., "Clean" in "Muscle clean")
-						// or if the part contains the RM name (e.g., "clean" contains "clean")
 						if (rmNameLower.includes(part) || part.includes(rmNameLower)) {
-							rmData = { weight: rm.weight };
-							rmError = null;
+							foundWeight = rm.weight;
 							break;
 						}
 					}
 
-					if (rmData) {break;}
+					if (foundWeight) {break;}
 				}
 			}
 		}
 
-		if (rmError || !rmData) {
+		if (rmError || !foundWeight) {
 			return {
 				weight: 0,
 				found: false,
@@ -80,7 +62,7 @@ export function useRmLookup() {
 			};
 		}
 
-		return { weight: rmData.weight, found: true };
+		return { weight: foundWeight, found: true };
 	};
 
 	/**

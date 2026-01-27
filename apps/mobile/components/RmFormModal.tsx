@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { format } from 'date-fns';
-
-interface RepetitionMaximum {
-	id: string;
-	user_id: string;
-	exercise_name: string;
-	reps: number;
-	weight: number;
-	date: string;
-	created_at: string;
-	updated_at: string;
-}
+import { RepetitionMaximum } from '../services/types';
 
 export interface RmFormData {
 	exerciseName: string;

@@ -1,28 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { ParsedSetData } from '../lib/parseSetInput';
+import {
+	fetchPhasesByExerciseId,
+	insertPhase,
+	updatePhase as updatePhaseService,
+	deletePhase as deletePhaseService,
+	PhaseInsertData,
+} from '../services/exercisePhaseService';
 
 interface UseExercisePhasesProps {
 	exerciseId: string | string[] | undefined;
-}
-
-interface PhaseInsertData {
-	exercise_id: string;
-	sets: number;
-	repetitions: number;
-	weight: number;
-	compound_reps?: number[] | null;
-	weights?: number[] | null;
-	exercise_type?: string;
-	notes?: string | null;
-	target_rm?: number | null;
-	rir_min?: number | null;
-	rir_max?: number | null;
-	circuit_exercises?: Array<{ reps: string; name: string }> | null;
-	weight_min?: number | null;
-	weight_max?: number | null;
-	rest_time_seconds?: number | null;
 }
 
 interface UseExercisePhasesReturn {
@@ -128,13 +116,10 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 	const [isLoading, setIsLoading] = useState(false);
 
 	const fetchExercisePhases = useCallback(async () => {
-		if (!supabase || !exerciseId) {return;}
+		if (!exerciseId) {return;}
 
-		const { data, error } = await supabase
-			.from('exercise_phases')
-			.select('*')
-			.eq('exercise_id', exerciseId)
-			.order('created_at', { ascending: true });
+		const exerciseIdStr = Array.isArray(exerciseId) ? exerciseId[0] : exerciseId;
+		const { data, error } = await fetchPhasesByExerciseId(exerciseIdStr);
 
 		if (!error && data) {
 			setExercisePhases(data);
@@ -142,7 +127,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 	}, [exerciseId]);
 
 	useEffect(() => {
-		if (exerciseId && supabase) {
+		if (exerciseId) {
 			fetchExercisePhases();
 		}
 	}, [exerciseId, fetchExercisePhases]);
@@ -152,7 +137,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 		calculatedWeight: number,
 		weightRange?: { min: number; max: number },
 	): Promise<{ success: boolean; error?: string }> => {
-		if (!supabase || !exerciseId) {
+		if (!exerciseId) {
 			return { success: false, error: 'Database not available' };
 		}
 
@@ -174,15 +159,13 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 					phaseData.rest_time_seconds = parsedData.restTimeSeconds;
 				}
 
-				const { error: phaseError } = await supabase
-					.from('exercise_phases')
-					.insert(phaseData);
+				const { error: phaseError } = await insertPhase(phaseData);
 
 				if (phaseError) {
 					setIsLoading(false);
 					return {
 						success: false,
-						error: 'Error adding wave phase: ' + (phaseError.message || 'Unknown error'),
+						error: 'Error adding wave phase: ' + phaseError,
 					};
 				}
 			}
@@ -194,15 +177,13 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 
 		const insertData = buildPhaseData(exerciseIdStr, parsedData, calculatedWeight, weightRange, false);
 
-		const { error } = await supabase
-			.from('exercise_phases')
-			.insert([insertData]);
+		const { error } = await insertPhase(insertData);
 
 		if (error) {
 			setIsLoading(false);
 			return {
 				success: false,
-				error: 'Error adding phase: ' + (error.message || 'Unknown error'),
+				error: 'Error adding phase: ' + error,
 			};
 		}
 
@@ -217,7 +198,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 		calculatedWeight: number,
 		weightRange?: { min: number; max: number },
 	): Promise<{ success: boolean; error?: string }> => {
-		if (!supabase || !exerciseId) {
+		if (!exerciseId) {
 			return { success: false, error: 'Database not available' };
 		}
 
@@ -227,12 +208,9 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 		const updateData = buildPhaseData(exerciseIdStr, parsedData, calculatedWeight, weightRange, true);
 
 		// Remove exercise_id from update data as it shouldn't be updated
-		const { ...dataWithoutExerciseId } = updateData;
+		const { exercise_id: _, ...dataWithoutExerciseId } = updateData;
 
-		const { error } = await supabase
-			.from('exercise_phases')
-			.update(dataWithoutExerciseId)
-			.eq('id', phaseId);
+		const { error } = await updatePhaseService(phaseId, dataWithoutExerciseId);
 
 		if (error) {
 			setIsLoading(false);
@@ -245,14 +223,7 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 	}, [exerciseId, fetchExercisePhases]);
 
 	const deletePhase = useCallback(async (phaseId: string): Promise<{ success: boolean; error?: string }> => {
-		if (!supabase) {
-			return { success: false, error: 'Database not available' };
-		}
-
-		const { error } = await supabase
-			.from('exercise_phases')
-			.delete()
-			.eq('id', phaseId);
+		const { error } = await deletePhaseService(phaseId);
 
 		if (error) {
 			return { success: false, error: 'Error deleting phase' };

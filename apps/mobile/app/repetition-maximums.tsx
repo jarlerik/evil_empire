@@ -1,24 +1,19 @@
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useCallback } from 'react';
 import { router } from 'expo-router';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
 import { commonStyles } from '../styles/common';
-
-interface RepetitionMaximum {
-	id: string;
-	user_id: string;
-	exercise_name: string;
-	reps: number;
-	weight: number;
-	date: string;
-	created_at: string;
-	updated_at: string;
-}
+import { RepetitionMaximum } from '../services/types';
+import {
+	fetchRepetitionMaximums,
+	createRepetitionMaximum,
+	updateRepetitionMaximum,
+	deleteRepetitionMaximum,
+} from '../services/repetitionMaximumService';
 
 export default function RepetitionMaximums() {
 	const { user } = useAuth();
@@ -30,7 +25,7 @@ export default function RepetitionMaximums() {
 
 	useFocusEffect(
 		useCallback(() => {
-			if (user && supabase) {
+			if (user) {
 				fetchRms();
 			}
 			// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,14 +33,8 @@ export default function RepetitionMaximums() {
 	);
 
 	const fetchRms = async () => {
-		if (!supabase || !user) {return;}
-		const { data, error } = await supabase
-			.from('repetition_maximums')
-			.select('*')
-			.eq('user_id', user.id)
-			.order('exercise_name', { ascending: true })
-			.order('reps', { ascending: true })
-			.order('date', { ascending: false });
+		if (!user) {return;}
+		const { data, error } = await fetchRepetitionMaximums(user.id);
 
 		if (!error && data) {
 			setRms(data);
@@ -63,42 +52,37 @@ export default function RepetitionMaximums() {
 	};
 
 	const handleSave = async (data: RmFormData) => {
-		if (!user || !supabase) {return;}
+		if (!user) {return;}
 
 		setIsLoading(true);
 
 		if (editingRm) {
 			// Update existing RM
-			const { error } = await supabase
-				.from('repetition_maximums')
-				.update({
-					exercise_name: data.exerciseName,
-					reps: data.reps,
-					weight: data.weight,
-					date: data.date,
-				})
-				.eq('id', editingRm.id);
+			const { error } = await updateRepetitionMaximum(editingRm.id, {
+				exercise_name: data.exerciseName,
+				reps: data.reps,
+				weight: data.weight,
+				date: data.date,
+			});
 
 			if (error) {
-				Alert.alert('Error', 'Error updating repetition maximum: ' + (error.message || 'Unknown error'));
+				Alert.alert('Error', 'Error updating repetition maximum: ' + error);
 			} else {
 				handleCloseModal();
 				fetchRms();
 			}
 		} else {
 			// Create new RM
-			const { error } = await supabase
-				.from('repetition_maximums')
-				.insert([{
-					user_id: user.id,
-					exercise_name: data.exerciseName,
-					reps: data.reps,
-					weight: data.weight,
-					date: data.date,
-				}]);
+			const { error } = await createRepetitionMaximum({
+				userId: user.id,
+				exerciseName: data.exerciseName,
+				reps: data.reps,
+				weight: data.weight,
+				date: data.date,
+			});
 
 			if (error) {
-				Alert.alert('Error', 'Error creating repetition maximum: ' + (error.message || 'Unknown error'));
+				Alert.alert('Error', 'Error creating repetition maximum: ' + error);
 			} else {
 				handleCloseModal();
 				fetchRms();
@@ -109,12 +93,8 @@ export default function RepetitionMaximums() {
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!supabase) {return;}
 		setDeletingId(id);
-		const { error } = await supabase
-			.from('repetition_maximums')
-			.delete()
-			.eq('id', id);
+		const { error } = await deleteRepetitionMaximum(id);
 
 		if (!error) {
 			fetchRms();

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings } from '../services/userSettingsService';
 
 interface UserSettings {
   weight_unit: 'kg' | 'lbs';
@@ -33,15 +33,11 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
 
   const fetchUserSettings = async () => {
     try {
-      if (!supabase || !user) {return;}
+      if (!user) {return;}
 
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const { data, error } = await fetchUserSettingsService(user.id);
 
-      if (error) {throw error;}
+      if (error) {throw new Error(error);}
 
       if (data) {
         setSettings({
@@ -66,7 +62,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
 
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
     try {
-      if (!supabase || !user) {return;}
+      if (!user) {return;}
 
       // Ensure we have all required fields by merging with current settings
       const currentSettings = settings || { weight_unit: 'kg', user_weight: '85' };
@@ -75,35 +71,12 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
         ...newSettings,
       };
 
-      // First try to update existing settings
-      const { data, error: updateError } = await supabase
-        .from('user_settings')
-        .update({
-          weight_unit: updatedSettings.weight_unit,
-          user_weight: updatedSettings.user_weight,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const { error } = await upsertUserSettings(user.id, {
+        weight_unit: updatedSettings.weight_unit,
+        user_weight: updatedSettings.user_weight,
+      });
 
-      // If no row was updated (doesn't exist yet), then insert
-      if (!data) {
-        const { error: insertError } = await supabase
-          .from('user_settings')
-          .insert({
-            user_id: user.id,
-            weight_unit: updatedSettings.weight_unit,
-            user_weight: updatedSettings.user_weight,
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (insertError) {throw insertError;}
-      } else if (updateError) {
-        throw updateError;
-      }
+      if (error) {throw new Error(error);}
 
       // Update local state
       setSettings(updatedSettings);

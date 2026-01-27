@@ -2,38 +2,28 @@ import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useExercisePhases } from '../useExercisePhases';
 import { ParsedSetData } from '../../lib/parseSetInput';
 
-// Mock supabase
-const mockInsert = jest.fn();
-const mockUpdate = jest.fn();
-const mockDelete = jest.fn();
-const mockOrder = jest.fn();
-const mockEq = jest.fn();
-const mockSelect = jest.fn();
-const mockFrom = jest.fn();
+// Mock exercise phase service
+const mockFetchPhasesByExerciseId = jest.fn();
+const mockInsertPhase = jest.fn();
+const mockUpdatePhase = jest.fn();
+const mockDeletePhase = jest.fn();
 
-jest.mock('../../lib/supabase', () => ({
-	supabase: {
-		from: (table: string) => mockFrom(table),
-	},
+jest.mock('../../services/exercisePhaseService', () => ({
+	fetchPhasesByExerciseId: (...args: unknown[]) => mockFetchPhasesByExerciseId(...args),
+	insertPhase: (...args: unknown[]) => mockInsertPhase(...args),
+	updatePhase: (...args: unknown[]) => mockUpdatePhase(...args),
+	deletePhase: (...args: unknown[]) => mockDeletePhase(...args),
 }));
 
 describe('useExercisePhases', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 
-		// Setup mock chain
-		mockOrder.mockReturnValue({ data: [], error: null });
-		mockEq.mockReturnValue({ order: mockOrder, data: null, error: null });
-		mockSelect.mockReturnValue({ eq: mockEq });
-		mockInsert.mockReturnValue({ error: null });
-		mockUpdate.mockReturnValue({ eq: mockEq });
-		mockDelete.mockReturnValue({ eq: mockEq });
-		mockFrom.mockReturnValue({
-			select: mockSelect,
-			insert: mockInsert,
-			update: mockUpdate,
-			delete: mockDelete,
-		});
+		// Default: fetch returns empty array, mutations succeed
+		mockFetchPhasesByExerciseId.mockResolvedValue({ data: [], error: null });
+		mockInsertPhase.mockResolvedValue({ data: null, error: null });
+		mockUpdatePhase.mockResolvedValue({ data: null, error: null });
+		mockDeletePhase.mockResolvedValue({ data: null, error: null });
 	});
 
 	describe('initial state', () => {
@@ -51,7 +41,7 @@ describe('useExercisePhases', () => {
 			renderHook(() => useExercisePhases({ exerciseId: undefined }));
 
 			await waitFor(() => {
-				expect(mockFrom).not.toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).not.toHaveBeenCalled();
 			});
 		});
 	});
@@ -62,7 +52,7 @@ describe('useExercisePhases', () => {
 				{ id: 'p1', exercise_id: 'ex-1', sets: 3, repetitions: 5, weight: 100 },
 			];
 
-			mockOrder.mockReturnValue({ data: mockPhases, error: null });
+			mockFetchPhasesByExerciseId.mockResolvedValue({ data: mockPhases, error: null });
 
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
@@ -70,11 +60,11 @@ describe('useExercisePhases', () => {
 				expect(result.current.exercisePhases).toEqual(mockPhases);
 			});
 
-			expect(mockFrom).toHaveBeenCalledWith('exercise_phases');
+			expect(mockFetchPhasesByExerciseId).toHaveBeenCalledWith('ex-1');
 		});
 
 		it('should handle fetch errors gracefully', async () => {
-			mockOrder.mockReturnValue({ data: null, error: { message: 'Fetch error' } });
+			mockFetchPhasesByExerciseId.mockResolvedValue({ data: null, error: 'Fetch error' });
 
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
@@ -86,14 +76,11 @@ describe('useExercisePhases', () => {
 
 	describe('addPhase', () => {
 		it('should add a standard phase', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -109,18 +96,15 @@ describe('useExercisePhases', () => {
 			});
 
 			expect(addResult).toEqual({ success: true });
-			expect(mockInsert).toHaveBeenCalled();
+			expect(mockInsertPhase).toHaveBeenCalled();
 		});
 
 		it('should add a compound exercise phase', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -140,14 +124,11 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should add wave phases separately', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -171,7 +152,7 @@ describe('useExercisePhases', () => {
 
 			expect(addResult).toEqual({ success: true });
 			// Should have been called for each wave phase
-			expect(mockInsert).toHaveBeenCalledTimes(5);
+			expect(mockInsertPhase).toHaveBeenCalledTimes(5);
 		});
 
 		it('should return error when database not available', async () => {
@@ -193,14 +174,13 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should handle insert errors', async () => {
-			mockInsert.mockReturnValue({ error: { message: 'Insert failed' } });
-			mockOrder.mockReturnValue({ data: [], error: null });
+			mockInsertPhase.mockResolvedValue({ data: null, error: 'Insert failed' });
 
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -210,7 +190,7 @@ describe('useExercisePhases', () => {
 				isValid: true,
 			};
 
-			let addResult;
+			let addResult: { success: boolean; error?: string } | undefined;
 			await act(async () => {
 				addResult = await result.current.addPhase(parsedData, 100);
 			});
@@ -220,14 +200,11 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should add phase with weight range', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -246,14 +223,11 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should add phase with RIR values', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -275,14 +249,11 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should add circuit exercise', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -308,16 +279,11 @@ describe('useExercisePhases', () => {
 
 	describe('updatePhase', () => {
 		it('should update a phase', async () => {
-			// Create separate mock for update eq
-			const mockUpdateEq = jest.fn().mockReturnValue({ error: null });
-			mockUpdate.mockReturnValue({ eq: mockUpdateEq });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -333,20 +299,17 @@ describe('useExercisePhases', () => {
 			});
 
 			expect(updateResult).toEqual({ success: true });
-			expect(mockUpdate).toHaveBeenCalled();
+			expect(mockUpdatePhase).toHaveBeenCalled();
 		});
 
 		it('should handle update errors', async () => {
-			// Create separate mock for update eq that returns an error
-			const mockUpdateEq = jest.fn().mockReturnValue({ error: { message: 'Update failed' } });
-			mockUpdate.mockReturnValue({ eq: mockUpdateEq });
-			mockOrder.mockReturnValue({ data: [], error: null });
+			mockUpdatePhase.mockResolvedValue({ data: null, error: 'Update failed' });
 
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {
@@ -356,7 +319,7 @@ describe('useExercisePhases', () => {
 				isValid: true,
 			};
 
-			let updateResult;
+			let updateResult: { success: boolean; error?: string } | undefined;
 			await act(async () => {
 				updateResult = await result.current.updatePhase('p1', parsedData, 110);
 			});
@@ -365,16 +328,11 @@ describe('useExercisePhases', () => {
 		});
 
 		it('should clear optional fields when updating', async () => {
-			// Create separate mock for update eq
-			const mockUpdateEq = jest.fn().mockReturnValue({ error: null });
-			mockUpdate.mockReturnValue({ eq: mockUpdateEq });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			// Update to standard format (should clear compound_reps, rir, etc.)
@@ -389,22 +347,17 @@ describe('useExercisePhases', () => {
 				await result.current.updatePhase('p1', parsedData, 100);
 			});
 
-			expect(mockUpdate).toHaveBeenCalled();
+			expect(mockUpdatePhase).toHaveBeenCalled();
 		});
 	});
 
 	describe('deletePhase', () => {
 		it('should delete a phase', async () => {
-			// Create separate mock for delete eq
-			const mockDeleteEq = jest.fn().mockReturnValue({ error: null });
-			mockDelete.mockReturnValue({ eq: mockDeleteEq });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			let deleteResult;
@@ -413,20 +366,17 @@ describe('useExercisePhases', () => {
 			});
 
 			expect(deleteResult).toEqual({ success: true });
-			expect(mockDelete).toHaveBeenCalled();
+			expect(mockDeletePhase).toHaveBeenCalledWith('p1');
 		});
 
 		it('should handle delete errors', async () => {
-			// Create separate mock for delete eq that returns an error
-			const mockDeleteEq = jest.fn().mockReturnValue({ error: { message: 'Delete failed' } });
-			mockDelete.mockReturnValue({ eq: mockDeleteEq });
-			mockOrder.mockReturnValue({ data: [], error: null });
+			mockDeletePhase.mockResolvedValue({ data: null, error: 'Delete failed' });
 
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			let deleteResult;
@@ -440,14 +390,11 @@ describe('useExercisePhases', () => {
 
 	describe('array exerciseId handling', () => {
 		it('should handle array exerciseId', async () => {
-			mockInsert.mockReturnValue({ error: null });
-			mockOrder.mockReturnValue({ data: [], error: null });
-
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: ['ex-1', 'ex-2'] }));
 
 			// Wait for initial fetch to complete
 			await waitFor(() => {
-				expect(mockFrom).toHaveBeenCalled();
+				expect(mockFetchPhasesByExerciseId).toHaveBeenCalled();
 			});
 
 			const parsedData: ParsedSetData = {

@@ -1,27 +1,20 @@
 import { renderHook } from '@testing-library/react-native';
 import { useRmLookup } from '../useRmLookup';
 
-// Mock supabase
-const mockMaybeSingle = jest.fn();
-const mockLimit = jest.fn(() => ({ maybeSingle: mockMaybeSingle }));
-const mockOrder = jest.fn(() => ({ limit: mockLimit }));
-const mockEq = jest.fn(() => ({ order: mockOrder }));
-const mockIlike = jest.fn(() => ({ eq: mockEq }));
-const mockSelect = jest.fn(() => ({ eq: mockEq, ilike: mockIlike }));
-const mockFrom = jest.fn((_: string) => ({ select: mockSelect }));
+// Mock repetition maximum service
+const mockLookupExactRm = jest.fn();
+const mockFetchAllRmsByReps = jest.fn();
 
-jest.mock('../../lib/supabase', () => ({
-	supabase: {
-		from: (table: string) => mockFrom(table),
-	},
+jest.mock('../../services/repetitionMaximumService', () => ({
+	lookupExactRm: (...args: unknown[]) => mockLookupExactRm(...args),
+	fetchAllRmsByReps: (...args: unknown[]) => mockFetchAllRmsByReps(...args),
 }));
 
 describe('useRmLookup', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		mockMaybeSingle.mockReset();
-		mockEq.mockReturnValue({ order: mockOrder, ilike: mockIlike });
-		mockIlike.mockReturnValue({ eq: mockEq });
+		mockLookupExactRm.mockResolvedValue({ data: null, error: null });
+		mockFetchAllRmsByReps.mockResolvedValue({ data: [], error: null });
 	});
 
 	describe('calculateWeightFromPercentage', () => {
@@ -44,7 +37,7 @@ describe('useRmLookup', () => {
 
 	describe('lookupRm', () => {
 		it('should return weight when RM found', async () => {
-			mockMaybeSingle.mockResolvedValue({ data: { weight: 150 }, error: null });
+			mockLookupExactRm.mockResolvedValue({ data: { weight: 150 }, error: null });
 
 			const { result } = renderHook(() => useRmLookup());
 
@@ -56,7 +49,7 @@ describe('useRmLookup', () => {
 		});
 
 		it('should return not found when no RM exists', async () => {
-			mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+			mockLookupExactRm.mockResolvedValue({ data: null, error: null });
 
 			const { result } = renderHook(() => useRmLookup());
 
@@ -68,10 +61,7 @@ describe('useRmLookup', () => {
 		});
 
 		it('should handle database errors', async () => {
-			mockMaybeSingle.mockResolvedValue({
-				data: null,
-				error: { message: 'Database error' },
-			});
+			mockLookupExactRm.mockResolvedValue({ data: null, error: 'Database error' });
 
 			const { result } = renderHook(() => useRmLookup());
 
@@ -100,7 +90,7 @@ describe('useRmLookup', () => {
 		});
 
 		it('should calculate weight from percentage when RM lookup needed', async () => {
-			mockMaybeSingle.mockResolvedValue({ data: { weight: 100 }, error: null });
+			mockLookupExactRm.mockResolvedValue({ data: { weight: 100 }, error: null });
 
 			const { result } = renderHook(() => useRmLookup());
 
@@ -119,7 +109,7 @@ describe('useRmLookup', () => {
 		});
 
 		it('should calculate weight range from percentage range', async () => {
-			mockMaybeSingle.mockResolvedValue({ data: { weight: 100 }, error: null });
+			mockLookupExactRm.mockResolvedValue({ data: { weight: 100 }, error: null });
 
 			const { result } = renderHook(() => useRmLookup());
 
@@ -161,7 +151,7 @@ describe('useRmLookup', () => {
 		});
 
 		it('should fail when RM lookup fails', async () => {
-			mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+			mockLookupExactRm.mockResolvedValue({ data: null, error: null });
 
 			const { result } = renderHook(() => useRmLookup());
 

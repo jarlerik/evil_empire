@@ -4,20 +4,16 @@ import { commonStyles } from '../styles/common';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
-import { supabase } from '../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutionModal';
 import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
 import { WorkoutTimerDisplay } from '../components/WorkoutTimerDisplay';
-
-interface ExerciseDB {
-	id: string;
-	name: string;
-	workout_id: string;
-	created_at?: string;
-}
+import { Exercise } from '../types/workout';
+import { fetchExercisesByWorkoutId } from '../services/exerciseService';
+import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
+import { insertExecutionLog } from '../services/workoutExecutionLogService';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -29,7 +25,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function StartWorkout() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
-	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
+	const [exercises, setExercises] = useState<Exercise[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 
 	// Workout state management
@@ -47,29 +43,20 @@ export default function StartWorkout() {
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) {return;}
-		const { data, error } = await supabase
-			.from('exercises')
-			.select('*')
-			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: true });
+		if (!workoutId) {return;}
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const { data, error } = await fetchExercisesByWorkoutId(workoutIdStr);
 		if (!error && data) {
 			setExercises(data);
-			await fetchExercisePhases(data);
+			await fetchExercisePhasesForList(data);
 		}
 	};
 
-	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) {return;}
-
+	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
 		const phasesMap: Record<string, ExercisePhase[]> = {};
 
 		for (const exercise of exerciseList) {
-			const { data, error } = await supabase
-				.from('exercise_phases')
-				.select('*')
-				.eq('exercise_id', exercise.id)
-				.order('created_at', { ascending: true });
+			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
 
 			if (!error && data) {
 				phasesMap[exercise.id] = data;
@@ -420,13 +407,15 @@ export default function StartWorkout() {
 	};
 
 	const handleSaveExecution = async (executionData: ExecutionLogData) => {
-		if (!supabase || !workoutId) {return;}
+		if (!workoutId) {return;}
+
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
 
 		for (const phaseData of executionData.phases) {
 			const { parsed } = phaseData;
 
-			await supabase.from('workout_execution_logs').insert({
-				workout_id: workoutId,
+			await insertExecutionLog({
+				workout_id: workoutIdStr,
 				exercise_id: executionData.exercise_id,
 				exercise_phase_id: phaseData.exercise_phase_id,
 				sets: parsed.sets,

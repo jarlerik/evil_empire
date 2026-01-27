@@ -1,53 +1,40 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 import { commonStyles } from '../styles/common';
-
-interface ExerciseDB {
-	id: string;
-	name: string;
-	workout_id: string;
-	created_at?: string;
-}
+import { Exercise } from '../types/workout';
+import { fetchExercisesByWorkoutId, createExercise } from '../services/exerciseService';
+import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
+import { deleteWorkout } from '../services/workoutService';
 
 export default function AddExercises() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
 	const [exerciseName, setExerciseName] = useState('');
-	const [exercises, setExercises] = useState<ExerciseDB[]>([]);
+	const [exercises, setExercises] = useState<Exercise[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 	const [isLoading, setIsLoading] = useState(false);
 
 	const fetchExercises = async () => {
-		if (!workoutId || !supabase) {return;}
-		const { data, error } = await supabase
-			.from('exercises')
-			.select('*')
-			.eq('workout_id', workoutId)
-			.order('created_at', { ascending: true });
+		if (!workoutId) {return;}
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const { data, error } = await fetchExercisesByWorkoutId(workoutIdStr);
 		if (!error && data) {
 			setExercises(data);
 			// Fetch phases for each exercise
-			await fetchExercisePhases(data);
+			await fetchExercisePhasesForList(data);
 		}
 	};
 
-	const fetchExercisePhases = async (exerciseList: ExerciseDB[]) => {
-		if (!supabase) {return;}
-
+	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
 		const phasesMap: Record<string, ExercisePhase[]> = {};
 
 		for (const exercise of exerciseList) {
-			const { data, error } = await supabase
-				.from('exercise_phases')
-				.select('*')
-				.eq('exercise_id', exercise.id)
-				.order('created_at', { ascending: true });
+			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
 
 			if (!error && data) {
 				phasesMap[exercise.id] = data;
@@ -65,14 +52,11 @@ export default function AddExercises() {
 	);
 
 	const handleAddExercise = async () => {
-		if (!exerciseName.trim() || !workoutId || !supabase) {return;}
+		if (!exerciseName.trim() || !workoutId) {return;}
 		setIsLoading(true);
 
-		const { data, error } = await supabase
-			.from('exercises')
-			.insert([{ name: exerciseName.trim(), workout_id: workoutId }])
-			.select()
-			.single();
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const { data, error } = await createExercise(exerciseName.trim(), workoutIdStr);
 
 		if (!error && data) {
 			const createdExerciseName = exerciseName.trim();
@@ -89,11 +73,9 @@ export default function AddExercises() {
 	};
 
 	const handleDeleteWorkout = async () => {
-		if (!workoutId || !supabase) {return;}
-		const { error } = await supabase
-			.from('workouts')
-			.delete()
-			.eq('id', workoutId);
+		if (!workoutId) {return;}
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const { error } = await deleteWorkout(workoutIdStr);
 
 		if (!error) {
 			router.back();

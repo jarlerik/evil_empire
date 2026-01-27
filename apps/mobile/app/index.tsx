@@ -1,8 +1,9 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { fetchWorkoutsByUserId, createWorkout } from '../services/workoutService';
+import { fetchExercisesByWorkoutId } from '../services/exerciseService';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -49,14 +50,9 @@ export default function Index() {
 
 	useFocusEffect(
 		useCallback(() => {
-			if (!user || !supabase) {return;}
+			if (!user) {return;}
 			const fetchWorkouts = async () => {
-				if (!supabase) {return;}
-				const { data, error } = await supabase
-					.from('workouts')
-					.select('*')
-					.eq('user_id', user.id)
-					.order('created_at', { ascending: false });
+				const { data, error } = await fetchWorkoutsByUserId(user.id);
 				if (!error && data) {
 					setWorkouts(data);
 					await fetchExercises(data);
@@ -64,20 +60,14 @@ export default function Index() {
 			};
 			fetchWorkouts();
 			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [supabase, user]),
+		}, [user]),
 	);
 
 	const fetchExercises = async (workoutList: Workout[]) => {
-		if (!supabase) {return;}
-
 		const exercisesMap: Record<string, Exercise[]> = {};
 
 		for (const workout of workoutList) {
-			const { data, error } = await supabase
-				.from('exercises')
-				.select('*')
-				.eq('workout_id', workout.id)
-				.order('created_at', { ascending: true });
+			const { data, error } = await fetchExercisesByWorkoutId(workout.id);
 
 			if (!error && data) {
 				exercisesMap[workout.id] = data;
@@ -89,30 +79,20 @@ export default function Index() {
 
 	const handleCreateWorkout = async () => {
 		if (!workoutName.trim()) {return;}
-		if (!supabase) {
-			setErrorState('Database not available.');
-			return;
-		}
 		if (!user) {
 			setErrorState('You must be signed in to create a workout.');
 			return;
 		}
 		setIsLoading(true);
 		setErrorState(null);
-		const { error: insertError } = await supabase
-			.from('workouts')
-			.insert([{ name: workoutName.trim(), user_id: user.id, workout_date: format(selectedDate, 'yyyy-MM-dd') }]);
+		const { error: insertError } = await createWorkout(workoutName.trim(), user.id, format(selectedDate, 'yyyy-MM-dd'));
 		setIsLoading(false);
 		if (insertError) {
 			setErrorState('Failed to create workout. Please try again.');
 			return;
 		}
 		setWorkoutName('');
-		const { data, error } = await supabase
-			.from('workouts')
-			.select('*')
-			.eq('user_id', user.id)
-			.order('created_at', { ascending: false });
+		const { data, error } = await fetchWorkoutsByUserId(user.id);
 		if (!error && data) {
 			setWorkouts(data);
 			await fetchExercises(data);

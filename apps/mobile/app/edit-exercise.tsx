@@ -2,8 +2,8 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { supabase } from '../lib/supabase';
 import { reverseParsePhase } from '../lib/parseSetInput';
+import { deleteExercise, updateExerciseName } from '../services/exerciseService';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -73,11 +73,9 @@ export default function EditExercise() {
 	};
 
 	const handleDeleteExercise = async () => {
-		if (!exerciseId || !supabase) {return;}
-		const { error } = await supabase
-			.from('exercises')
-			.delete()
-			.eq('id', exerciseId);
+		if (!exerciseId) {return;}
+		const exerciseIdStr = Array.isArray(exerciseId) ? exerciseId[0] : exerciseId;
+		const { error } = await deleteExercise(exerciseIdStr);
 
 		if (!error) {
 			router.back();
@@ -107,12 +105,9 @@ export default function EditExercise() {
 	};
 
 	const handleSave = async () => {
-		if (!exerciseName.trim() || !exerciseId || !supabase) {return;}
-		// Update the exercise name in the database
-		const { error } = await supabase
-			.from('exercises')
-			.update({ name: exerciseName.trim() })
-			.eq('id', exerciseId);
+		if (!exerciseName.trim() || !exerciseId) {return;}
+		const exerciseIdStr = Array.isArray(exerciseId) ? exerciseId[0] : exerciseId;
+		const { error } = await updateExerciseName(exerciseIdStr, exerciseName.trim());
 
 		if (!error) {
 			router.back();
