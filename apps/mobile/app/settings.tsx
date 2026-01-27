@@ -7,7 +7,7 @@ import { commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 
 export default function Settings() {
-	const { user, loading: authLoading } = useAuth();
+	const { user, loading: authLoading, signOut } = useAuth();
 	const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
 	const router = useRouter();
 	const [isEditingWeight, setIsEditingWeight] = useState(false);
@@ -63,7 +63,12 @@ export default function Settings() {
 						</View>
 						<View style={styles.settings}>
 							<View style={styles.email}>
-								<Text style={styles.sectionTitle}>Email</Text>
+								<View style={styles.emailRow}>
+									<Text style={styles.sectionTitle}>Email</Text>
+									<Pressable onPress={signOut}>
+										<Text style={styles.logOutText}>Log out</Text>
+									</Pressable>
+								</View>
 								<Text style={styles.subtitle}>{user?.email}</Text>
 							</View>
 							<View style={styles.units} />
@@ -166,6 +171,16 @@ const styles = StyleSheet.create({
 	},
 	email: {
 		flex: 1,
+	},
+	emailRow: {
+		flexDirection: 'row',
+		alignItems: 'baseline',
+		justifyContent: 'space-between',
+	},
+	logOutText: {
+		fontSize: 14,
+		color: '#fff',
+		textDecorationLine: 'underline',
 	},
 	units: {
 		flex: 1,
