@@ -54,6 +54,44 @@ Resources:
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
+  HtmlCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name:
+          Fn::Sub: ${AWS::StackName}-html-cache-policy
+        Comment: Short TTL for HTML files
+        DefaultTTL: 300
+        MaxTTL: 3600
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+  StaticAssetsCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name:
+          Fn::Sub: ${AWS::StackName}-static-assets-cache-policy
+        Comment: Long TTL for static assets (JS, CSS, images, fonts)
+        DefaultTTL: 31536000
+        MaxTTL: 31536000
+        MinTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -73,7 +111,87 @@ Resources:
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          CachePolicyId:
+            Ref: HtmlCachePolicy
+          Compress: true
+        CacheBehaviors:
+        - PathPattern: '*.js'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.css'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.png'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.jpg'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.jpeg'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.gif'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.svg'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.webp'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.ico'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.woff'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.woff2'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.ttf'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
+          Compress: true
+        - PathPattern: '*.eot'
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId:
+            Ref: StaticAssetsCachePolicy
           Compress: true
         Aliases:
           Fn::If:
