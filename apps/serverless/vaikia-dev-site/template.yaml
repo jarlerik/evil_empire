@@ -91,6 +91,32 @@ Resources:
           QueryStringsConfig:
             QueryStringBehavior: none
 
+  # Response headers policy for HTML - no browser caching
+  HtmlResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-html-response-headers'
+        Comment: Response headers for HTML files - no browser caching
+        CustomHeadersConfig:
+          Items:
+            - Header: Cache-Control
+              Value: no-cache, no-store, must-revalidate
+              Override: true
+
+  # Response headers policy for static assets - long browser caching
+  StaticAssetsResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-static-assets-response-headers'
+        Comment: Response headers for static assets - 1 year browser caching
+        CustomHeadersConfig:
+          Items:
+            - Header: Cache-Control
+              Value: public, max-age=31536000, immutable
+              Override: true
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -107,72 +133,86 @@ Resources:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
           CachePolicyId: !Ref HtmlCachePolicy
+          ResponseHeadersPolicyId: !Ref HtmlResponseHeadersPolicy
           Compress: true
         CacheBehaviors:
           - PathPattern: '*.js'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.css'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.png'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.jpg'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.jpeg'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.gif'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.svg'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.webp'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.ico'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.woff'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.woff2'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.ttf'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
           - PathPattern: '*.eot'
             TargetOriginId: S3Origin
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref StaticAssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref StaticAssetsResponseHeadersPolicy
             Compress: true
         Aliases: !If
           - HasCustomDomain
