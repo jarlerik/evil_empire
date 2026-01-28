@@ -150,7 +150,14 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
-  apps/serverless/getpeaktrack-site: {}
+  apps/serverless/getpeaktrack-site:
+    devDependencies:
+      terser:
+        specifier: ^5.37.0
+        version: 5.46.0
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.1(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
 
   apps/serverless/vaikia-dev-site:
     dependencies:
