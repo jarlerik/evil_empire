@@ -3,6 +3,11 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: resolve(__dirname, '../../web/getpeaktrack'),
+  resolve: {
+    alias: {
+      '@evil-empire/parsers': resolve(__dirname, '../../../packages/parsers/dist/index.mjs'),
+    },
+  },
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
