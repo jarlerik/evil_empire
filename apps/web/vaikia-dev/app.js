@@ -1,4 +1,4 @@
-import { animate, stagger, splitText } from 'https://esm.sh/animejs';
+import { animate, stagger, splitText } from 'animejs';
 
 const { chars } = splitText('h1', { words: false, chars: true });
 
