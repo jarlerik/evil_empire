@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "kakkahata_88",
-    "slug": "kakkahata_88",
+    "name": "PeakTrack",
+    "slug": "peaktrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "peaktrack",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -24,12 +24,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://kakkahata-88.vercel.app"
-        }
-      ],
+      "expo-router",
       [
         "expo-splash-screen",
         {

@@ -4,16 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Turborepo monorepo containing a React Native/Expo workout tracking app called "Evil Empire". Users can create workouts, add exercises with various set/rep/weight formats, track repetition maximums (RMs), and execute workouts with timers.
+This is a Turborepo monorepo containing a React Native/Expo workout tracking app called "PeakTrack". Users can create workouts, add exercises with various set/rep/weight formats, track repetition maximums (RMs), and execute workouts with timers.
 
 ## Monorepo Structure
 
 ```
 evil_empire/
 ├── apps/
-│   ├── mobile/              # React Native/Expo mobile app (@evil-empire/mobile)
-│   ├── web/                 # Future web app (placeholder)
-│   └── docs/                # Future documentation (placeholder)
+│   └── mobile/
+│       └── PeakTrack/       # React Native/Expo mobile app (@evil-empire/mobile)
 ├── packages/
 │   ├── parsers/             # Shared parser logic (@evil-empire/parsers)
 │   ├── types/               # Shared TypeScript types (@evil-empire/types)
@@ -34,8 +33,8 @@ pnpm dev:mobile           # Start Expo dev server for mobile app
 pnpm start:mobile         # Alternative start command
 pnpm build                # Build all packages
 
-# From apps/mobile directory
-cd apps/mobile
+# From apps/mobile/PeakTrack directory
+cd apps/mobile/PeakTrack
 pnpm start                # Start Expo dev server
 pnpm ios                  # Start on iOS simulator
 pnpm android              # Start on Android emulator
@@ -54,7 +53,7 @@ pnpm typecheck            # Run TypeScript checks across monorepo
 
 ## Architecture
 
-### Mobile App (apps/mobile)
+### Mobile App (apps/mobile/PeakTrack)
 
 #### Routing (Expo Router - File-based)
 - `app/_layout.tsx` - Root layout wrapping with providers (Auth, UserSettings, SafeArea, GestureHandler)
@@ -118,9 +117,9 @@ From `.cursor/rules/rules.mdc`:
 
 Tests are in `__tests__` directories adjacent to source files:
 - `packages/parsers/__tests__/` - Parser unit tests (296 tests)
-- `apps/mobile/components/__tests__/` - Component tests
-- `apps/mobile/contexts/__tests__/` - Context tests
-- `apps/mobile/hooks/__tests__/` - Hook tests
+- `apps/mobile/PeakTrack/components/__tests__/` - Component tests
+- `apps/mobile/PeakTrack/contexts/__tests__/` - Context tests
+- `apps/mobile/PeakTrack/hooks/__tests__/` - Hook tests
 
 ## Key Dependencies
 
