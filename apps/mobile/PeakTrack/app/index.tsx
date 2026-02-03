@@ -59,7 +59,7 @@ export default function Index() {
 				}
 			};
 			fetchWorkouts();
-			// eslint-disable-next-line react-hooks/exhaustive-deps
+
 		}, [user]),
 	);
 
