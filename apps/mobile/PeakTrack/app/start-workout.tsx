@@ -41,6 +41,7 @@ export default function StartWorkout() {
 
 	// Edit execution modal state
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+	const [currentExerciseSaved, setCurrentExerciseSaved] = useState(false);
 
 	const fetchExercises = async () => {
 		if (!workoutId) {return;}
@@ -334,17 +335,52 @@ export default function StartWorkout() {
 		}
 	};
 
-	const handleNextExercise = () => {
+	const saveCurrentExerciseWithPlannedValues = async () => {
+		// Skip if already saved manually via the edit modal
+		if (currentExerciseSaved) {
+			return;
+		}
+
+		if (!workoutId || currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+			return;
+		}
+
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const currentExercise = exercises[currentExerciseIndex];
+		const phases = exercisePhases[currentExercise.id] || [];
+
+		for (const phase of phases) {
+			await insertExecutionLog({
+				workout_id: workoutIdStr,
+				exercise_id: currentExercise.id,
+				exercise_phase_id: phase.id,
+				sets: phase.sets,
+				repetitions: phase.repetitions,
+				weight: phase.weight,
+				weights: phase.weights || null,
+				compound_reps: phase.compound_reps || null,
+				rest_time_seconds: phase.rest_time_seconds || null,
+				execution_status: 'completed',
+				executed_at: new Date().toISOString(),
+			});
+		}
+	};
+
+	const handleNextExercise = async () => {
 		if (restTimerIntervalRef.current) {
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
 		}
+
+		// Save the current exercise with planned values before moving on
+		await saveCurrentExerciseWithPlannedValues();
 
 		if (!isLastExercise() && isLastSet()) {
 			setCurrentExerciseIndex(currentExerciseIndex + 1);
 			setCurrentSetNumber(1);
 			setWorkoutState('work');
 			setRestTimeRemaining(0);
+			setCurrentExerciseSaved(false); // Reset for the new exercise
 		}
 		if (isLastExercise()) {
 			setWorkoutState('exercise_done');
@@ -356,7 +392,7 @@ export default function StartWorkout() {
 		}
 	};
 
-	const handleButtonPress = () => {
+	const handleButtonPress = async () => {
 		switch (workoutState) {
 			case 'idle':
 				handleStartWorkout();
@@ -370,7 +406,7 @@ export default function StartWorkout() {
 				}
 				break;
 			case 'exercise_done':
-				handleNextExercise();
+				await handleNextExercise();
 				break;
 			case 'workout_done':
 				router.back();
@@ -429,6 +465,7 @@ export default function StartWorkout() {
 			});
 		}
 
+		setCurrentExerciseSaved(true);
 		setIsEditModalVisible(false);
 	};
 
