@@ -3,6 +3,6 @@
   "references": [
     { "path": "packages/parsers" },
     { "path": "packages/types" },
-    { "path": "apps/mobile" }
+    { "path": "apps/mobile/PeakTrack" }
   ]
 }
