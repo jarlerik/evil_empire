@@ -42,9 +42,14 @@ export function WorkoutExerciseItem({
 			{phases.length > 0 && (
 				<View style={styles.phasesContainer}>
 					{phases.map((phase) => (
-						<Text key={phase.id} style={styles.phaseText}>
-							{formatExercisePhase(phase)}
-						</Text>
+						<View key={phase.id}>
+							<Text style={styles.phaseText}>
+								{formatExercisePhase(phase)}
+							</Text>
+							{phase.notes && (
+								<Text style={styles.phaseNotes}>{phase.notes}</Text>
+							)}
+						</View>
 					))}
 				</View>
 			)}
@@ -81,5 +86,10 @@ const styles = StyleSheet.create({
 		color: '#C65D24',
 		fontSize: 14,
 		marginTop: 4,
+	},
+	phaseNotes: {
+		color: '#fff',
+		fontSize: 12,
+		marginTop: 2,
 	},
 });

@@ -118,6 +118,9 @@ export function EditExecutionModal({
 							<View key={phase.id} style={styles.phaseItem}>
 								<Text style={styles.plannedLabel}>Planned:</Text>
 								<Text style={styles.plannedValue}>{formatExercisePhase(phase)}</Text>
+								{phase.notes && (
+									<Text style={styles.plannedNotes}>{phase.notes}</Text>
+								)}
 								<Text style={styles.actualLabel}>Actual:</Text>
 								<TextInput
 									style={styles.input}
@@ -201,6 +204,11 @@ const styles = StyleSheet.create({
 	plannedValue: {
 		color: '#888',
 		fontSize: 14,
+		marginBottom: 4,
+	},
+	plannedNotes: {
+		color: '#fff',
+		fontSize: 12,
 		marginBottom: 8,
 	},
 	actualLabel: {

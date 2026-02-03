@@ -1421,4 +1421,109 @@ describe('parseSetInput', () => {
 			});
 		});
 	});
+
+	describe('notes support (multiline input)', () => {
+		it('should parse standard format with notes on second line', () => {
+			const result = parseSetInput('4 x 3 @50kg\nSlow eccentric');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				notes: 'Slow eccentric',
+			});
+		});
+
+		it('should parse compound format with notes', () => {
+			const result = parseSetInput('3 x 2 + 2 + 2 @45kg 120s\n5sec pause in catch of split jerk');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 6,
+				weight: 45,
+				isValid: true,
+				compoundReps: [2, 2, 2],
+				restTimeSeconds: 120,
+				notes: '5sec pause in catch of split jerk',
+			});
+		});
+
+		it('should parse percentage format with notes', () => {
+			const result = parseSetInput('4 x 6 @80%\nTouch and go');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 6,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true,
+				notes: 'Touch and go',
+			});
+		});
+
+		it('should parse RIR format with notes', () => {
+			const result = parseSetInput('3 x 8, 2-3RIR\nFocus on tempo');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 8,
+				weight: 0,
+				isValid: true,
+				exerciseType: 'standard',
+				rirMin: 2,
+				rirMax: 3,
+				notes: 'Focus on tempo',
+			});
+		});
+
+		it('should parse RM build format with notes', () => {
+			const result = parseSetInput('Build to 5RM\nNo belt');
+			expect(result).toEqual({
+				sets: 0,
+				reps: 0,
+				weight: 0,
+				isValid: true,
+				exerciseType: 'rm_build',
+				targetRm: 5,
+				notes: 'No belt',
+			});
+		});
+
+		it('should handle multi-line notes (3+ lines)', () => {
+			const result = parseSetInput('4 x 3 @50kg\nLine 1\nLine 2\nLine 3');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				notes: 'Line 1\nLine 2\nLine 3',
+			});
+		});
+
+		it('should handle single line input without notes (existing behavior)', () => {
+			const result = parseSetInput('4 x 3 @50kg');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+			});
+			expect(result.notes).toBeUndefined();
+		});
+
+		it('should handle empty second line (no notes)', () => {
+			const result = parseSetInput('4 x 3 @50kg\n   ');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+			});
+			expect(result.notes).toBeUndefined();
+		});
+
+		it('should not add notes to invalid parse results', () => {
+			const result = parseSetInput('invalid format\nsome notes');
+			expect(result.isValid).toBe(false);
+			expect(result.notes).toBeUndefined();
+		});
+	});
 });

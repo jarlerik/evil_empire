@@ -187,9 +187,14 @@ export default function EditExercise() {
 									editingPhaseId === phase.id && styles.phaseContainerEditing,
 								]}
 							>
-								<Text style={styles.phaseText}>
-									{formatExercisePhase(phase)}
-								</Text>
+								<View style={styles.phaseContent}>
+									<Text style={styles.phaseText}>
+										{formatExercisePhase(phase)}
+									</Text>
+									{phase.notes && (
+										<Text style={styles.phaseNotes}>{phase.notes}</Text>
+									)}
+								</View>
 							<View style={styles.phaseButtons}>
 								<Pressable
 									onPress={() => handleEditPhase(phase)}
@@ -272,10 +277,17 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: '#fff',
 	},
+	phaseContent: {
+		flex: 1,
+	},
 	phaseText: {
 		color: '#C65D24',
 		fontSize: 16,
-		flex: 1,
+	},
+	phaseNotes: {
+		color: '#fff',
+		fontSize: 12,
+		marginTop: 4,
 	},
 	phaseButtons: {
 		flexDirection: 'row',

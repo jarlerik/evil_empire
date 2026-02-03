@@ -19,6 +19,7 @@ interface PhaseData {
 	weight_min_percentage?: number;
 	weight_max_percentage?: number;
 	rest_time_seconds?: number;
+	notes?: string;
 }
 
 /**
@@ -32,14 +33,28 @@ function appendRestTime(str: string, restTimeSeconds?: number | null): string {
 }
 
 /**
+ * Helper function to append notes as a second line
+ */
+function appendNotes(str: string, notes?: string | null): string {
+	if (notes) {
+		return `${str}\n${notes}`;
+	}
+	return str;
+}
+
+/**
  * Converts an ExercisePhase back to the input format for editing
  * @param phase - The exercise phase to convert
  * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70", etc.)
+ *          Notes are appended as a second line if present.
  */
 export function reverseParsePhase(phase: PhaseData): string {
+	let result: string;
+
 	// Handle RM build format
 	if (phase.exercise_type === 'rm_build' && phase.target_rm) {
-		return appendRestTime(`Build to ${phase.target_rm}RM`, phase.rest_time_seconds);
+		result = appendRestTime(`Build to ${phase.target_rm}RM`, phase.rest_time_seconds);
+		return appendNotes(result, phase.notes);
 	}
 
 	// Handle circuit format
@@ -53,7 +68,8 @@ export function reverseParsePhase(phase: PhaseData): string {
 			} catch (e) {
 				console.error('Error parsing circuit exercises:', e);
 				// If parsing fails, return a fallback
-				return appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`, phase.rest_time_seconds);
+				result = appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`, phase.rest_time_seconds);
+				return appendNotes(result, phase.notes);
 			}
 		} else {
 			circuitExercises = phase.circuit_exercises;
@@ -70,7 +86,8 @@ export function reverseParsePhase(phase: PhaseData): string {
 				}
 			}).filter(s => s.length > 0).join(', ');
 
-			return appendRestTime(`${phase.sets} x ${exercisesStr}`, phase.rest_time_seconds);
+			result = appendRestTime(`${phase.sets} x ${exercisesStr}`, phase.rest_time_seconds);
+			return appendNotes(result, phase.notes);
 		}
 	}
 
@@ -82,33 +99,39 @@ export function reverseParsePhase(phase: PhaseData): string {
 
 		// If there's a weight, include it
 		if (phase.weight > 0) {
-			return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg, ${rirStr}`, phase.rest_time_seconds);
+			result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg, ${rirStr}`, phase.rest_time_seconds);
 		} else {
-			return appendRestTime(`${phase.sets} x ${phase.repetitions}, ${rirStr}`, phase.rest_time_seconds);
+			result = appendRestTime(`${phase.sets} x ${phase.repetitions}, ${rirStr}`, phase.rest_time_seconds);
 		}
+		return appendNotes(result, phase.notes);
 	}
 
 	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
 	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
 		if (phase.compound_reps && phase.compound_reps.length >= 2) {
 			const repsStr = phase.compound_reps.join(' + ');
-			return appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
+			result = appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
+		} else {
+			result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
 		}
-		return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
+		return appendNotes(result, phase.notes);
 	}
 
 	// Handle compound exercises
 	if (phase.compound_reps && phase.compound_reps.length >= 2) {
 		const repsStr = phase.compound_reps.join(' + ');
-		return appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight}kg`, phase.rest_time_seconds);
+		result = appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight}kg`, phase.rest_time_seconds);
+		return appendNotes(result, phase.notes);
 	}
 
 	// Handle multiple weights
 	if (phase.weights && phase.weights.length > 1) {
 		const weightsStr = phase.weights.map(w => w.toString()).join(' ');
-		return appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`, phase.rest_time_seconds);
+		result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`, phase.rest_time_seconds);
+		return appendNotes(result, phase.notes);
 	}
 
 	// Handle simple format
-	return appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg`, phase.rest_time_seconds);
+	result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg`, phase.rest_time_seconds);
+	return appendNotes(result, phase.notes);
 }

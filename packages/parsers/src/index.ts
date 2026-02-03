@@ -51,8 +51,21 @@ export function parseSetInput(input: string): ParsedSetData {
 		return invalidResult('Please enter a valid format (e.g., "3 x 5 @50kg")');
 	}
 
-	// Parse rest time from the end of input
-	const { restTimeSeconds, remainingInput } = parseRestTime(input.trim());
+	// Split on first newline to separate exercise format from notes
+	const lines = input.trim().split('\n');
+	const exerciseLine = lines[0].trim();
+	const notesLine = lines.length > 1 ? lines.slice(1).join('\n').trim() : undefined;
+
+	// Helper to add notes to a valid result
+	const withNotes = (result: ParsedSetData): ParsedSetData => {
+		if (result.isValid && notesLine) {
+			return { ...result, notes: notesLine };
+		}
+		return result;
+	};
+
+	// Parse rest time from the exercise line (not notes)
+	const { restTimeSeconds, remainingInput } = parseRestTime(exerciseLine);
 
 	// Remove any extra spaces and convert to lowercase for easier parsing
 	const cleanInput = remainingInput.toLowerCase();
@@ -63,85 +76,85 @@ export function parseSetInput(input: string): ParsedSetData {
 	// 1. Compound with percentage/RIR (most specific compound pattern)
 	const compoundPercentage = parseCompoundPercentage(cleanInput, restTimeSeconds);
 	if (compoundPercentage.matched) {
-		return compoundPercentage.data!;
+		return withNotes(compoundPercentage.data!);
 	}
 
 	// 2. Percentage range (before simple percentage)
 	const percentageRange = parsePercentageRange(cleanInput, restTimeSeconds);
 	if (percentageRange.matched) {
-		return percentageRange.data!;
+		return withNotes(percentageRange.data!);
 	}
 
 	// 3. Simple percentage
 	const simplePercentage = parseSimplePercentage(cleanInput, restTimeSeconds);
 	if (simplePercentage.matched) {
-		return simplePercentage.data!;
+		return withNotes(simplePercentage.data!);
 	}
 
 	// 4. Weight range (before simple standard)
 	const weightRange = parseWeightRange(cleanInput, restTimeSeconds);
 	if (weightRange.matched) {
-		return weightRange.data!;
+		return withNotes(weightRange.data!);
 	}
 
 	// 5. Standard with RIR (before simple standard, more specific)
 	const standardWithRir = parseStandardWithRir(cleanInput, restTimeSeconds);
 	if (standardWithRir.matched) {
-		return standardWithRir.data!;
+		return withNotes(standardWithRir.data!);
 	}
 
 	// 6. Simple RIR format (@2RIR)
 	const simpleRir = parseSimpleRir(cleanInput, restTimeSeconds);
 	if (simpleRir.matched) {
-		return simpleRir.data!;
+		return withNotes(simpleRir.data!);
 	}
 
 	// 7. Simple standard format
 	const standard = parseStandard(cleanInput, restTimeSeconds);
 	if (standard.matched) {
-		return standard.data!;
+		return withNotes(standard.data!);
 	}
 
 	// 8. Multiple weights format
 	const multipleWeights = parseMultipleWeights(cleanInput, restTimeSeconds);
 	if (multipleWeights.matched) {
-		return multipleWeights.data!;
+		return withNotes(multipleWeights.data!);
 	}
 
 	// 9. Compound with weight (kg)
 	const compoundWeight = parseCompoundWeight(cleanInput, restTimeSeconds);
 	if (compoundWeight.matched) {
-		return compoundWeight.data!;
+		return withNotes(compoundWeight.data!);
 	}
 
 	// 10. Wave format
 	const wave = parseWave(cleanInput, restTimeSeconds);
 	if (wave.matched) {
-		return wave.data!;
+		return withNotes(wave.data!);
 	}
 
 	// 11. Circuit "sets of" format (uses original case input)
 	const circuitSetsOf = parseCircuitSetsOf(remainingInput, cleanInput, restTimeSeconds);
 	if (circuitSetsOf.matched) {
-		return circuitSetsOf.data!;
+		return withNotes(circuitSetsOf.data!);
 	}
 
 	// 12. Circuit "x" format (uses original case input)
 	const circuitX = parseCircuitX(remainingInput, cleanInput, restTimeSeconds);
 	if (circuitX.matched) {
-		return circuitX.data!;
+		return withNotes(circuitX.data!);
 	}
 
 	// 13. RM Build format
 	const rmBuild = parseRmBuild(cleanInput, restTimeSeconds);
 	if (rmBuild.matched) {
-		return rmBuild.data!;
+		return withNotes(rmBuild.data!);
 	}
 
 	// 14. RIR without weight (less specific, checked last among RIR patterns)
 	const rirWithoutWeight = parseRirWithoutWeight(cleanInput, restTimeSeconds);
 	if (rirWithoutWeight.matched) {
-		return rirWithoutWeight.data!;
+		return withNotes(rirWithoutWeight.data!);
 	}
 
 	// Error detection for partial matches
