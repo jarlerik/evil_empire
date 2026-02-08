@@ -157,12 +157,30 @@ export function parseSetInput(input: string): ParsedSetData {
 		return withNotes(rirWithoutWeight.data!);
 	}
 
-	// Error detection for partial matches
+	// Error detection for partial matches - provide helpful messages about what's missing
+
+	// Check for "sets x reps" without weight (e.g., "5 x 5", "4x3")
+	const setsRepsNoWeight = /^\d+\s*x\s*\d+(\s*\+\s*\d+)*\s*$/i;
+	if (setsRepsNoWeight.test(cleanInput)) {
+		return invalidResult('Missing weight. Add weight in kg (e.g., "5 x 5 @50kg") or as percentage (e.g., "5 x 5 @80%").');
+	}
+
+	// Check for "sets x reps @weight" without unit (e.g., "5 x 5 @50")
+	const setsRepsWeightNoUnit = /^\d+\s*x\s*\d+(\s*\+\s*\d+)*\s*@\s*[\d.\-\s]+$/i;
+	if (setsRepsWeightNoUnit.test(cleanInput)) {
+		return invalidResult('Missing weight unit. Add "kg" or "%" after the weight (e.g., "@50kg" or "@80%").');
+	}
 
 	// Check for multiple weights-like patterns that failed validation
 	const multipleWeightsLikePattern = /^\d+\s*x\s*\d+\s*@\s*[\d\s]+/i;
 	if (multipleWeightsLikePattern.test(cleanInput)) {
 		return invalidResult('Invalid weight values. Please use numbers only.');
+	}
+
+	// Check for wave-like patterns without unit (e.g., "3-2-1 65")
+	const waveNoUnit = /^\d+(-\d+)+\s+[\d.]+\s*$/i;
+	if (waveNoUnit.test(cleanInput)) {
+		return invalidResult('Missing weight unit. Add "kg" or "%" after the weight (e.g., "3-2-1 65kg" or "3-2-1 80%").');
 	}
 
 	// Check for wave-like patterns that failed validation
@@ -185,15 +203,6 @@ export function parseSetInput(input: string): ParsedSetData {
 
 	// If we get here, none of the patterns matched
 	return invalidResult(
-		'Invalid format. Weight unit is required (kg, %, or RIR). Use "sets x reps @weightkg" (e.g., "3 x 5 @50kg"), ' +
-		'"sets x reps @80%" or "sets x reps @80-85%" for percentage-based weights, ' +
-		'"sets x reps @1RIR" for RIR-based weights, ' +
-		'"sets x reps @85-89kg" for weight ranges, ' +
-		'"sets x reps @weight1 weight2...kg" or "...%" for multiple weights, ' +
-		'"reps1-reps2-reps3... weightkg" or "weight%" for wave exercises, ' +
-		'"2 x 10/10 exercise1, 10 exercise2..." for circuits, ' +
-		'"Build to 8RM" for RM builds, ' +
-		'"2x 10, 2-3RIR" for RIR notation, ' +
-		'or add rest time at the end like "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m" (rest time requires unit: s or m)',
+		'Unrecognized format. Examples: "3 x 5 @50kg", "4 x 3 @80%", "3-2-1 65kg", "Build to 8RM".',
 	);
 }
