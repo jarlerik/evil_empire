@@ -108,12 +108,17 @@ export function WorkoutTimerDisplay({
 
 	return (
 		<View style={styles.timerContainer}>
-			{/* Top section: Exercise info */}
-			<View style={styles.timerTopSection}>
-				<Text style={styles.exerciseName}>
-					{exerciseName}
-				</Text>
+			{/* Exercise name pinned at top */}
+			<Text
+				style={styles.exerciseName}
+				numberOfLines={1}
+				adjustsFontSizeToFit
+			>
+				{exerciseName}
+			</Text>
 
+			{/* Middle section: Exercise info */}
+			<View style={styles.timerTopSection}>
 				{nextPhase && (
 					<Text style={styles.nextPhaseLabel}>Next phase:</Text>
 				)}
@@ -131,7 +136,13 @@ export function WorkoutTimerDisplay({
 			{/* Bottom section: State and countdown */}
 			<View style={styles.timerBottomSection}>
 				{workoutState === 'idle' && (
-					<Text style={styles.stateIdle}>NOT STARTED</Text>
+					<Text
+						style={styles.stateIdle}
+						adjustsFontSizeToFit
+						numberOfLines={1}
+					>
+						NOT STARTED
+					</Text>
 				)}
 				{workoutState === 'work' && (
 					<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
