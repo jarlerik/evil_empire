@@ -26,20 +26,22 @@ export async function createWorkout(
 	name: string,
 	userId: string,
 	workoutDate: string,
-): Promise<ServiceResult<null>> {
+): Promise<ServiceResult<Workout>> {
 	if (!supabase) {
 		return { data: null, error: 'Database not available' };
 	}
 
-	const { error } = await supabase
+	const { data, error } = await supabase
 		.from('workouts')
-		.insert([{ name, user_id: userId, workout_date: workoutDate }]);
+		.insert([{ name, user_id: userId, workout_date: workoutDate }])
+		.select()
+		.single();
 
 	if (error) {
 		return { data: null, error: error.message };
 	}
 
-	return { data: null, error: null };
+	return { data, error: null };
 }
 
 export async function deleteWorkout(

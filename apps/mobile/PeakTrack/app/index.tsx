@@ -85,18 +85,15 @@ export default function Index() {
 		}
 		setIsLoading(true);
 		setErrorState(null);
-		const { error: insertError } = await createWorkout(workoutName.trim(), user.id, format(selectedDate, 'yyyy-MM-dd'));
+		const trimmedName = workoutName.trim();
+		const { data: newWorkout, error: insertError } = await createWorkout(trimmedName, user.id, format(selectedDate, 'yyyy-MM-dd'));
 		setIsLoading(false);
-		if (insertError) {
+		if (insertError || !newWorkout) {
 			setErrorState('Failed to create workout. Please try again.');
 			return;
 		}
 		setWorkoutName('');
-		const { data, error } = await fetchWorkoutsByUserId(user.id);
-		if (!error && data) {
-			setWorkouts(data);
-			await fetchExercises(data);
-		}
+		router.push({ pathname: '/add-exercises', params: { workoutName: newWorkout.name, workoutId: newWorkout.id } });
 	};
 
 	if (authLoading || settingsLoading) {
