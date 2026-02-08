@@ -38,6 +38,7 @@ export default function StartWorkout() {
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
 	const beepSound = useRef<Audio.Sound | null>(null);
+	const hasActiveCountdown = useRef(false);
 
 	// Edit execution modal state
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -186,6 +187,7 @@ export default function StartWorkout() {
 
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
+		if (!hasActiveCountdown.current) {return;}
 		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
 			if (beepSound.current) {
 				beepSound.current.replayAsync();
@@ -281,6 +283,7 @@ export default function StartWorkout() {
 
 		const restTime = phase.rest_time_seconds || 0;
 		if (restTime > 0) {
+			hasActiveCountdown.current = true;
 			setRestTimeRemaining(restTime);
 			setWorkoutState('rest');
 
@@ -301,7 +304,8 @@ export default function StartWorkout() {
 				});
 			}, 1000);
 		} else {
-			work();
+			hasActiveCountdown.current = false;
+			setWorkoutState('rest');
 		}
 	};
 

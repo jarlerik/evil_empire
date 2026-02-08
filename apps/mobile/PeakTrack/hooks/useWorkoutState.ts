@@ -144,10 +144,10 @@ export function useWorkoutState({
 			setWorkoutState('rest');
 			onStartRestTimer(restTime);
 		} else {
-			// No rest time, immediately move to next set
-			work();
+			// No rest time, enter rest state without countdown
+			setWorkoutState('rest');
 		}
-	}, [getCurrentExercisePhase, isLastSet, onSetRestTimeRemaining, onStartRestTimer, work]);
+	}, [getCurrentExercisePhase, isLastSet, onSetRestTimeRemaining, onStartRestTimer]);
 
 	const handleNextExercise = useCallback(() => {
 		onClearRestTimer();

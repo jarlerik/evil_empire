@@ -139,9 +139,11 @@ export function WorkoutTimerDisplay({
 				{workoutState === 'rest' && (
 					<>
 						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
-						<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
-							{formatTime(restTimeRemaining)}
-						</Animated.Text>
+						{restTimeRemaining > 0 && (
+							<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
+								{formatTime(restTimeRemaining)}
+							</Animated.Text>
+						)}
 					</>
 				)}
 				{workoutState === 'workout_done' && (
