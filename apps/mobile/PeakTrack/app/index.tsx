@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWorkoutsByUserId, createWorkout } from '../services/workoutService';
 import { fetchExercisesByWorkoutId } from '../services/exerciseService';
+import { fetchCompletedWorkoutIds } from '../services/workoutExecutionLogService';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,6 +30,7 @@ export default function Index() {
 
 	const [workouts, setWorkouts] = useState<Workout[]>([]);
 	const [exercises, setExercises] = useState<Record<string, Exercise[]>>({});
+	const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
@@ -56,6 +58,11 @@ export default function Index() {
 				if (!error && data) {
 					setWorkouts(data);
 					await fetchExercises(data);
+					const ids = data.map((w) => w.id);
+					const { data: completed } = await fetchCompletedWorkoutIds(ids);
+					if (completed) {
+						setCompletedWorkoutIds(new Set(completed));
+					}
 				}
 			};
 			fetchWorkouts();
@@ -155,6 +162,7 @@ export default function Index() {
 											key={w.id}
 											workout={w}
 											exercises={exercises[w.id] || []}
+											isCompleted={completedWorkoutIds.has(w.id)}
 											onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
 											onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
 										/>

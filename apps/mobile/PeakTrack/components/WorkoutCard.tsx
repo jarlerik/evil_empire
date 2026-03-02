@@ -10,10 +10,11 @@ interface WorkoutCardProps {
 	onEdit: () => void;
 	onStart: () => void;
 	isReadOnly?: boolean;
+	isCompleted?: boolean;
 	exercisePhases?: Map<string, ExercisePhase[]>;
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, exercisePhases }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, exercisePhases }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
 			<View style={[
@@ -23,7 +24,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 				<View style={styles.workoutNameContainer}>
 					<Text style={styles.workoutName}>{workout.name}</Text>
 				</View>
-				{!isReadOnly && (
+				{!isReadOnly && !isCompleted && (
 					<View style={styles.workoutActions}>
 						<Pressable onPress={onEdit} style={styles.actionButton}>
 							<Ionicons name="pencil" size={22} color="#fff" />
@@ -31,6 +32,11 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 						<Pressable onPress={onStart} style={styles.actionButton}>
 							<Ionicons name="play" size={22} color="#fff" />
 						</Pressable>
+					</View>
+				)}
+				{isCompleted && !isReadOnly && (
+					<View style={styles.workoutActions}>
+						<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
 					</View>
 				)}
 			</View>
