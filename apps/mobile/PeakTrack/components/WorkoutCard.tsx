@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Exercise, Workout } from '../types/workout';
+import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
 
 interface WorkoutCardProps {
 	workout: Workout;
@@ -9,9 +10,10 @@ interface WorkoutCardProps {
 	onEdit: () => void;
 	onStart: () => void;
 	isReadOnly?: boolean;
+	exercisePhases?: Map<string, ExercisePhase[]>;
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, exercisePhases }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
 			<View style={[
@@ -34,11 +36,21 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 			</View>
 			{exercises.length > 0 && (
 				<View style={styles.exercisesList}>
-					{exercises.map((exercise, index) => (
-						<Text key={exercise.id} style={styles.exerciseText}>
-							{index + 1}. {exercise.name}
-						</Text>
-					))}
+					{exercises.map((exercise, index) => {
+						const phases = exercisePhases?.get(exercise.id);
+						return (
+							<View key={exercise.id}>
+								<Text style={styles.exerciseText}>
+									{index + 1}. {exercise.name}
+								</Text>
+								{phases && phases.map((phase) => (
+									<Text key={phase.id} style={styles.phaseText}>
+										{formatExercisePhase(phase)}
+									</Text>
+								))}
+							</View>
+						);
+					})}
 				</View>
 			)}
 		</View>
@@ -82,5 +94,11 @@ const styles = StyleSheet.create({
 		color: '#C65D24',
 		fontSize: 14,
 		marginTop: 2,
+	},
+	phaseText: {
+		color: '#999',
+		fontSize: 13,
+		marginLeft: 16,
+		marginTop: 1,
 	},
 });

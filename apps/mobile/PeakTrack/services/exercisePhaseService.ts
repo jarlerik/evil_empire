@@ -40,6 +40,30 @@ export async function fetchPhasesByExerciseId(
 	return { data, error: null };
 }
 
+export async function fetchPhasesByExerciseIds(
+	exerciseIds: string[],
+): Promise<ServiceResult<ExercisePhase[]>> {
+	if (!supabase) {
+		return { data: null, error: 'Database not available' };
+	}
+
+	if (exerciseIds.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const { data, error } = await supabase
+		.from('exercise_phases')
+		.select('*')
+		.in('exercise_id', exerciseIds)
+		.order('created_at', { ascending: true });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
+}
+
 export async function insertPhase(
 	data: PhaseInsertData,
 ): Promise<ServiceResult<null>> {

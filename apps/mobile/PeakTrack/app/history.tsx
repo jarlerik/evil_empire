@@ -9,6 +9,8 @@ import { commonStyles, colors } from '../styles/common';
 import { fetchRecentExecutionLogs } from '../services/workoutExecutionLogService';
 import { fetchWorkoutsByIds } from '../services/workoutService';
 import { fetchExercisesByWorkoutIds } from '../services/exerciseService';
+import { fetchPhasesByExerciseIds } from '../services/exercisePhaseService';
+import { ExercisePhase } from '../lib/formatExercisePhase';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';
@@ -16,6 +18,7 @@ import { NavigationBar } from '../components/NavigationBar';
 interface CompletedWorkout {
 	workout: Workout;
 	exercises: Exercise[];
+	exercisePhases: Map<string, ExercisePhase[]>;
 	executedAt: string;
 }
 
@@ -80,14 +83,36 @@ export default function History() {
 				// Fetch exercises for all workouts
 				const { data: allExercises } = await fetchExercisesByWorkoutIds(workoutIds);
 
+				// Fetch exercise phases for all exercises
+				const exerciseIds = (allExercises ?? []).map((e) => e.id);
+				const { data: allPhases } = await fetchPhasesByExerciseIds(exerciseIds);
+
+				// Group phases by exercise_id
+				const phasesMap = new Map<string, ExercisePhase[]>();
+				for (const phase of allPhases ?? []) {
+					const existing = phasesMap.get(phase.exercise_id) ?? [];
+					existing.push(phase);
+					phasesMap.set(phase.exercise_id, existing);
+				}
+
 				// Combine into CompletedWorkout[], sorted by most recent execution
 				const completed: CompletedWorkout[] = workoutIds
 					.map((id) => {
 						const workout = workouts.find((w) => w.id === id);
 						if (!workout) {return null;}
+						const exercises = (allExercises ?? []).filter((e) => e.workout_id === id);
+						// Build per-workout phases map
+						const workoutPhases = new Map<string, ExercisePhase[]>();
+						for (const exercise of exercises) {
+							const phases = phasesMap.get(exercise.id);
+							if (phases) {
+								workoutPhases.set(exercise.id, phases);
+							}
+						}
 						return {
 							workout,
-							exercises: (allExercises ?? []).filter((e) => e.workout_id === id),
+							exercises,
+							exercisePhases: workoutPhases,
 							executedAt: workoutMap.get(id)!,
 						};
 					})
@@ -120,7 +145,7 @@ export default function History() {
 					{!errorState && completedWorkouts.length === 0 && (
 						<Text style={styles.emptyText}>No completed workouts in the last 30 days.</Text>
 					)}
-					{completedWorkouts.map(({ workout, exercises, executedAt }) => {
+					{completedWorkouts.map(({ workout, exercises, exercisePhases, executedAt }) => {
 						const dateLabel = format(parseISO(executedAt), 'EEEE, LLLL d');
 						return (
 							<View key={workout.id} style={styles.cardSection}>
@@ -128,6 +153,7 @@ export default function History() {
 								<WorkoutCard
 									workout={workout}
 									exercises={exercises}
+									exercisePhases={exercisePhases}
 									isReadOnly
 									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: workout.name, workoutId: workout.id } })}
 									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
