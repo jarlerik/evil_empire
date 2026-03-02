@@ -36,4 +36,23 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Turbo
+.turbo/
+
+# Build outputs
+packages/*/dist/
+
+# Test coverage
+coverage/
+
 app-example
+
+# IDE
+.vscode/
+
+# Supabase CLI
+supabase/.temp/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml

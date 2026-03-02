@@ -1,0 +1,22 @@
+{
+  "name": "@vaikia-dev/static-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vite build",
+    "build:infra": "sam build",
+    "build": "pnpm build:web && pnpm build:infra",
+    "deploy": "./deploy.sh",
+    "deploy:infra": "sam build && sam deploy --config-env dev",
+    "deploy:app": "./deploy-app.sh",
+    "validate": "sam validate --lint"
+  },
+  "devDependencies": {
+    "terser": "^5.37.0",
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "animejs": "^4.0.0"
+  }
+}

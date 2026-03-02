@@ -1,0 +1,13 @@
+{
+  "name": "@evil-empire/typescript-config",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "*.json"
+  ],
+  "exports": {
+    "./base.json": "./base.json",
+    "./react-native.json": "./react-native.json",
+    "./node.json": "./node.json"
+  }
+}

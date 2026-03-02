@@ -1,50 +1,153 @@
-# Welcome to your Expo app 👋
+# Evil Empire - Monorepo to rule them all 
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native/Expo workout tracking app built as a Turborepo monorepo. Users can create workouts, add exercises with various set/rep/weight formats, track repetition maximums (RMs), and execute workouts with timers.
 
-## Get started
+## Monorepo Structure
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+evil_empire/
+├── apps/
+│   ├── mobile/         # React Native/Expo mobile app
+│   ├── web/            # Future web app (placeholder)
+│   └── docs/           # Future documentation site (placeholder)
+├── packages/
+│   ├── parsers/        # Shared exercise input parser (@evil-empire/parsers)
+│   ├── types/          # Shared TypeScript types (@evil-empire/types)
+│   ├── eslint-config/  # Shared ESLint configuration
+│   └── typescript-config/  # Shared TypeScript configurations
+├── supabase/           # Database migrations
+├── turbo.json          # Turborepo configuration
+└── pnpm-workspace.yaml # pnpm workspace configuration
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+### Prerequisites
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js >= 22.x (see `.nvmrc`)
+- pnpm >= 9.x
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Installation
 
-## Join the community
+```bash
+# Install dependencies
+pnpm install
 
-Join our community of developers creating universal apps.
+# Build shared packages
+pnpm build
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Development
+
+All commands should be run from the repository root directory.
+
+```bash
+# Start mobile app
+pnpm dev:mobile
+
+# Or navigate to the mobile app directory
+cd apps/mobile
+pnpm dev
+
+# Start on iOS simulator
+pnpm start:mobile
+# Then press 'i' in the terminal
+
+# Start on Android emulator
+pnpm start:mobile
+# Then press 'a' in the terminal
+```
+
+### Testing
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests for a specific package
+pnpm test --filter=@evil-empire/parsers
+```
+
+### Linting
+
+```bash
+# Lint all packages
+pnpm lint
+
+# Auto-fix linting issues
+pnpm lint:fix
+```
+
+### Building
+
+```bash
+# Build all packages
+pnpm build
+
+# Build a specific package
+pnpm build --filter=@evil-empire/parsers
+```
+
+## Packages
+
+### @evil-empire/parsers
+
+Shared exercise input parser that supports various formats:
+- Standard: `4 x 3 @50kg`
+- Percentage: `4 x 6 @80%`
+- Compound: `3 x 2 + 2 @50kg`
+- Wave: `3-2-1-1-1 65kg`
+- RM Build: `Build to 8RM`
+- RIR: `2x 10, 2-3RIR`
+- Circuits and rest times
+
+### @evil-empire/types
+
+Shared TypeScript type definitions for workouts, exercises, and parser data structures.
+
+### @evil-empire/eslint-config
+
+Shared ESLint configuration for React Native and base TypeScript projects.
+
+### @evil-empire/typescript-config
+
+Shared TypeScript configurations:
+- `base.json` - Base configuration
+- `react-native.json` - React Native/Expo projects
+- `node.json` - Node.js packages
+
+## Apps
+
+### Mobile App (@evil-empire/mobile)
+
+The main React Native/Expo workout tracking app located in `apps/mobile/`.
+
+Features:
+- Create and manage workouts
+- Add exercises with flexible input formats
+- Track repetition maximums (RMs)
+- Execute workouts with built-in timer
+- Supabase backend for data persistence
+
+## Environment Variables
+
+Create a `.env` file in the root with:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Tech Stack
+
+- **Monorepo**: Turborepo + pnpm workspaces
+- **Mobile**: React Native 0.81.5, Expo ~54, React 19
+- **Backend**: Supabase
+- **Testing**: Jest, React Native Testing Library
+- **Build**: tsup (for packages)
+
+## Learn More
+
+- [Turborepo Documentation](https://turbo.build/repo/docs)
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/)
