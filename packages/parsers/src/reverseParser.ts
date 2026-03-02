@@ -126,7 +126,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 
 	// Handle multiple weights
 	if (phase.weights && phase.weights.length > 1) {
-		const weightsStr = phase.weights.map(w => w.toString()).join(' ');
+		const weightsStr = phase.weights.map(w => `${w}kg`).join(' ');
 		result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`, phase.rest_time_seconds);
 		return appendNotes(result, phase.notes);
 	}

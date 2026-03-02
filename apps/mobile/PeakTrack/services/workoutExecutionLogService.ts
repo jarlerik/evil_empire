@@ -20,6 +20,21 @@ export interface ExecutionLogRow {
 	executed_at: string;
 }
 
+export interface ExecutionLogDetail {
+	id: string;
+	workout_id: string;
+	exercise_id: string;
+	exercise_phase_id: string | null;
+	sets: number;
+	repetitions: number;
+	weight: number;
+	weights: number[] | null;
+	compound_reps: number[] | null;
+	rest_time_seconds: number | null;
+	execution_status: string;
+	executed_at: string;
+}
+
 export async function insertExecutionLog(
 	data: ExecutionLogInsert,
 ): Promise<ServiceResult<null>> {
@@ -60,6 +75,30 @@ export async function fetchCompletedWorkoutIds(
 
 	const uniqueIds = [...new Set((data ?? []).map((row: { workout_id: string }) => row.workout_id))];
 	return { data: uniqueIds, error: null };
+}
+
+export async function fetchExecutionLogsByExerciseIds(
+	exerciseIds: string[],
+): Promise<ServiceResult<ExecutionLogDetail[]>> {
+	if (!supabase) {
+		return { data: null, error: 'Database not available' };
+	}
+
+	if (exerciseIds.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const { data, error } = await supabase
+		.from('workout_execution_logs')
+		.select('id, workout_id, exercise_id, exercise_phase_id, sets, repetitions, weight, weights, compound_reps, rest_time_seconds, execution_status, executed_at')
+		.in('exercise_id', exerciseIds)
+		.order('executed_at', { ascending: true });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
 }
 
 export async function fetchRecentExecutionLogs(

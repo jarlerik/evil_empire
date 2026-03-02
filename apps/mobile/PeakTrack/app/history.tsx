@@ -6,10 +6,9 @@ import { format, parseISO, subDays } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles, colors } from '../styles/common';
-import { fetchRecentExecutionLogs } from '../services/workoutExecutionLogService';
+import { fetchRecentExecutionLogs, fetchExecutionLogsByExerciseIds } from '../services/workoutExecutionLogService';
 import { fetchWorkoutsByIds } from '../services/workoutService';
 import { fetchExercisesByWorkoutIds } from '../services/exerciseService';
-import { fetchPhasesByExerciseIds } from '../services/exercisePhaseService';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
@@ -83,16 +82,26 @@ export default function History() {
 				// Fetch exercises for all workouts
 				const { data: allExercises } = await fetchExercisesByWorkoutIds(workoutIds);
 
-				// Fetch exercise phases for all exercises
+				// Fetch execution logs for all exercises (actual executed data)
 				const exerciseIds = (allExercises ?? []).map((e) => e.id);
-				const { data: allPhases } = await fetchPhasesByExerciseIds(exerciseIds);
+				const { data: allLogs } = await fetchExecutionLogsByExerciseIds(exerciseIds);
 
-				// Group phases by exercise_id
+				// Group execution logs by exercise_id, mapped to ExercisePhase-compatible objects
 				const phasesMap = new Map<string, ExercisePhase[]>();
-				for (const phase of allPhases ?? []) {
-					const existing = phasesMap.get(phase.exercise_id) ?? [];
-					existing.push(phase);
-					phasesMap.set(phase.exercise_id, existing);
+				for (const log of allLogs ?? []) {
+					const existing = phasesMap.get(log.exercise_id) ?? [];
+					existing.push({
+						id: log.id,
+						exercise_id: log.exercise_id,
+						sets: log.sets,
+						repetitions: log.repetitions,
+						weight: log.weight,
+						weights: log.weights ?? undefined,
+						compound_reps: log.compound_reps ?? undefined,
+						rest_time_seconds: log.rest_time_seconds ?? undefined,
+						created_at: log.executed_at,
+					});
+					phasesMap.set(log.exercise_id, existing);
 				}
 
 				// Combine into CompletedWorkout[], sorted by most recent execution

@@ -72,7 +72,7 @@ describe('reverseParsePhase', () => {
 				weight: 50,
 				weights: [50, 60, 70],
 			});
-			expect(result).toBe('3 x 1 @50 60 70');
+			expect(result).toBe('3 x 1 @50kg 60kg 70kg');
 		});
 	});
 
