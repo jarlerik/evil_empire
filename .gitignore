@@ -46,3 +46,13 @@ packages/*/dist/
 coverage/
 
 app-example
+
+# IDE
+.vscode/
+
+# Supabase CLI
+supabase/.temp/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
