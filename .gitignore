@@ -56,3 +56,4 @@ supabase/.temp/
 # AWS SAM
 .aws-sam/
 samconfig.toml
+.mcp.json
