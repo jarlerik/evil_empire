@@ -30,7 +30,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 							<Ionicons name="pencil" size={22} color="#fff" />
 						</Pressable>
 						<Pressable onPress={onStart} style={styles.actionButton}>
-							<Ionicons name="play" size={22} color="#fff" />
+							<Ionicons name="stopwatch" size={22} color="#fff" />
 						</Pressable>
 					</View>
 				)}
