@@ -20,7 +20,9 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@evil-empire/eslint-config": "workspace:*",
     "@evil-empire/typescript-config": "workspace:*",
+    "eslint": "^9.0.0",
     "@types/jest": "^29.5.14",
     "jest": "^29.2.1",
     "ts-jest": "^29.2.0",

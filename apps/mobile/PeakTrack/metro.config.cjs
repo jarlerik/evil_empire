@@ -11,8 +11,8 @@ const config = getDefaultConfig(projectRoot, {
   isCSSEnabled: true,
 });
 
-// 1. Watch all files within the monorepo
-config.watchFolders = [workspaceRoot];
+// 1. Watch all files within the monorepo (merge with Expo defaults)
+config.watchFolders = [...(config.watchFolders || []), workspaceRoot];
 
 // 2. Let Metro know where to resolve packages and in what order
 config.resolver.nodeModulesPaths = [
@@ -20,8 +20,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// 3. Force Metro to resolve (sub)dependencies only from the `nodeModulesPaths`
-config.resolver.disableHierarchicalLookup = true;
+// 3. Keep hierarchical lookup enabled (Expo default) since nodeModulesPaths handles resolution order
+config.resolver.disableHierarchicalLookup = false;
 
 // 4. Add support for additional file extensions if needed
 config.resolver.sourceExts = [...config.resolver.sourceExts, 'mjs', 'cjs'];
