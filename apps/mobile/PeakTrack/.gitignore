@@ -8,3 +8,7 @@ expo-env.d.ts
 # Native directories (managed by CNG/Prebuild)
 /ios
 /android
+
+# EAS credentials
+credentials.json
+credentials/
