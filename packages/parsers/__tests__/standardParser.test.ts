@@ -258,14 +258,21 @@ describe('parseSetInput - Standard Format', () => {
 			expect(result.errorMessage).toBe('Weight must be positive');
 		});
 
-		it('should return invalid for multiple weights with wrong count', () => {
+		it('should return valid for multiple weights with exact count', () => {
 			const result = parseSetInput('3 x 1 @50 60 70kg');
-			// This should be valid (3 weights for 3 sets)
 			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([50, 60, 70]);
+		});
 
-			// Test with wrong count
-			const result2 = parseSetInput('3 x 1 @50 60kg');
-			expect(result2.isValid).toBe(false);
+		it('should repeat last weight for remaining sets', () => {
+			const result = parseSetInput('3 x 1 @50 60kg');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([50, 60, 60]);
+		});
+
+		it('should return invalid for too many weights', () => {
+			const result = parseSetInput('2 x 1 @50 60 70kg');
+			expect(result.isValid).toBe(false);
 		});
 
 		it('should return invalid for multiple weights without unit', () => {
@@ -294,9 +301,11 @@ describe('parseSetInput - Standard Format', () => {
 			expect(result.isValid).toBe(false);
 		});
 
-		it('should return invalid for multiple weights with empty values', () => {
+		it('should handle extra whitespace between weights gracefully', () => {
 			const result = parseSetInput('3 x 1 @50  70kg');
-			expect(result.isValid).toBe(false);
+			// Double space is treated as regular separator, 2 weights padded to 3
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([50, 70, 70]);
 		});
 
 		it('should return invalid for multiple weights with decimal values that are not numbers', () => {

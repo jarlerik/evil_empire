@@ -137,36 +137,40 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 	const weightStrings = beforeUnit.split(/\s+/);
 	const weights = weightStrings.map(w => parseFloat(w));
 
-	// Check for empty values (NaN from empty strings or invalid numbers)
-	const hasEmptyValues = weightStrings.some(w => w.trim() === '' || isNaN(parseFloat(w)));
-	if (hasEmptyValues) {
+	// Check for empty or invalid values
+	const hasInvalidValues = weightStrings.some(w => w.trim() === '' || isNaN(parseFloat(w)));
+	if (hasInvalidValues) {
 		return {
 			matched: true,
 			data: invalidResult('Invalid weight values. Please use numbers only.'),
 		};
 	}
 
-	// Filter out invalid weights and check if we have multiple
-	const validWeights = weights.filter(w => !isNaN(w) && w > 0);
+	// Check all values are positive
+	if (weights.some(w => w <= 0)) {
+		return {
+			matched: true,
+			data: invalidResult('Invalid weight values. Please use numbers only.'),
+		};
+	}
 
 	// Only process as multiple weights if there are actually multiple weights
-	if (validWeights.length <= 1) {
+	if (weights.length <= 1) {
 		return { matched: false };
 	}
 
-	// Validate that number of weights matches number of sets
-	if (validWeights.length !== sets) {
+	// Validate that number of weights doesn't exceed sets
+	if (weights.length > sets) {
 		return {
 			matched: true,
-			data: invalidResult(`Expected ${sets} weights for ${sets} sets, but got ${validWeights.length}`),
+			data: invalidResult(`Too many weights: got ${weights.length} for ${sets} sets`),
 		};
 	}
 
-	if (!validWeights.every(w => !isNaN(w) && w > 0)) {
-		return {
-			matched: true,
-			data: invalidResult('Invalid weight values. Please use numbers only.'),
-		};
+	// Pad with the last value if fewer weights than sets
+	const validWeights = [...weights];
+	while (validWeights.length < sets) {
+		validWeights.push(validWeights[validWeights.length - 1]);
 	}
 
 	if (unit === 'kg') {
