@@ -10,6 +10,7 @@ interface CalculatedWeights {
 	weight: number;
 	weightMin?: number;
 	weightMax?: number;
+	weights?: number[];
 }
 
 export function useRmLookup() {
@@ -83,6 +84,7 @@ export function useRmLookup() {
 		exerciseName: string,
 		parsedData: {
 			weight: number;
+			weights?: number[];
 			needsRmLookup?: boolean;
 			weightPercentage?: number;
 			weightMinPercentage?: number;
@@ -94,6 +96,7 @@ export function useRmLookup() {
 		let calculatedWeight = parsedData.weight;
 		let calculatedWeightMin: number | undefined;
 		let calculatedWeightMax: number | undefined;
+		let calculatedWeights: number[] | undefined;
 
 		if (parsedData.needsRmLookup) {
 			const rmResult = await lookupRm(userId, exerciseName);
@@ -106,8 +109,13 @@ export function useRmLookup() {
 				};
 			}
 
+			// Handle multiple per-set percentages (e.g., weights: [75, 78, 78] from "3 x 1 + 1@75, 78, 78%")
+			if (parsedData.weights && parsedData.weights.length > 1) {
+				calculatedWeights = parsedData.weights.map(p => calculateWeightFromPercentage(rmResult.weight, p));
+				calculatedWeight = calculatedWeights[0]; // Use first for backward compatibility
+			}
 			// Handle percentage ranges
-			if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {
+			else if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {
 				calculatedWeightMin = calculateWeightFromPercentage(rmResult.weight, parsedData.weightMinPercentage);
 				calculatedWeightMax = calculateWeightFromPercentage(rmResult.weight, parsedData.weightMaxPercentage);
 				calculatedWeight = calculatedWeightMin; // Use min for backward compatibility
@@ -130,6 +138,7 @@ export function useRmLookup() {
 				weight: calculatedWeight,
 				weightMin: calculatedWeightMin,
 				weightMax: calculatedWeightMax,
+				...(calculatedWeights && { weights: calculatedWeights }),
 			},
 		};
 	};
