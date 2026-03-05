@@ -12,7 +12,10 @@
     "test": "jest --watchAll",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:ios": "eas build --platform ios --profile production --local",
+    "submit:ios": "eas submit --platform ios",
+    "publish:ios": "eas build --platform ios --profile production --auto-submit"
   },
   "jest": {
     "preset": "jest-expo",
