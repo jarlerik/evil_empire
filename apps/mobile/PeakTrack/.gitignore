@@ -12,3 +12,6 @@ expo-env.d.ts
 # EAS credentials
 credentials.json
 credentials/
+
+# Local build artifacts
+*.ipa
