@@ -43,7 +43,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 				)}
 				{isCompleted && !isReadOnly && (
 					<View style={styles.workoutActions}>
-						<Ionicons name="checkmark-circle" size={24} color="#C65D24" />
+						<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
 					</View>
 				)}
 			</View>

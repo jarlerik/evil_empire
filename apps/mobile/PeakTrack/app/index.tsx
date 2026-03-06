@@ -124,7 +124,7 @@ export default function Index() {
 	};
 
 	const today = startOfDay(new Date());
-	const dayStatuses: Record<string, 'completed' | 'missed'> = {};
+	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
 	for (const w of workouts) {
 		const dateKey = w.workout_date;
 		if (!dateKey) continue;
@@ -134,6 +134,10 @@ export default function Index() {
 		} else if (isBefore(workoutDay, today)) {
 			if (dayStatuses[dateKey] !== 'completed') {
 				dayStatuses[dateKey] = 'missed';
+			}
+		} else {
+			if (!dayStatuses[dateKey]) {
+				dayStatuses[dateKey] = 'planned';
 			}
 		}
 	}

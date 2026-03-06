@@ -6,7 +6,7 @@ interface WeekDaySelectorProps {
 	weekStart: Date;
 	selectedDate: Date;
 	onSelectDate: (date: Date) => void;
-	dayStatuses?: Record<string, 'completed' | 'missed'>;
+	dayStatuses?: Record<string, 'completed' | 'missed' | 'planned'>;
 }
 
 export function WeekDaySelector({ weekStart, selectedDate, onSelectDate, dayStatuses }: WeekDaySelectorProps) {
@@ -47,7 +47,7 @@ export function WeekDaySelector({ weekStart, selectedDate, onSelectDate, dayStat
 								<View
 									style={[
 										styles.statusDot,
-										status === 'missed' ? styles.dotMissed : styles.dotCompleted,
+										status === 'missed' ? styles.dotMissed : status === 'planned' ? styles.dotPlanned : styles.dotCompleted,
 									]}
 								/>
 							)}
@@ -117,6 +117,9 @@ const styles = StyleSheet.create({
 		backgroundColor: '#E53935',
 	},
 	dotCompleted: {
+		backgroundColor: '#4CAF50',
+	},
+	dotPlanned: {
 		backgroundColor: '#C65D24',
 	},
 });
