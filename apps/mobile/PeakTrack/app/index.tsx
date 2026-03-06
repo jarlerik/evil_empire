@@ -2,7 +2,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
 import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout } from '../services/workoutService';
+import { fetchWorkoutsByUserId, createWorkout, updateWorkoutDate } from '../services/workoutService';
 import { fetchExercisesByWorkoutId } from '../services/exerciseService';
 import { fetchCompletedWorkoutIds } from '../services/workoutExecutionLogService';
 import { useUserSettings } from '../contexts/UserSettingsContext';
@@ -111,7 +111,17 @@ export default function Index() {
 		);
 	}
 
+	const todayStr = format(new Date(), 'yyyy-MM-dd');
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
+
+	const handleMoveToToday = async (workoutId: string) => {
+		const { error } = await updateWorkoutDate(workoutId, todayStr);
+		if (!error) {
+			setWorkouts(prev => prev.map(w => w.id === workoutId ? { ...w, workout_date: todayStr } : w));
+			setSelectedDate(new Date());
+			setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+		}
+	};
 
 	const today = startOfDay(new Date());
 	const dayStatuses: Record<string, 'completed' | 'missed'> = {};
@@ -173,16 +183,21 @@ export default function Index() {
 								{filteredWorkouts.length === 0 ? (
 									<Text style={styles.noWorkoutText}>No workout yet.</Text>
 								) : (
-									filteredWorkouts.map((w) => (
+									filteredWorkouts.map((w) => {
+										const isMissed = !completedWorkoutIds.has(w.id) && !!w.workout_date && w.workout_date < todayStr;
+										return (
 										<WorkoutCard
 											key={w.id}
 											workout={w}
 											exercises={exercises[w.id] || []}
 											isCompleted={completedWorkoutIds.has(w.id)}
+											isMissed={isMissed}
+											onMoveToToday={isMissed ? () => handleMoveToToday(w.id) : undefined}
 											onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
 											onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
 										/>
-									))
+										);
+									})
 								)}
 							</View>
 							<View style={styles.bottomSection}>
