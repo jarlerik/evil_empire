@@ -6,14 +6,17 @@ interface WeekDaySelectorProps {
 	weekStart: Date;
 	selectedDate: Date;
 	onSelectDate: (date: Date) => void;
+	dayStatuses?: Record<string, 'completed' | 'missed'>;
 }
 
-export function WeekDaySelector({ weekStart, selectedDate, onSelectDate }: WeekDaySelectorProps) {
+export function WeekDaySelector({ weekStart, selectedDate, onSelectDate, dayStatuses }: WeekDaySelectorProps) {
 	return (
 		<View style={styles.daySelector}>
 			{Array.from({ length: 7 }).map((_, i) => {
 				const day = addDays(weekStart, i);
-				const isSelected = format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+				const dayKey = format(day, 'yyyy-MM-dd');
+				const isSelected = dayKey === format(selectedDate, 'yyyy-MM-dd');
+				const status = dayStatuses?.[dayKey];
 
 				return (
 					<Pressable
@@ -38,6 +41,16 @@ export function WeekDaySelector({ weekStart, selectedDate, onSelectDate }: WeekD
 							>
 								{format(day, 'd')}
 							</Text>
+						</View>
+						<View style={styles.dotContainer}>
+							{status && (
+								<View
+									style={[
+										styles.statusDot,
+										status === 'missed' ? styles.dotMissed : styles.dotCompleted,
+									]}
+								/>
+							)}
 						</View>
 					</Pressable>
 				);
@@ -88,5 +101,22 @@ const styles = StyleSheet.create({
 	},
 	dayNumberUnselected: {
 		color: '#fff',
+	},
+	dotContainer: {
+		height: 10,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginTop: 2,
+	},
+	statusDot: {
+		width: 6,
+		height: 6,
+		borderRadius: 3,
+	},
+	dotMissed: {
+		backgroundColor: '#E53935',
+	},
+	dotCompleted: {
+		backgroundColor: '#C65D24',
 	},
 });

@@ -6,7 +6,7 @@ import { fetchWorkoutsByUserId, createWorkout } from '../services/workoutService
 import { fetchExercisesByWorkoutId } from '../services/exerciseService';
 import { fetchCompletedWorkoutIds } from '../services/workoutExecutionLogService';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
+import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { WorkoutCard } from '../components/WorkoutCard';
@@ -113,6 +113,21 @@ export default function Index() {
 
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
 
+	const today = startOfDay(new Date());
+	const dayStatuses: Record<string, 'completed' | 'missed'> = {};
+	for (const w of workouts) {
+		const dateKey = w.workout_date;
+		if (!dateKey) continue;
+		const workoutDay = startOfDay(new Date(dateKey + 'T00:00:00'));
+		if (completedWorkoutIds.has(w.id)) {
+			dayStatuses[dateKey] = 'completed';
+		} else if (isBefore(workoutDay, today)) {
+			if (dayStatuses[dateKey] !== 'completed') {
+				dayStatuses[dateKey] = 'missed';
+			}
+		}
+	}
+
 		return (
 			<KeyboardAvoidingView
 				style={styles.flex}
@@ -148,6 +163,7 @@ export default function Index() {
 								weekStart={selectedWeekStart}
 								selectedDate={selectedDate}
 								onSelectDate={setSelectedDate}
+								dayStatuses={dayStatuses}
 							/>
 
 							<View style={styles.workoutsSection}>
