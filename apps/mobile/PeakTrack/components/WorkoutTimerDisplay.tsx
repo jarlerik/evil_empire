@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Button } from './Button';
 import { ExercisePhase } from '@/lib/formatExercisePhase';
+import { interpolateWeight } from '@/lib/interpolateWeight';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -32,11 +33,6 @@ function parseReps(exercisePhase: ExercisePhase | null): string {
 		return exercisePhase.compound_reps.join(' + ');
 	}
 	return String(exercisePhase.repetitions);
-}
-
-function interpolateWeight(weightMin: number, weightMax: number, currentSet: number, totalSets: number): number {
-	if (totalSets <= 1) return weightMax;
-	return Math.round(weightMin + (weightMax - weightMin) * (currentSet - 1) / (totalSets - 1));
 }
 
 function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, totalSets: number): string {
