@@ -1,12 +1,12 @@
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useCallback } from 'react';
-import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
 import { commonStyles } from '../styles/common';
+import { NavigationBar } from '../components/NavigationBar';
 import { RepetitionMaximum } from '../services/types';
 import {
 	fetchRepetitionMaximums,
@@ -129,6 +129,7 @@ export default function RepetitionMaximums() {
 	}));
 
 	return (
+		<>
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -138,12 +139,7 @@ export default function RepetitionMaximums() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={commonStyles.container}>
-					<View style={commonStyles.headerRow}>
-						<Pressable onPress={() => router.back()} style={commonStyles.backButton}>
-							<Text style={commonStyles.backButtonText}>←</Text>
-						</Pressable>
-						<Text style={commonStyles.titleFlex}>Max reps</Text>
-					</View>
+					<Text style={commonStyles.title}>Max reps</Text>
 
 					<Pressable
 						style={styles.addButton}
@@ -205,6 +201,9 @@ export default function RepetitionMaximums() {
 				isLoading={isLoading}
 			/>
 		</KeyboardAvoidingView>
+
+			<NavigationBar />
+		</>
 	);
 }
 
