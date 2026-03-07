@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WeekDaySelector } from '../components/WeekDaySelector';
-import { commonStyles } from '../styles/common';
+import { commonStyles, colors } from '../styles/common';
 import { Exercise, Workout } from '../types/workout';
 import { NavigationBar } from '../components/NavigationBar';
 
@@ -105,8 +105,11 @@ export default function Index() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={commonStyles.container}>
-				<Text style={commonStyles.title}>Loading...</Text>
+			<View style={{ flex: 1 }}>
+				<View style={[commonStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+					<ActivityIndicator size="large" color={colors.primary} />
+				</View>
+				<NavigationBar />
 			</View>
 		);
 	}

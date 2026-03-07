@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { commonStyles } from '../styles/common';
+import { commonStyles, colors } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 
 export default function Settings() {
@@ -47,8 +47,11 @@ export default function Settings() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={commonStyles.container}>
-				<Text style={commonStyles.title}>Loading...</Text>
+			<View style={styles.screen}>
+				<View style={[commonStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+					<ActivityIndicator size="large" color={colors.primary} />
+				</View>
+				<NavigationBar />
 			</View>
 		);
 	}
