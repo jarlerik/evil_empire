@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { format, parseISO, subDays } from 'date-fns';
@@ -136,8 +136,11 @@ export default function History() {
 
 	if (authLoading || settingsLoading || isLoading) {
 		return (
-			<View style={commonStyles.container}>
-				<Text style={commonStyles.title}>Loading...</Text>
+			<View style={styles.screen}>
+				<View style={[commonStyles.container, styles.loadingContainer]}>
+					<ActivityIndicator size="large" color={colors.primary} />
+				</View>
+				<NavigationBar />
 			</View>
 		);
 	}
@@ -180,6 +183,11 @@ export default function History() {
 const styles = StyleSheet.create({
 	screen: {
 		flex: 1,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	scrollContent: {
 		flexGrow: 1,
