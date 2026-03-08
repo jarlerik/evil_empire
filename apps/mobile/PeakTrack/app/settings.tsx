@@ -16,7 +16,6 @@ export default function Settings() {
 		if (!authLoading && !user) {
 			router.replace('/(auth)/sign-in');
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user, authLoading]);
 
 	const handleUnitSelect = async (unit: 'kg' | 'lbs') => {

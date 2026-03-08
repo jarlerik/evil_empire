@@ -15,7 +15,6 @@ export default function AuthLayout() {
       // Redirect to home if user is already authenticated
       router.replace('/');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
   return (

@@ -47,7 +47,6 @@ export default function AddExercises() {
 	useFocusEffect(
 		useCallback(() => {
 			fetchExercises();
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [workoutId]),
 	);
 
