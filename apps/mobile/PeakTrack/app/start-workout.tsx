@@ -38,6 +38,7 @@ export default function StartWorkout() {
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
 	const beepSound = useRef<Audio.Sound | null>(null);
+	const beepLongSound = useRef<Audio.Sound | null>(null);
 	const hasActiveCountdown = useRef(false);
 
 	// Edit execution modal state
@@ -168,19 +169,27 @@ export default function StartWorkout() {
 		};
 	}, []);
 
-	// Load beep sound on mount
+	// Load beep sounds on mount
 	useEffect(() => {
-		const loadSound = async () => {
+		const loadSounds = async () => {
 			const { sound } = await Audio.Sound.createAsync(
 				require('../assets/sounds/beep.wav'),
 			);
 			beepSound.current = sound;
+
+			const { sound: longSound } = await Audio.Sound.createAsync(
+				require('../assets/sounds/beep-long.wav'),
+			);
+			beepLongSound.current = longSound;
 		};
-		loadSound();
+		loadSounds();
 
 		return () => {
 			if (beepSound.current) {
 				beepSound.current.unloadAsync();
+			}
+			if (beepLongSound.current) {
+				beepLongSound.current.unloadAsync();
 			}
 		};
 	}, []);
@@ -194,8 +203,8 @@ export default function StartWorkout() {
 			}
 		}
 		if (workoutState === 'rest' && restTimeRemaining === 0) {
-			if (beepSound.current) {
-				beepSound.current.replayAsync();
+			if (beepLongSound.current) {
+				beepLongSound.current.replayAsync();
 			}
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
