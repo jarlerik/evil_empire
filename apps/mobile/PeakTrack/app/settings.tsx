@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal, Keyboard, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal, Keyboard, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { commonStyles } from '../styles/common';
+import { commonStyles, colors } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 
 export default function Settings() {
 	const { user, loading: authLoading, signOut } = useAuth();
 	const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
 	const router = useRouter();
-	const [isEditingWeight, setIsEditingWeight] = useState(false);
-	const [tempWeight, setTempWeight] = useState(settings?.user_weight || '85');
 	const [isEditingUnit, setIsEditingUnit] = useState(false);
 
 	useEffect(() => {
@@ -20,21 +18,6 @@ export default function Settings() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user, authLoading]);
-
-	const handleWeightEdit = () => {
-		if (!settings) {return;}
-		setIsEditingWeight(true);
-		setTempWeight(settings.user_weight);
-	};
-
-	const handleWeightSave = async () => {
-		try {
-			await updateSettings({ user_weight: tempWeight });
-			setIsEditingWeight(false);
-		} catch (error) {
-			console.error('Error saving weight:', error);
-		}
-	};
 
 	const handleUnitSelect = async (unit: 'kg' | 'lbs') => {
 		try {
@@ -47,8 +30,11 @@ export default function Settings() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={commonStyles.container}>
-				<Text style={commonStyles.title}>Loading...</Text>
+			<View style={styles.screen}>
+				<View style={[commonStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+					<ActivityIndicator size="large" color={colors.primary} />
+				</View>
+				<NavigationBar />
 			</View>
 		);
 	}
@@ -77,9 +63,6 @@ export default function Settings() {
 							<Pressable onPress={() => setIsEditingUnit(true)} style={styles.dropdownButton}>
 								<Text style={styles.dropdownText}>{settings?.weight_unit}</Text>
 								<Text style={styles.dropdownArrow}>▼</Text>
-							</Pressable>
-							<Pressable onPress={() => router.push('/repetition-maximums')}>
-								<Text style={styles.editWeightButton}>Repetition Maximums</Text>
 							</Pressable>
 							<Modal
 								visible={isEditingUnit}
@@ -118,33 +101,6 @@ export default function Settings() {
 								</View>
 							</Modal>
 
-						</View>
-						<View style={styles.weightContainer}>
-							<Text style={styles.weightTitle}>Weight</Text>
-							{isEditingWeight ? (
-								<View style={styles.weightEditContainer}>
-									<TextInput
-										style={styles.weightInput}
-										value={tempWeight}
-										onChangeText={setTempWeight}
-										keyboardType="numeric"
-										maxLength={5}
-										returnKeyType="done"
-										onSubmitEditing={Keyboard.dismiss}
-									/>
-									<Text style={styles.weightUnit}>{settings?.weight_unit}</Text>
-									<Pressable style={styles.saveButton} onPress={handleWeightSave}>
-										<Text style={styles.saveButtonText}>Save</Text>
-									</Pressable>
-								</View>
-							) : (
-								<View style={styles.weightEditContainer}>
-									<Text style={styles.weightValue}>{settings?.user_weight} {settings?.weight_unit}</Text>
-									<Pressable onPress={handleWeightEdit}>
-										<Text style={styles.editWeightButton}>Change your weight</Text>
-									</Pressable>
-								</View>
-							)}
 						</View>
 					</View>
 				</ScrollView>
@@ -185,45 +141,6 @@ const styles = StyleSheet.create({
 	units: {
 		flex: 1,
 	},
-	weightContainer: {
-		flex: 1,
-		justifyContent: 'center',
-	},
-	weight: {
-		flex: 1,
-	},
-	changeUnit: {
-		fontSize: 12,
-		color: '#fff',
-		textAlign: 'center',
-		marginBottom: 10,
-		textDecorationLine: 'underline',
-	},
-	editWeightButton: {
-		fontSize: 12,
-		color: '#fff',
-		textAlign: 'center',
-		marginTop: 10,
-		marginBottom: 10,
-		textDecorationLine: 'underline',
-	},
-	weightTitle: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginTop: 5,
-		textAlign: 'center',
-	},
-	weightValue: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#666666',
-		marginTop: 5,
-		textAlign: 'center',
-	},
-	footer: {
-		marginTop: 'auto',
-	},
 	sectionTitle: {
 		fontSize: 24,
 		fontWeight: 'bold',
@@ -235,51 +152,6 @@ const styles = StyleSheet.create({
 		color: '#666',
 		marginTop: 8,
 		marginBottom: 40,
-	},
-	button: {
-		backgroundColor: '#333',
-		padding: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	buttonMargin: {
-		marginTop: 12,
-	},
-	weightEditContainer: {
-		alignItems: 'center',
-		marginTop: 10,
-	},
-	weightInput: {
-		fontSize: 48,
-		fontWeight: 'bold',
-		color: '#fff',
-		textAlign: 'center',
-		borderBottomWidth: 2,
-		borderBottomColor: '#666',
-		paddingBottom: 5,
-		minWidth: 120,
-	},
-	weightUnit: {
-		fontSize: 24,
-		color: '#666666',
-		marginTop: 5,
-	},
-	saveButton: {
-		backgroundColor: '#333',
-		paddingVertical: 10,
-		paddingHorizontal: 30,
-		borderRadius: 8,
-		marginTop: 20,
-	},
-	saveButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
 	},
 	modalContainer: {
 		flex: 1,

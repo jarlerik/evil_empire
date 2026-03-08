@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Button } from './Button';
 import { ExercisePhase } from '@/lib/formatExercisePhase';
+import { interpolateWeight } from '@/lib/interpolateWeight';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -34,10 +35,21 @@ function parseReps(exercisePhase: ExercisePhase | null): string {
 	return String(exercisePhase.repetitions);
 }
 
-function parseWeight(exercisePhase: ExercisePhase | null): string {
+function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, totalSets: number): string {
 	if (!exercisePhase) {
 		return '';
 	}
+
+	if (exercisePhase.weight_min != null && exercisePhase.weight_max != null && exercisePhase.weight_min !== exercisePhase.weight_max) {
+		const weight = interpolateWeight(exercisePhase.weight_min, exercisePhase.weight_max, currentSet, totalSets);
+		return `@${weight}kg`;
+	}
+
+	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
+		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+		return `@${weight}kg`;
+	}
+
 	return `@${exercisePhase.weight}kg`;
 }
 
@@ -46,7 +58,9 @@ function formatPhaseForDisplay(phase: ExercisePhase): string {
 	const reps = phase.compound_reps
 		? phase.compound_reps.join(' + ')
 		: String(phase.repetitions);
-	const weight = `@${phase.weight}kg`;
+	const weight = (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max)
+		? `@${phase.weight_min}-${phase.weight_max}kg`
+		: `@${phase.weight}kg`;
 	return `${sets} x ${reps} ${weight}`;
 }
 
@@ -65,11 +79,11 @@ export function WorkoutTimerDisplay({
 	// Determine which phase to display (current or next)
 	const displayPhase = nextPhase || exercisePhase;
 	const reps = parseReps(displayPhase);
-	const weight = parseWeight(displayPhase);
 
 	// Set info: if showing next phase, show "1 of X", otherwise show current set
 	const setNumber = nextPhase ? 1 : currentSetInPhase;
 	const totalSets = displayPhase?.sets || 0;
+	const weight = parseWeight(displayPhase, setNumber, totalSets);
 
 	// Render exercise done state with all phases
 	if (workoutState === 'exercise_done') {

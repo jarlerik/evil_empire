@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingVi
 import { Button } from './Button';
 import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
 import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
+import { interpolateWeight } from '../lib/interpolateWeight';
 
 interface EditExecutionModalProps {
 	visible: boolean;
@@ -23,6 +24,18 @@ export interface ExecutionLogData {
 	}>;
 }
 
+function isWeightRangePhase(phase: ExercisePhase): boolean {
+	return phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max;
+}
+
+function getInterpolatedWeights(phase: ExercisePhase): number[] {
+	const weights: number[] = [];
+	for (let i = 1; i <= phase.sets; i++) {
+		weights.push(interpolateWeight(phase.weight_min!, phase.weight_max!, i, phase.sets));
+	}
+	return weights;
+}
+
 export function EditExecutionModal({
 	visible,
 	onClose,
@@ -33,16 +46,23 @@ export function EditExecutionModal({
 	phases,
 }: EditExecutionModalProps) {
 	const [phaseInputs, setPhaseInputs] = useState<Record<string, string>>({});
+	const [perSetWeights, setPerSetWeights] = useState<Record<string, number[]>>({});
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Initialize inputs with formatted planned values when modal opens
 	useEffect(() => {
 		if (visible && phases.length > 0) {
 			const initialInputs: Record<string, string> = {};
+			const initialWeights: Record<string, number[]> = {};
 			phases.forEach(phase => {
-				initialInputs[phase.id] = formatExercisePhase(phase);
+				if (isWeightRangePhase(phase)) {
+					initialWeights[phase.id] = getInterpolatedWeights(phase);
+				} else {
+					initialInputs[phase.id] = formatExercisePhase(phase);
+				}
 			});
 			setPhaseInputs(initialInputs);
+			setPerSetWeights(initialWeights);
 		}
 	}, [visible, phases]);
 
@@ -53,26 +73,59 @@ export function EditExecutionModal({
 		}));
 	};
 
+	const handleWeightChange = (phaseId: string, setIndex: number, value: string) => {
+		const numValue = value === '' ? 0 : Number(value);
+		if (isNaN(numValue)) return;
+		setPerSetWeights(prev => {
+			const updated = [...(prev[phaseId] || [])];
+			updated[setIndex] = numValue;
+			return { ...prev, [phaseId]: updated };
+		});
+	};
+
 	const handleSave = async () => {
 		setIsLoading(true);
 
 		const executionPhases: ExecutionLogData['phases'] = [];
 
 		for (const phase of phases) {
-			const input = phaseInputs[phase.id] || formatExercisePhase(phase);
-			const parsed = parseSetInput(input);
+			if (isWeightRangePhase(phase)) {
+				const weights = perSetWeights[phase.id] || getInterpolatedWeights(phase);
+				const repsStr = phase.compound_reps ? phase.compound_reps.join(' + ') : String(phase.repetitions);
+				const weightsStr = weights.join(' ');
+				const input = `${phase.sets} x ${repsStr} @${weightsStr}kg`;
 
-			if (!parsed.isValid) {
-				Alert.alert('Error', `Invalid format for phase: ${input}. ${parsed.errorMessage || ''}`);
-				setIsLoading(false);
-				return;
+				const parsed: ParsedSetData = {
+					sets: phase.sets,
+					reps: phase.repetitions,
+					weight: weights[0],
+					weights,
+					isValid: true,
+					...(phase.compound_reps && { compoundReps: phase.compound_reps }),
+					...(phase.rest_time_seconds && { restTimeSeconds: phase.rest_time_seconds }),
+				};
+
+				executionPhases.push({
+					exercise_phase_id: phase.id,
+					input,
+					parsed,
+				});
+			} else {
+				const input = phaseInputs[phase.id] || formatExercisePhase(phase);
+				const parsed = parseSetInput(input);
+
+				if (!parsed.isValid) {
+					Alert.alert('Error', `Invalid format for phase: ${input}. ${parsed.errorMessage || ''}`);
+					setIsLoading(false);
+					return;
+				}
+
+				executionPhases.push({
+					exercise_phase_id: phase.id,
+					input,
+					parsed,
+				});
 			}
-
-			executionPhases.push({
-				exercise_phase_id: phase.id,
-				input,
-				parsed,
-			});
 		}
 
 		try {
@@ -122,13 +175,30 @@ export function EditExecutionModal({
 									<Text style={styles.plannedNotes}>{phase.notes}</Text>
 								)}
 								<Text style={styles.actualLabel}>Actual:</Text>
-								<TextInput
-									style={styles.input}
-									value={phaseInputs[phase.id] || ''}
-									onChangeText={(value) => handleInputChange(phase.id, value)}
-									placeholder={formatExercisePhase(phase)}
-									placeholderTextColor="#666"
-								/>
+								{isWeightRangePhase(phase) ? (
+									<View style={styles.perSetContainer}>
+										{(perSetWeights[phase.id] || getInterpolatedWeights(phase)).map((weight, index) => (
+											<View key={index} style={styles.perSetRow}>
+												<Text style={styles.perSetLabel}>Set {index + 1}:</Text>
+												<TextInput
+													style={styles.perSetInput}
+													value={String(weight)}
+													onChangeText={(value) => handleWeightChange(phase.id, index, value)}
+													keyboardType="numeric"
+												/>
+												<Text style={styles.perSetUnit}>kg</Text>
+											</View>
+										))}
+									</View>
+								) : (
+									<TextInput
+										style={styles.input}
+										value={phaseInputs[phase.id] || ''}
+										onChangeText={(value) => handleInputChange(phase.id, value)}
+										placeholder={formatExercisePhase(phase)}
+										placeholderTextColor="#666"
+									/>
+								)}
 							</View>
 						))}
 					</ScrollView>
@@ -222,6 +292,32 @@ const styles = StyleSheet.create({
 		borderRadius: 6,
 		padding: 10,
 		fontSize: 16,
+	},
+	perSetContainer: {
+		gap: 8,
+	},
+	perSetRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	perSetLabel: {
+		color: '#888',
+		fontSize: 14,
+		width: 50,
+	},
+	perSetInput: {
+		backgroundColor: '#333',
+		color: '#fff',
+		borderRadius: 6,
+		padding: 10,
+		fontSize: 16,
+		flex: 1,
+	},
+	perSetUnit: {
+		color: '#888',
+		fontSize: 14,
+		width: 24,
 	},
 	buttonRow: {
 		flexDirection: 'row',

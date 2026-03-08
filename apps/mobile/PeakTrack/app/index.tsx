@@ -1,17 +1,17 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout } from '../services/workoutService';
+import { fetchWorkoutsByUserId, createWorkout, updateWorkoutDate } from '../services/workoutService';
 import { fetchExercisesByWorkoutId } from '../services/exerciseService';
 import { fetchCompletedWorkoutIds } from '../services/workoutExecutionLogService';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { addDays, startOfWeek, format, getISOWeek, subDays } from 'date-fns';
+import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WeekDaySelector } from '../components/WeekDaySelector';
-import { commonStyles } from '../styles/common';
+import { commonStyles, colors } from '../styles/common';
 import { Exercise, Workout } from '../types/workout';
 import { NavigationBar } from '../components/NavigationBar';
 
@@ -105,13 +105,45 @@ export default function Index() {
 
 	if (authLoading || settingsLoading) {
 		return (
-			<View style={commonStyles.container}>
-				<Text style={commonStyles.title}>Loading...</Text>
+			<View style={{ flex: 1 }}>
+				<View style={[commonStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+					<ActivityIndicator size="large" color={colors.primary} />
+				</View>
+				<NavigationBar />
 			</View>
 		);
 	}
 
+	const todayStr = format(new Date(), 'yyyy-MM-dd');
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
+
+	const handleMoveToToday = async (workoutId: string) => {
+		const { error } = await updateWorkoutDate(workoutId, todayStr);
+		if (!error) {
+			setWorkouts(prev => prev.map(w => w.id === workoutId ? { ...w, workout_date: todayStr } : w));
+			setSelectedDate(new Date());
+			setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+		}
+	};
+
+	const today = startOfDay(new Date());
+	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
+	for (const w of workouts) {
+		const dateKey = w.workout_date;
+		if (!dateKey) continue;
+		const workoutDay = startOfDay(new Date(dateKey + 'T00:00:00'));
+		if (completedWorkoutIds.has(w.id)) {
+			dayStatuses[dateKey] = 'completed';
+		} else if (isBefore(workoutDay, today)) {
+			if (dayStatuses[dateKey] !== 'completed') {
+				dayStatuses[dateKey] = 'missed';
+			}
+		} else {
+			if (!dayStatuses[dateKey]) {
+				dayStatuses[dateKey] = 'planned';
+			}
+		}
+	}
 
 		return (
 			<KeyboardAvoidingView
@@ -148,6 +180,7 @@ export default function Index() {
 								weekStart={selectedWeekStart}
 								selectedDate={selectedDate}
 								onSelectDate={setSelectedDate}
+								dayStatuses={dayStatuses}
 							/>
 
 							<View style={styles.workoutsSection}>
@@ -157,16 +190,21 @@ export default function Index() {
 								{filteredWorkouts.length === 0 ? (
 									<Text style={styles.noWorkoutText}>No workout yet.</Text>
 								) : (
-									filteredWorkouts.map((w) => (
+									filteredWorkouts.map((w) => {
+										const isMissed = !completedWorkoutIds.has(w.id) && !!w.workout_date && w.workout_date < todayStr;
+										return (
 										<WorkoutCard
 											key={w.id}
 											workout={w}
 											exercises={exercises[w.id] || []}
 											isCompleted={completedWorkoutIds.has(w.id)}
+											isMissed={isMissed}
+											onMoveToToday={isMissed ? () => handleMoveToToday(w.id) : undefined}
 											onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: w.name, workoutId: w.id } })}
 											onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: w.name, workoutId: w.id } })}
 										/>
-									))
+										);
+									})
 								)}
 							</View>
 							<View style={styles.bottomSection}>

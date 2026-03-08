@@ -1,20 +1,24 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../styles/common';
 
+type IconName = keyof typeof Ionicons.glyphMap | keyof typeof MaterialCommunityIcons.glyphMap;
+
 interface NavigationItem {
 	label: string;
 	href: Href;
-	icon: keyof typeof Ionicons.glyphMap;
-	activeIcon: keyof typeof Ionicons.glyphMap;
+	icon: IconName;
+	activeIcon: IconName;
+	iconFamily?: 'ionicons' | 'material-community';
 }
 
 const navigationItems: NavigationItem[] = [
 	{ label: 'Home', href: '/', icon: 'home-outline', activeIcon: 'home' },
 	{ label: 'History', href: '/history', icon: 'time-outline', activeIcon: 'time' },
+	{ label: 'RMs', href: '/repetition-maximums', icon: 'podium-gold', activeIcon: 'podium-gold', iconFamily: 'material-community' },
 	{ label: 'Settings', href: '/settings', icon: 'settings-outline', activeIcon: 'settings' },
 ];
 
@@ -27,6 +31,7 @@ export function NavigationBar() {
 			{navigationItems.map((item) => {
 				const isActive = pathname === item.href;
 				const iconName = isActive ? item.activeIcon : item.icon;
+				const iconColor = isActive ? colors.primary : colors.text;
 
 				return (
 					<Pressable
@@ -36,7 +41,11 @@ export function NavigationBar() {
 						accessibilityRole="tab"
 						accessibilityState={{ selected: isActive }}
 					>
-						<Ionicons name={iconName} size={22} color={isActive ? colors.primary : colors.text} />
+						{item.iconFamily === 'material-community' ? (
+						<MaterialCommunityIcons name={iconName as keyof typeof MaterialCommunityIcons.glyphMap} size={22} color={iconColor} />
+					) : (
+						<Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={22} color={iconColor} />
+					)}
 						<Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{item.label}</Text>
 					</Pressable>
 				);

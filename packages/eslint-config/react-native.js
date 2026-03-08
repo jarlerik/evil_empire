@@ -2,7 +2,6 @@ const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
-const rnConfig = require('@react-native-community/eslint-config');
 const eslintCommentsPlugin = require('eslint-plugin-eslint-comments');
 const reactNativePlugin = require('eslint-plugin-react-native');
 const jestPlugin = require('eslint-plugin-jest');
@@ -69,7 +68,6 @@ module.exports = [
       'import': importPlugin
     },
     rules: {
-      ...rnConfig.rules,
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',

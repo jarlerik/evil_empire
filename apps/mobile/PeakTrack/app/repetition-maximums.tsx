@@ -1,12 +1,12 @@
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import React, { useState, useCallback } from 'react';
-import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
-import { commonStyles } from '../styles/common';
+import { commonStyles, colors } from '../styles/common';
+import { NavigationBar } from '../components/NavigationBar';
 import { RepetitionMaximum } from '../services/types';
 import {
 	fetchRepetitionMaximums,
@@ -18,6 +18,7 @@ import {
 export default function RepetitionMaximums() {
 	const { user } = useAuth();
 	const [rms, setRms] = useState<RepetitionMaximum[]>([]);
+	const [isFetching, setIsFetching] = useState(true);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isModalVisible, setIsModalVisible] = useState(false);
 	const [editingRm, setEditingRm] = useState<RepetitionMaximum | null>(null);
@@ -34,11 +35,13 @@ export default function RepetitionMaximums() {
 
 	const fetchRms = async () => {
 		if (!user) {return;}
+		setIsFetching(true);
 		const { data, error } = await fetchRepetitionMaximums(user.id);
 
 		if (!error && data) {
 			setRms(data);
 		}
+		setIsFetching(false);
 	};
 
 	const handleOpenModal = (rm?: RepetitionMaximum) => {
@@ -129,6 +132,7 @@ export default function RepetitionMaximums() {
 	}));
 
 	return (
+		<>
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -138,12 +142,7 @@ export default function RepetitionMaximums() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={commonStyles.container}>
-					<View style={commonStyles.headerRow}>
-						<Pressable onPress={() => router.back()} style={commonStyles.backButton}>
-							<Text style={commonStyles.backButtonText}>←</Text>
-						</Pressable>
-						<Text style={commonStyles.titleFlex}>Max reps</Text>
-					</View>
+					<Text style={commonStyles.title}>Max reps</Text>
 
 					<Pressable
 						style={styles.addButton}
@@ -153,7 +152,11 @@ export default function RepetitionMaximums() {
 						<Text style={styles.addButtonText}>Add RM</Text>
 					</Pressable>
 
-					{groupedRmsArray.length === 0 ? (
+					{isFetching ? (
+						<View style={styles.emptyContainer}>
+							<ActivityIndicator size="large" color={colors.primary} />
+						</View>
+					) : groupedRmsArray.length === 0 ? (
 						<View style={styles.emptyContainer}>
 							<Text style={styles.emptyText}>No repetition maximums yet</Text>
 							<Text style={styles.emptySubtext}>Add your first RM to get started</Text>
@@ -205,6 +208,9 @@ export default function RepetitionMaximums() {
 				isLoading={isLoading}
 			/>
 		</KeyboardAvoidingView>
+
+			<NavigationBar />
+		</>
 	);
 }
 

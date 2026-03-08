@@ -63,6 +63,28 @@ export async function deleteWorkout(
 	return { data: null, error: null };
 }
 
+export async function updateWorkoutDate(
+	workoutId: string,
+	newDate: string,
+): Promise<ServiceResult<Workout>> {
+	if (!supabase) {
+		return { data: null, error: 'Database not available' };
+	}
+
+	const { data, error } = await supabase
+		.from('workouts')
+		.update({ workout_date: newDate })
+		.eq('id', workoutId)
+		.select()
+		.single();
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
+}
+
 export async function fetchWorkoutsByIds(
 	workoutIds: string[],
 	userId: string,

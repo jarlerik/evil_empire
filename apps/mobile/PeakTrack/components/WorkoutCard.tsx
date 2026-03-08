@@ -11,12 +11,19 @@ interface WorkoutCardProps {
 	onStart: () => void;
 	isReadOnly?: boolean;
 	isCompleted?: boolean;
+	isMissed?: boolean;
+	onMoveToToday?: () => void;
 	exercisePhases?: Map<string, ExercisePhase[]>;
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, exercisePhases }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, exercisePhases }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
+			{isMissed && (
+				<View style={styles.missedBadge}>
+					<Text style={styles.missedBadgeText}>Missed workout</Text>
+				</View>
+			)}
 			<View style={[
 				styles.workoutCardHeader,
 				exercises.length > 0 && styles.workoutCardHeaderWithExercises,
@@ -30,13 +37,13 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 							<Ionicons name="pencil" size={22} color="#fff" />
 						</Pressable>
 						<Pressable onPress={onStart} style={styles.actionButton}>
-							<Ionicons name="play" size={22} color="#fff" />
+							<Ionicons name="stopwatch" size={22} color="#fff" />
 						</Pressable>
 					</View>
 				)}
 				{isCompleted && !isReadOnly && (
 					<View style={styles.workoutActions}>
-						<Ionicons name="checkmark-circle" size={24} color="#C65D24" />
+						<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
 					</View>
 				)}
 			</View>
@@ -58,6 +65,11 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 						);
 					})}
 				</View>
+			)}
+			{isMissed && onMoveToToday && (
+				<Pressable onPress={onMoveToToday} style={styles.moveToTodayButton}>
+					<Text style={styles.moveToTodayText}>Move to today</Text>
+				</Pressable>
 			)}
 		</View>
 	);
@@ -106,5 +118,27 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		marginLeft: 16,
 		marginTop: 1,
+	},
+	missedBadge: {
+		alignSelf: 'flex-start',
+		borderWidth: 1,
+		borderColor: '#D32F2F',
+		borderRadius: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		marginBottom: 8,
+	},
+	missedBadgeText: {
+		color: '#D32F2F',
+		fontSize: 12,
+		fontWeight: '600',
+	},
+	moveToTodayButton: {
+		marginTop: 12,
+	},
+	moveToTodayText: {
+		color: '#D32F2F',
+		fontSize: 14,
+		fontWeight: '600',
 	},
 });

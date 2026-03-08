@@ -4,3 +4,14 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Native directories (managed by CNG/Prebuild)
+/ios
+/android
+
+# EAS credentials
+credentials.json
+credentials/
+
+# Local build artifacts
+*.ipa

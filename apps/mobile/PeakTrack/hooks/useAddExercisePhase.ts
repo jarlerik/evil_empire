@@ -60,19 +60,24 @@ export function useAddExercisePhase({
 			return { success: false, error: weightResult.error };
 		}
 
-		const { weight, weightMin, weightMax } = weightResult.weights;
+		const { weight, weightMin, weightMax, weights: calculatedWeights } = weightResult.weights;
 		const weightRange = weightMin !== undefined && weightMax !== undefined
 			? { min: weightMin, max: weightMax }
 			: undefined;
+
+		// Override parsedData.weights with calculated kg values if RM lookup converted percentages
+		const finalParsedData = calculatedWeights
+			? { ...parsedData, weights: calculatedWeights }
+			: parsedData;
 
 		let result: AddPhaseResult;
 
 		if (editingPhaseId) {
 			// Update existing phase
-			result = await updatePhase(editingPhaseId, parsedData, weight, weightRange);
+			result = await updatePhase(editingPhaseId, finalParsedData, weight, weightRange);
 		} else {
 			// Add new phase
-			result = await addPhase(parsedData, weight, weightRange);
+			result = await addPhase(finalParsedData, weight, weightRange);
 		}
 
 		setIsLoading(false);
