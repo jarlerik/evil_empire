@@ -11,6 +11,12 @@ export interface ExecutionLogInsert {
 	weights?: number[] | null;
 	compound_reps?: number[] | null;
 	rest_time_seconds?: number | null;
+	emom_interval_seconds?: number | null;
+	exercise_type?: string | null;
+	circuit_exercises?: Array<{reps: string, name: string}> | string | null;
+	target_rm?: number | null;
+	rir_min?: number | null;
+	rir_max?: number | null;
 	execution_status: string;
 	executed_at: string;
 }
@@ -31,6 +37,12 @@ export interface ExecutionLogDetail {
 	weights: number[] | null;
 	compound_reps: number[] | null;
 	rest_time_seconds: number | null;
+	emom_interval_seconds: number | null;
+	exercise_type: string | null;
+	circuit_exercises: Array<{reps: string, name: string}> | string | null;
+	target_rm: number | null;
+	rir_min: number | null;
+	rir_max: number | null;
 	execution_status: string;
 	executed_at: string;
 }
@@ -90,7 +102,7 @@ export async function fetchExecutionLogsByExerciseIds(
 
 	const { data, error } = await supabase
 		.from('workout_execution_logs')
-		.select('id, workout_id, exercise_id, exercise_phase_id, sets, repetitions, weight, weights, compound_reps, rest_time_seconds, execution_status, executed_at')
+		.select('id, workout_id, exercise_id, exercise_phase_id, sets, repetitions, weight, weights, compound_reps, rest_time_seconds, emom_interval_seconds, exercise_type, circuit_exercises, target_rm, rir_min, rir_max, execution_status, executed_at')
 		.in('exercise_id', exerciseIds)
 		.order('executed_at', { ascending: true });
 
