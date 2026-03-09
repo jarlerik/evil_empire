@@ -177,8 +177,8 @@ export function parseSetInput(input: string): ParsedSetData {
 		return invalidResult('Invalid weight values. Please use numbers only.');
 	}
 
-	// Check for wave-like patterns without unit (e.g., "3-2-1 65")
-	const waveNoUnit = /^\d+(-\d+)+\s+[\d.]+\s*$/i;
+	// Check for wave-like patterns without unit (e.g., "3-2-1 65", "3-2-1@65")
+	const waveNoUnit = /^\d+(-\d+)+(?:\s+|@)[\d.,\s]+$/i;
 	if (waveNoUnit.test(cleanInput)) {
 		return invalidResult('Missing weight unit. Add "kg" or "%" after the weight (e.g., "3-2-1 65kg" or "3-2-1 80%").');
 	}

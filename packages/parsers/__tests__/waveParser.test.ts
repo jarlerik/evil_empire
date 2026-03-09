@@ -168,11 +168,11 @@ describe('parseSetInput - Wave Format', () => {
 				reps: 3, // First rep count for backward compatibility
 				weight: 0, // Will be calculated after RM lookup
 				wavePhases: [
-					{sets: 1, reps: 3, weight: 0},
-					{sets: 1, reps: 2, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
 				],
 				isValid: true,
 				weightPercentage: 80,
@@ -334,6 +334,214 @@ describe('parseSetInput - Wave Format', () => {
 					{sets: 1, reps: 1, weight: 65},
 				],
 				isValid: true,
+			});
+		});
+	});
+
+	describe('wave with multiple weights (kg)', () => {
+		it('should parse wave with two weights', () => {
+			const result = parseSetInput('3-2-1-3-2-1 70, 75kg');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 70,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 70},
+					{sets: 1, reps: 2, weight: 70},
+					{sets: 1, reps: 1, weight: 70},
+					{sets: 1, reps: 3, weight: 75},
+					{sets: 1, reps: 2, weight: 75},
+					{sets: 1, reps: 1, weight: 75},
+				],
+				isValid: true,
+			});
+		});
+
+		it('should parse wave with three weights', () => {
+			const result = parseSetInput('3-2-1-3-2-1-3-2-1 60, 65, 70kg');
+			expect(result).toEqual({
+				sets: 9,
+				reps: 3,
+				weight: 60,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 60},
+					{sets: 1, reps: 2, weight: 60},
+					{sets: 1, reps: 1, weight: 60},
+					{sets: 1, reps: 3, weight: 65},
+					{sets: 1, reps: 2, weight: 65},
+					{sets: 1, reps: 1, weight: 65},
+					{sets: 1, reps: 3, weight: 70},
+					{sets: 1, reps: 2, weight: 70},
+					{sets: 1, reps: 1, weight: 70},
+				],
+				isValid: true,
+			});
+		});
+
+		it('should parse wave with @ separator', () => {
+			const result = parseSetInput('3-2-1-3-2-1@70, 75kg');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 70,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 70},
+					{sets: 1, reps: 2, weight: 70},
+					{sets: 1, reps: 1, weight: 70},
+					{sets: 1, reps: 3, weight: 75},
+					{sets: 1, reps: 2, weight: 75},
+					{sets: 1, reps: 1, weight: 75},
+				],
+				isValid: true,
+			});
+		});
+
+		it('should parse wave with space-separated weights', () => {
+			const result = parseSetInput('3-2-1-3-2-1@70 75kg');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 70,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 70},
+					{sets: 1, reps: 2, weight: 70},
+					{sets: 1, reps: 1, weight: 70},
+					{sets: 1, reps: 3, weight: 75},
+					{sets: 1, reps: 2, weight: 75},
+					{sets: 1, reps: 1, weight: 75},
+				],
+				isValid: true,
+			});
+		});
+
+		it('should return error when weights do not evenly divide sets', () => {
+			const result = parseSetInput('3-2-1-3-2@70, 75kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('evenly divide');
+		});
+	});
+
+	describe('wave with multiple percentages', () => {
+		it('should parse wave with two percentages', () => {
+			const result = parseSetInput('3-2-1-3-2-1@70, 75%');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 0,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 75},
+				],
+				isValid: true,
+				weightPercentage: 70,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should parse wave with space separator and percentages', () => {
+			const result = parseSetInput('3-2-1-3-2-1 70, 75%');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 0,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 75},
+				],
+				isValid: true,
+				weightPercentage: 70,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should parse wave with three percentages', () => {
+			const result = parseSetInput('3-2-1-3-2-1-3-2-1@65, 70, 75%');
+			expect(result).toEqual({
+				sets: 9,
+				reps: 3,
+				weight: 0,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 65},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 65},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 65},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 75},
+				],
+				isValid: true,
+				weightPercentage: 65,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should parse wave with space-separated percentages', () => {
+			const result = parseSetInput('3-2-1-3-2-1@70 75%');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 3,
+				weight: 0,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 70},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 75},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 75},
+				],
+				isValid: true,
+				weightPercentage: 70,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should return error when percentages do not evenly divide sets', () => {
+			const result = parseSetInput('3-2-1-3-2@70, 75%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('evenly divide');
+		});
+	});
+
+	describe('wave with @ separator (single value)', () => {
+		it('should parse wave with @ separator and kg', () => {
+			const result = parseSetInput('3-2-1@65kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 3,
+				weight: 65,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 65},
+					{sets: 1, reps: 2, weight: 65},
+					{sets: 1, reps: 1, weight: 65},
+				],
+				isValid: true,
+			});
+		});
+
+		it('should parse wave with @ separator and percentage', () => {
+			const result = parseSetInput('3-2-1@80%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 3,
+				weight: 0,
+				wavePhases: [
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
+				],
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true,
 			});
 		});
 	});

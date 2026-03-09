@@ -3,7 +3,7 @@ export interface ParsedSetData {
 	reps: number;
 	weight: number;
 	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
-	wavePhases?: Array<{sets: number, reps: number, weight: number}>; // For wave exercises
+	wavePhases?: Array<{sets: number, reps: number, weight: number, weightPercentage?: number}>; // For wave exercises
 	isValid: boolean;
 	errorMessage?: string; // Error message when parsing fails
 	compoundReps?: number[]; // For compound exercises like "2 + 2"

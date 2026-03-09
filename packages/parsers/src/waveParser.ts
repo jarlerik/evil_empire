@@ -2,10 +2,10 @@ import { ParserResult, invalidResult, validResult } from './types';
 
 /**
  * Pattern 3: Wave format "reps1-reps2-reps3... weightkg" or "weight%"
- * Example: "3-2-1-1-1 65kg", "3-2-1 80%"
+ * Example: "3-2-1-1-1 65kg", "3-2-1 80%", "3-2-1-3-2-1@70, 75%", "3-2-1-3-2-1 70, 75kg"
  */
 export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserResult {
-	const wavePattern = /^((?:\d+\s*\-?\s*)+)\s+(\d+(?:\.\d+)?)\s*(kg|%)$/i;
+	const wavePattern = /^(\d+(?:\s*-\s*\d+)+)(?:\s+|@)(\d+(?:\.\d+)?(?:[\s,]+\d+(?:\.\d+)?)*)\s*(kg|%)$/i;
 	const match = cleanInput.match(wavePattern);
 
 	if (!match) {
@@ -13,11 +13,14 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 	}
 
 	const repsStr = match[1];
-	const value = parseFloat(match[2]);
+	const valuesStr = match[2];
 	const unit = match[3]?.toLowerCase() || '';
 
-	// Validate value is positive
-	if (value <= 0) {
+	// Parse all weight/percentage values (comma or space separated)
+	const values = valuesStr.split(/[\s,]+/).map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+
+	// Validate all values are positive
+	if (!values.every(v => !isNaN(v) && v > 0)) {
 		return {
 			matched: true,
 			data: invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg")'),
@@ -35,12 +38,24 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 		};
 	}
 
+	// For multiple values, validate they evenly divide the reps
+	if (values.length > 1) {
+		if (waveReps.length % values.length !== 0) {
+			return {
+				matched: true,
+				data: invalidResult(`Wave has ${waveReps.length} sets but ${values.length} weights — weights must evenly divide sets.`),
+			};
+		}
+	}
+
+	const repsPerValue = values.length > 1 ? waveReps.length / values.length : waveReps.length;
+
 	if (unit === 'kg') {
 		// Create individual phases for each set in the wave
-		const wavePhases = waveReps.map((reps) => ({
+		const wavePhases = waveReps.map((reps, i) => ({
 			sets: 1,
 			reps,
-			weight: value, // All phases get the same weight
+			weight: values[Math.floor(i / repsPerValue)],
 		}));
 
 		return {
@@ -48,14 +63,14 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 			data: validResult({
 				sets: waveReps.length,
 				reps: waveReps[0], // First rep count for backward compatibility
-				weight: value,
+				weight: values[0],
 				wavePhases,
 				...(restTimeSeconds !== undefined && { restTimeSeconds }),
 			}),
 		};
 	} else if (unit === '%') {
-		// Validate percentage is between 0 and 100
-		if (value <= 0 || value > 100) {
+		// Validate all percentages are between 0 and 100
+		if (!values.every(v => v > 0 && v <= 100)) {
 			return {
 				matched: true,
 				data: invalidResult('Percentage must be between 0 and 100'),
@@ -63,10 +78,11 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 		}
 
 		// Create individual phases for each set in the wave
-		const wavePhases = waveReps.map((reps) => ({
+		const wavePhases = waveReps.map((reps, i) => ({
 			sets: 1,
 			reps,
 			weight: 0, // Will be calculated after RM lookup
+			weightPercentage: values[Math.floor(i / repsPerValue)],
 		}));
 
 		return {
@@ -76,7 +92,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 				reps: waveReps[0], // First rep count for backward compatibility
 				weight: 0, // Will be calculated after RM lookup
 				wavePhases,
-				weightPercentage: value,
+				weightPercentage: values[0],
 				needsRmLookup: true,
 				...(restTimeSeconds !== undefined && { restTimeSeconds }),
 			}),

@@ -11,6 +11,7 @@ interface CalculatedWeights {
 	weightMin?: number;
 	weightMax?: number;
 	weights?: number[];
+	rmWeight?: number; // Raw 1RM weight used for calculations
 }
 
 export function useRmLookup() {
@@ -97,6 +98,7 @@ export function useRmLookup() {
 		let calculatedWeightMin: number | undefined;
 		let calculatedWeightMax: number | undefined;
 		let calculatedWeights: number[] | undefined;
+		let rawRmWeight: number | undefined;
 
 		if (parsedData.needsRmLookup) {
 			const rmResult = await lookupRm(userId, exerciseName);
@@ -108,6 +110,8 @@ export function useRmLookup() {
 					error: rmResult.error,
 				};
 			}
+
+			rawRmWeight = rmResult.weight;
 
 			// Handle multiple per-set percentages (e.g., weights: [75, 78, 78] from "3 x 1 + 1@75, 78, 78%")
 			if (parsedData.weights && parsedData.weights.length > 1) {
@@ -139,6 +143,7 @@ export function useRmLookup() {
 				weightMin: calculatedWeightMin,
 				weightMax: calculatedWeightMax,
 				...(calculatedWeights && { weights: calculatedWeights }),
+				...(rawRmWeight !== undefined && { rmWeight: rawRmWeight }),
 			},
 		};
 	};
