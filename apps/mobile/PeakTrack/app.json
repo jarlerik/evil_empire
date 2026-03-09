@@ -2,7 +2,7 @@
   "expo": {
     "name": "PeakTrack",
     "slug": "peaktrack",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "peaktrack",
