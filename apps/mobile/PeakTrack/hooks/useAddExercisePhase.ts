@@ -66,9 +66,24 @@ export function useAddExercisePhase({
 			: undefined;
 
 		// Override parsedData.weights with calculated kg values if RM lookup converted percentages
-		const finalParsedData = calculatedWeights
+		let finalParsedData = calculatedWeights
 			? { ...parsedData, weights: calculatedWeights }
 			: parsedData;
+
+		// For wave phases with per-phase percentages, resolve weights from RM
+		if (finalParsedData.wavePhases && finalParsedData.needsRmLookup) {
+			const rmWeight = weightResult.weights.rmWeight;
+			const resolvedPhases = finalParsedData.wavePhases.map(phase => {
+				if (phase.weightPercentage !== undefined && rmWeight) {
+					return {
+						...phase,
+						weight: Math.round((rmWeight * phase.weightPercentage) / 100),
+					};
+				}
+				return { ...phase, weight: weight };
+			});
+			finalParsedData = { ...finalParsedData, wavePhases: resolvedPhases };
+		}
 
 		let result: AddPhaseResult;
 

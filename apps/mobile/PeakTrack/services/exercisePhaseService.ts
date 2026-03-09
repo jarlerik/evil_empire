@@ -18,6 +18,7 @@ export interface PhaseInsertData {
 	weight_min?: number | null;
 	weight_max?: number | null;
 	rest_time_seconds?: number | null;
+	emom_interval_seconds?: number | null;
 }
 
 export async function fetchPhasesByExerciseId(

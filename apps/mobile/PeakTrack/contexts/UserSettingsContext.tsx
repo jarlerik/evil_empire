@@ -28,7 +28,6 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
     }
 
     fetchUserSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchUserSettings = async () => {

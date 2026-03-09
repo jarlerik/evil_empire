@@ -29,7 +29,6 @@ export default function RepetitionMaximums() {
 			if (user) {
 				fetchRms();
 			}
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [user]),
 	);
 

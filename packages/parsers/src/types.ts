@@ -3,7 +3,7 @@ export interface ParsedSetData {
 	reps: number;
 	weight: number;
 	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
-	wavePhases?: Array<{sets: number, reps: number, weight: number}>; // For wave exercises
+	wavePhases?: Array<{sets: number, reps: number, weight: number, weightPercentage?: number}>; // For wave exercises
 	isValid: boolean;
 	errorMessage?: string; // Error message when parsing fails
 	compoundReps?: number[]; // For compound exercises like "2 + 2"
@@ -20,6 +20,7 @@ export interface ParsedSetData {
 	weightMinPercentage?: number; // Minimum percentage for percentage ranges (e.g., 80 for "80-85%")
 	weightMaxPercentage?: number; // Maximum percentage for percentage ranges (e.g., 85 for "80-85%")
 	restTimeSeconds?: number; // Rest time between sets in seconds (e.g., 120 for 2 minutes)
+	emomIntervalSeconds?: number; // EMOM interval in seconds (e.g., 300 for 5 minutes)
 }
 
 export interface ParserResult {

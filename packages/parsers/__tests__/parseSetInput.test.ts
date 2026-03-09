@@ -293,11 +293,11 @@ describe('parseSetInput', () => {
 				reps: 3, // First rep count for backward compatibility
 				weight: 0, // Will be calculated after RM lookup
 				wavePhases: [
-					{sets: 1, reps: 3, weight: 0},
-					{sets: 1, reps: 2, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
-					{sets: 1, reps: 1, weight: 0},
+					{sets: 1, reps: 3, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 2, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
+					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
 				],
 				isValid: true,
 				weightPercentage: 80,
