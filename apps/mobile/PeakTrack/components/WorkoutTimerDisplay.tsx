@@ -69,6 +69,12 @@ function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, to
 }
 
 function formatPhaseForDisplay(phase: ExercisePhase): string {
+	const circuits = parseCircuitExercises(phase);
+	if (circuits && circuits.length > 0) {
+		const exercisesStr = circuits.map(ex => `${ex.reps} ${ex.name}`).join(', ');
+		return `${phase.sets} x ${exercisesStr}`;
+	}
+
 	const sets = phase.sets;
 	const reps = phase.compound_reps
 		? phase.compound_reps.join(' + ')
