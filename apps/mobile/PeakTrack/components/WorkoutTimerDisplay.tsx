@@ -24,6 +24,21 @@ function formatTime(seconds: number): string {
 	return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function parseCircuitExercises(exercisePhase: ExercisePhase | null): Array<{reps: string, name: string}> | null {
+	if (!exercisePhase?.circuit_exercises) {
+		return null;
+	}
+
+	if (typeof exercisePhase.circuit_exercises === 'string') {
+		try {
+			return JSON.parse(exercisePhase.circuit_exercises);
+		} catch {
+			return null;
+		}
+	}
+	return exercisePhase.circuit_exercises;
+}
+
 function parseReps(exercisePhase: ExercisePhase | null): string {
 	if (!exercisePhase) {
 		return '';
@@ -78,6 +93,8 @@ export function WorkoutTimerDisplay({
 
 	// Determine which phase to display (current or next)
 	const displayPhase = nextPhase || exercisePhase;
+	const circuitExercises = parseCircuitExercises(displayPhase);
+	const isCircuit = circuitExercises && circuitExercises.length > 0;
 	const reps = parseReps(displayPhase);
 
 	// Set info: if showing next phase, show "1 of X", otherwise show current set
@@ -143,8 +160,18 @@ export function WorkoutTimerDisplay({
 					</Text>
 				)}
 
-				<Text style={styles.reps}>{reps}</Text>
-				<Text style={styles.weight}>{weight}</Text>
+				{isCircuit ? (
+					circuitExercises.map((ex, i) => (
+						<Text key={i} style={styles.circuitExercise}>
+							{ex.reps} {ex.name}
+						</Text>
+					))
+				) : (
+					<>
+						<Text style={styles.reps}>{reps}</Text>
+						<Text style={styles.weight}>{weight}</Text>
+					</>
+				)}
 			</View>
 
 			{/* Bottom section: State and countdown */}
@@ -159,7 +186,14 @@ export function WorkoutTimerDisplay({
 					</Text>
 				)}
 				{workoutState === 'work' && (
-					<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
+					<>
+						<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
+						{exercisePhase?.emom_interval_seconds && restTimeRemaining > 0 && (
+							<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
+								{formatTime(restTimeRemaining)}
+							</Animated.Text>
+						)}
+					</>
 				)}
 				{workoutState === 'rest' && (
 					<>
@@ -250,6 +284,13 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		textAlign: 'center',
 		marginBottom: 4,
+	},
+	circuitExercise: {
+		color: '#C65D24',
+		fontSize: 22,
+		fontWeight: 'bold',
+		textAlign: 'center',
+		marginBottom: 2,
 	},
 	reps: {
 		color: '#C65D24',

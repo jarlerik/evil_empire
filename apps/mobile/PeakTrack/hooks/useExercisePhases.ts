@@ -108,6 +108,13 @@ function buildPhaseData(
 		data.rest_time_seconds = null;
 	}
 
+	// Add EMOM interval if present
+	if (parsedData.emomIntervalSeconds !== undefined) {
+		data.emom_interval_seconds = parsedData.emomIntervalSeconds;
+	} else if (isUpdate) {
+		data.emom_interval_seconds = null;
+	}
+
 	return data;
 }
 

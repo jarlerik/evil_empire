@@ -20,6 +20,7 @@ export interface ParsedSetData {
 	weightMinPercentage?: number; // Minimum percentage for percentage ranges (e.g., 80 for "80-85%")
 	weightMaxPercentage?: number; // Maximum percentage for percentage ranges (e.g., 85 for "80-85%")
 	restTimeSeconds?: number; // Rest time between sets in seconds (e.g., 120 for 2 minutes)
+	emomIntervalSeconds?: number; // EMOM interval in seconds (e.g., 300 for 5 minutes)
 }
 
 export interface ParserResult {

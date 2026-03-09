@@ -197,16 +197,32 @@ export default function StartWorkout() {
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
 		if (!hasActiveCountdown.current) {return;}
-		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
+
+		const isEmom = isEmomPhase();
+
+		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
+		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
 			if (beepSound.current) {
 				beepSound.current.replayAsync();
 			}
 		}
-		if (workoutState === 'rest' && restTimeRemaining === 0) {
+
+		// Long beep at zero
+		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
 			if (beepLongSound.current) {
 				beepLongSound.current.replayAsync();
 			}
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+		}
+
+		// EMOM auto-advance: when timer hits 0, auto-advance to next round
+		// Works in both 'rest' (user pressed Done) and 'work' (strict pacing) states
+		if (isEmom && (workoutState === 'rest' || workoutState === 'work') && restTimeRemaining === 0) {
+			if (!isLastSet()) {
+				work();
+			} else {
+				setWorkoutState('exercise_done');
+			}
 		}
 	}, [restTimeRemaining, workoutState]);
 
@@ -266,6 +282,33 @@ export default function StartWorkout() {
 		}
 	};
 
+	const startEmomTimer = (intervalSeconds: number) => {
+		hasActiveCountdown.current = true;
+		setRestTimeRemaining(intervalSeconds);
+
+		if (restTimerIntervalRef.current) {
+			clearInterval(restTimerIntervalRef.current);
+		}
+
+		restTimerIntervalRef.current = setInterval(() => {
+			setRestTimeRemaining((prev) => {
+				if (prev <= 1) {
+					if (restTimerIntervalRef.current) {
+						clearInterval(restTimerIntervalRef.current);
+						restTimerIntervalRef.current = null;
+					}
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+	};
+
+	const isEmomPhase = (): boolean => {
+		const phase = getCurrentExercisePhase();
+		return !!(phase?.emom_interval_seconds);
+	};
+
 	const handleStartWorkout = () => {
 		if (exercises.length === 0) {return;}
 		LayoutAnimation.configureNext(LayoutAnimation.create(
@@ -277,6 +320,13 @@ export default function StartWorkout() {
 		setCurrentExerciseIndex(0);
 		setCurrentSetNumber(1);
 		setRestTimeRemaining(0);
+
+		// Start EMOM timer immediately if first phase is EMOM
+		const firstExercise = exercises[0];
+		const firstPhases = exercisePhases[firstExercise.id] || [];
+		if (firstPhases.length > 0 && firstPhases[0].emom_interval_seconds) {
+			startEmomTimer(firstPhases[0].emom_interval_seconds);
+		}
 	};
 
 	const rest = () => {
@@ -284,8 +334,18 @@ export default function StartWorkout() {
 		if (!phase) {return;}
 
 		if (isLastSet()) {
+			if (restTimerIntervalRef.current) {
+				clearInterval(restTimerIntervalRef.current);
+				restTimerIntervalRef.current = null;
+			}
 			setWorkoutState('exercise_done');
 			setRestTimeRemaining(0);
+			return;
+		}
+
+		// EMOM: timer is already running from work phase, just switch state
+		if (phase.emom_interval_seconds) {
+			setWorkoutState('rest');
 			return;
 		}
 
@@ -327,16 +387,35 @@ export default function StartWorkout() {
 		const totalSets = getTotalSetsForExercise(currentExercise.id);
 
 		if (currentSetNumber < totalSets) {
-			setCurrentSetNumber(currentSetNumber + 1);
+			const nextSetNumber = currentSetNumber + 1;
+			setCurrentSetNumber(nextSetNumber);
 			setWorkoutState('work');
-			setRestTimeRemaining(0);
+
+			// Start EMOM timer for next set, or clear countdown
+			const phases = exercisePhases[currentExercise.id] || [];
+			const emomInterval = phases.find(p => p.emom_interval_seconds)?.emom_interval_seconds;
+			if (emomInterval) {
+				startEmomTimer(emomInterval);
+			} else {
+				setRestTimeRemaining(0);
+			}
 			return;
 		}
 		if (!isLastExercise() || !isLastSet()) {
-			setCurrentExerciseIndex(currentExerciseIndex + 1);
+			const nextIndex = currentExerciseIndex + 1;
+			setCurrentExerciseIndex(nextIndex);
 			setCurrentSetNumber(1);
 			setWorkoutState('work');
 			setRestTimeRemaining(0);
+
+			// Start EMOM timer if next exercise's first phase is EMOM
+			const nextExercise = exercises[nextIndex];
+			if (nextExercise) {
+				const nextPhases = exercisePhases[nextExercise.id] || [];
+				if (nextPhases.length > 0 && nextPhases[0].emom_interval_seconds) {
+					startEmomTimer(nextPhases[0].emom_interval_seconds);
+				}
+			}
 			return;
 		}
 
@@ -427,16 +506,17 @@ export default function StartWorkout() {
 	};
 
 	const getButtonText = (): string => {
+		const emom = isEmomPhase();
 		switch (workoutState) {
 			case 'idle':
 				return 'Start workout';
 			case 'work':
-				if (isLastSet()) {
+				if (isLastSet() && !emom) {
 					return 'Exercise done';
 				}
-				return 'Rest';
+				return emom ? 'Waiting...' : 'Rest';
 			case 'rest':
-				return 'Next set';
+				return emom ? 'Waiting...' : 'Next set';
 			case 'exercise_done':
 				if (isLastExercise()) {
 					return 'Finish exercise';
@@ -543,7 +623,7 @@ export default function StartWorkout() {
 					<Button
 						title={getButtonText()}
 						onPress={handleButtonPress}
-						disabled={workoutState === 'rest' && restTimeRemaining > 0}
+						disabled={(workoutState === 'rest' && restTimeRemaining > 0) || (isEmomPhase() && (workoutState === 'rest' || workoutState === 'work'))}
 					/>
 				</View>
 			</View>

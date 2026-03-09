@@ -19,6 +19,7 @@ interface PhaseData {
 	weight_min_percentage?: number;
 	weight_max_percentage?: number;
 	rest_time_seconds?: number;
+	emom_interval_seconds?: number;
 	notes?: string;
 }
 
@@ -43,6 +44,19 @@ function appendNotes(str: string, notes?: string | null): string {
 }
 
 /**
+ * Helper function to prepend EMOM prefix
+ */
+function prependEmom(str: string, emomIntervalSeconds?: number | null): string {
+	if (emomIntervalSeconds !== undefined && emomIntervalSeconds !== null) {
+		if (emomIntervalSeconds >= 60 && emomIntervalSeconds % 60 === 0) {
+			return `EMOM ${emomIntervalSeconds / 60}min: ${str}`;
+		}
+		return `EMOM ${emomIntervalSeconds}s: ${str}`;
+	}
+	return str;
+}
+
+/**
  * Converts an ExercisePhase back to the input format for editing
  * @param phase - The exercise phase to convert
  * @returns A string in the input format (e.g., "3 x 5 @50kg", "3 x 2 + 2 @50kg", "3 x 1 @50 60 70", etc.)
@@ -54,7 +68,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 	// Handle RM build format
 	if (phase.exercise_type === 'rm_build' && phase.target_rm) {
 		result = appendRestTime(`Build to ${phase.target_rm}RM`, phase.rest_time_seconds);
-		return appendNotes(result, phase.notes);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
 	// Handle circuit format
@@ -69,7 +83,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 				console.error('Error parsing circuit exercises:', e);
 				// If parsing fails, return a fallback
 				result = appendRestTime(`${phase.sets} sets of ${phase.circuit_exercises}`, phase.rest_time_seconds);
-				return appendNotes(result, phase.notes);
+				return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 			}
 		} else {
 			circuitExercises = phase.circuit_exercises;
@@ -87,7 +101,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 			}).filter(s => s.length > 0).join(', ');
 
 			result = appendRestTime(`${phase.sets} x ${exercisesStr}`, phase.rest_time_seconds);
-			return appendNotes(result, phase.notes);
+			return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 		}
 	}
 
@@ -103,7 +117,7 @@ export function reverseParsePhase(phase: PhaseData): string {
 		} else {
 			result = appendRestTime(`${phase.sets} x ${phase.repetitions}, ${rirStr}`, phase.rest_time_seconds);
 		}
-		return appendNotes(result, phase.notes);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
 	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
@@ -114,24 +128,24 @@ export function reverseParsePhase(phase: PhaseData): string {
 		} else {
 			result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
 		}
-		return appendNotes(result, phase.notes);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
 	// Handle compound exercises
 	if (phase.compound_reps && phase.compound_reps.length >= 2) {
 		const repsStr = phase.compound_reps.join(' + ');
 		result = appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight}kg`, phase.rest_time_seconds);
-		return appendNotes(result, phase.notes);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
 	// Handle multiple weights
 	if (phase.weights && phase.weights.length > 1) {
 		const weightsStr = phase.weights.map(w => `${w}kg`).join(' ');
 		result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`, phase.rest_time_seconds);
-		return appendNotes(result, phase.notes);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
 	// Handle simple format
 	result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight}kg`, phase.rest_time_seconds);
-	return appendNotes(result, phase.notes);
+	return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 }

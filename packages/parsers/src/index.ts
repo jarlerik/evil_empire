@@ -6,6 +6,7 @@
  */
 
 import { ParsedSetData, invalidResult } from './types';
+import { parseEmom } from './emomParser';
 import { parseRestTime } from './restTimeParser';
 
 // Import all parsers
@@ -56,16 +57,23 @@ export function parseSetInput(input: string): ParsedSetData {
 	const exerciseLine = lines[0].trim();
 	const notesLine = lines.length > 1 ? lines.slice(1).join('\n').trim() : undefined;
 
-	// Helper to add notes to a valid result
-	const withNotes = (result: ParsedSetData): ParsedSetData => {
-		if (result.isValid && notesLine) {
-			return { ...result, notes: notesLine };
-		}
-		return result;
+	// Helper to add notes and EMOM to a valid result
+	const withExtras = (result: ParsedSetData): ParsedSetData => {
+		if (!result.isValid) {return result;}
+		const extras: Partial<ParsedSetData> = {};
+		if (notesLine) {extras.notes = notesLine;}
+		if (emomIntervalSeconds) {extras.emomIntervalSeconds = emomIntervalSeconds;}
+		return Object.keys(extras).length > 0 ? { ...result, ...extras } : result;
 	};
 
+	// Parse EMOM prefix from the exercise line
+	const { emomIntervalSeconds, remainingInput: afterEmom } = parseEmom(exerciseLine);
+
 	// Parse rest time from the exercise line (not notes)
-	const { restTimeSeconds, remainingInput } = parseRestTime(exerciseLine);
+	// When EMOM is set, rest is implicit in the interval so ignore rest time
+	const { restTimeSeconds, remainingInput } = emomIntervalSeconds
+		? { restTimeSeconds: undefined, remainingInput: afterEmom }
+		: parseRestTime(afterEmom);
 
 	// Remove any extra spaces and convert to lowercase for easier parsing
 	const cleanInput = remainingInput.toLowerCase();
@@ -76,85 +84,85 @@ export function parseSetInput(input: string): ParsedSetData {
 	// 1. Compound with percentage/RIR (most specific compound pattern)
 	const compoundPercentage = parseCompoundPercentage(cleanInput, restTimeSeconds);
 	if (compoundPercentage.matched) {
-		return withNotes(compoundPercentage.data!);
+		return withExtras(compoundPercentage.data!);
 	}
 
 	// 2. Percentage range (before simple percentage)
 	const percentageRange = parsePercentageRange(cleanInput, restTimeSeconds);
 	if (percentageRange.matched) {
-		return withNotes(percentageRange.data!);
+		return withExtras(percentageRange.data!);
 	}
 
 	// 3. Simple percentage
 	const simplePercentage = parseSimplePercentage(cleanInput, restTimeSeconds);
 	if (simplePercentage.matched) {
-		return withNotes(simplePercentage.data!);
+		return withExtras(simplePercentage.data!);
 	}
 
 	// 4. Weight range (before simple standard)
 	const weightRange = parseWeightRange(cleanInput, restTimeSeconds);
 	if (weightRange.matched) {
-		return withNotes(weightRange.data!);
+		return withExtras(weightRange.data!);
 	}
 
 	// 5. Standard with RIR (before simple standard, more specific)
 	const standardWithRir = parseStandardWithRir(cleanInput, restTimeSeconds);
 	if (standardWithRir.matched) {
-		return withNotes(standardWithRir.data!);
+		return withExtras(standardWithRir.data!);
 	}
 
 	// 6. Simple RIR format (@2RIR)
 	const simpleRir = parseSimpleRir(cleanInput, restTimeSeconds);
 	if (simpleRir.matched) {
-		return withNotes(simpleRir.data!);
+		return withExtras(simpleRir.data!);
 	}
 
 	// 7. Simple standard format
 	const standard = parseStandard(cleanInput, restTimeSeconds);
 	if (standard.matched) {
-		return withNotes(standard.data!);
+		return withExtras(standard.data!);
 	}
 
 	// 8. Multiple weights format
 	const multipleWeights = parseMultipleWeights(cleanInput, restTimeSeconds);
 	if (multipleWeights.matched) {
-		return withNotes(multipleWeights.data!);
+		return withExtras(multipleWeights.data!);
 	}
 
 	// 9. Compound with weight (kg)
 	const compoundWeight = parseCompoundWeight(cleanInput, restTimeSeconds);
 	if (compoundWeight.matched) {
-		return withNotes(compoundWeight.data!);
+		return withExtras(compoundWeight.data!);
 	}
 
 	// 10. Wave format
 	const wave = parseWave(cleanInput, restTimeSeconds);
 	if (wave.matched) {
-		return withNotes(wave.data!);
+		return withExtras(wave.data!);
 	}
 
 	// 11. Circuit "sets of" format (uses original case input)
 	const circuitSetsOf = parseCircuitSetsOf(remainingInput, cleanInput, restTimeSeconds);
 	if (circuitSetsOf.matched) {
-		return withNotes(circuitSetsOf.data!);
+		return withExtras(circuitSetsOf.data!);
 	}
 
 	// 12. Circuit "x" format (uses original case input)
 	const circuitX = parseCircuitX(remainingInput, cleanInput, restTimeSeconds);
 	if (circuitX.matched) {
-		return withNotes(circuitX.data!);
+		return withExtras(circuitX.data!);
 	}
 
 	// 13. RM Build format
 	const rmBuild = parseRmBuild(cleanInput, restTimeSeconds);
 	if (rmBuild.matched) {
-		return withNotes(rmBuild.data!);
+		return withExtras(rmBuild.data!);
 	}
 
 	// 14. RIR without weight (less specific, checked last among RIR patterns)
 	const rirWithoutWeight = parseRirWithoutWeight(cleanInput, restTimeSeconds);
 	if (rirWithoutWeight.matched) {
-		return withNotes(rirWithoutWeight.data!);
+		return withExtras(rirWithoutWeight.data!);
 	}
 
 	// Error detection for partial matches - provide helpful messages about what's missing
