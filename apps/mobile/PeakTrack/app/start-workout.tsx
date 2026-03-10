@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert, LayoutAnimation, UIManager } from 'react-native';
 import { commonStyles } from '../styles/common';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -37,8 +37,8 @@ export default function StartWorkout() {
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
-	const beepSound = useRef<Audio.Sound | null>(null);
-	const beepLongSound = useRef<Audio.Sound | null>(null);
+	const beepSound = useAudioPlayer(require('../assets/sounds/beep.wav'));
+	const beepLongSound = useAudioPlayer(require('../assets/sounds/beep-long.wav'));
 	const hasActiveCountdown = useRef(false);
 
 	// Edit execution modal state
@@ -169,31 +169,6 @@ export default function StartWorkout() {
 		};
 	}, []);
 
-	// Load beep sounds on mount
-	useEffect(() => {
-		const loadSounds = async () => {
-			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav'),
-			);
-			beepSound.current = sound;
-
-			const { sound: longSound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep-long.wav'),
-			);
-			beepLongSound.current = longSound;
-		};
-		loadSounds();
-
-		return () => {
-			if (beepSound.current) {
-				beepSound.current.unloadAsync();
-			}
-			if (beepLongSound.current) {
-				beepLongSound.current.unloadAsync();
-			}
-		};
-	}, []);
-
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
 		if (!hasActiveCountdown.current) {return;}
@@ -202,16 +177,14 @@ export default function StartWorkout() {
 
 		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
 		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
-			if (beepSound.current) {
-				beepSound.current.replayAsync();
-			}
+			beepSound.seekTo(0);
+			beepSound.play();
 		}
 
 		// Long beep at zero
 		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
-			if (beepLongSound.current) {
-				beepLongSound.current.replayAsync();
-			}
+			beepLongSound.seekTo(0);
+			beepLongSound.play();
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
 

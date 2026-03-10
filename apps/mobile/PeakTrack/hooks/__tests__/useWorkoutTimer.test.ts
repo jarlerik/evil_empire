@@ -2,18 +2,12 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useWorkoutTimer } from '../useWorkoutTimer';
 import { Animated } from 'react-native';
 
-// Mock expo-av
-jest.mock('expo-av', () => ({
-	Audio: {
-		Sound: {
-			createAsync: jest.fn().mockResolvedValue({
-				sound: {
-					replayAsync: jest.fn(),
-					unloadAsync: jest.fn(),
-				},
-			}),
-		},
-	},
+// Mock expo-audio
+jest.mock('expo-audio', () => ({
+	useAudioPlayer: jest.fn().mockReturnValue({
+		play: jest.fn(),
+		seekTo: jest.fn(),
+	}),
 }));
 
 // Mock expo-haptics

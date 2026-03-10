@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
@@ -22,8 +22,8 @@ export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWork
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
-	const beepSound = useRef<Audio.Sound | null>(null);
-	const beepLongSound = useRef<Audio.Sound | null>(null);
+	const beepSound = useAudioPlayer(require('../assets/sounds/beep.wav'));
+	const beepLongSound = useAudioPlayer(require('../assets/sounds/beep-long.wav'));
 
 	// Helper function to format time as MM:SS
 	const formatTime = (seconds: number): string => {
@@ -66,43 +66,16 @@ export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWork
 		};
 	}, []);
 
-	// Load beep sounds on mount
-	useEffect(() => {
-		const loadSounds = async () => {
-			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav'),
-			);
-			beepSound.current = sound;
-
-			const { sound: longSound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep-long.wav'),
-			);
-			beepLongSound.current = longSound;
-		};
-		loadSounds();
-
-		return () => {
-			if (beepSound.current) {
-				beepSound.current.unloadAsync();
-			}
-			if (beepLongSound.current) {
-				beepLongSound.current.unloadAsync();
-			}
-		};
-	}, []);
-
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
 		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
 			// Play beep sound for final 5 seconds
-			if (beepSound.current) {
-				beepSound.current.replayAsync();
-			}
+			beepSound.seekTo(0);
+			beepSound.play();
 		}
 		if (workoutState === 'rest' && restTimeRemaining === 0) {
-			if (beepLongSound.current) {
-				beepLongSound.current.replayAsync();
-			}
+			beepLongSound.seekTo(0);
+			beepLongSound.play();
 			// Vibrate when timer ends
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
