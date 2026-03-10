@@ -162,7 +162,7 @@ export function WorkoutTimerDisplay({
 
 				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
 					<Text style={styles.setInfo}>
-						{setNumber} of {totalSets} sets
+						{setNumber} of {totalSets} {isCircuit ? 'rounds' : 'sets'}
 					</Text>
 				)}
 

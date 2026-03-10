@@ -15,3 +15,4 @@ credentials/
 
 # Local build artifacts
 *.ipa
+/build

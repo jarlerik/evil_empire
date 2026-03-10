@@ -99,6 +99,12 @@ export default function History() {
 						weights: log.weights ?? undefined,
 						compound_reps: log.compound_reps ?? undefined,
 						rest_time_seconds: log.rest_time_seconds ?? undefined,
+						emom_interval_seconds: log.emom_interval_seconds ?? undefined,
+						exercise_type: log.exercise_type ?? undefined,
+						circuit_exercises: log.circuit_exercises ?? undefined,
+						target_rm: log.target_rm ?? undefined,
+						rir_min: log.rir_min ?? undefined,
+						rir_max: log.rir_max ?? undefined,
 						created_at: log.executed_at,
 					});
 					phasesMap.set(log.exercise_id, existing);
