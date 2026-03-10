@@ -162,6 +162,82 @@ describe('parseSetInput - Rest Time Parsing', () => {
 		});
 	});
 
+	describe('decimal rest times', () => {
+		it('should parse 2.5min as 150 seconds', () => {
+			const result = parseSetInput('4 x 3 @50kg 2.5min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 150,
+			});
+		});
+
+		it('should parse 2,5min (comma decimal) as 150 seconds', () => {
+			const result = parseSetInput('4 x 3 @50kg 2,5min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 150,
+			});
+		});
+
+		it('should parse 1.5m as 90 seconds', () => {
+			const result = parseSetInput('3 x 5 @80% 1.5m');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 5,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 80,
+				needsRmLookup: true,
+				restTimeSeconds: 90,
+			});
+		});
+
+		it('should parse decimal rest time with compound exercises', () => {
+			const result = parseSetInput('4 x 3 + 1 @65% 2.5min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 4,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 65,
+				needsRmLookup: true,
+				compoundReps: [3, 1],
+				restTimeSeconds: 150,
+			});
+		});
+
+		it('should parse decimal rest time with comma and compound exercises', () => {
+			const result = parseSetInput('4 x 3 + 1 @65% 2,5min');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 4,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 65,
+				needsRmLookup: true,
+				compoundReps: [3, 1],
+				restTimeSeconds: 150,
+			});
+		});
+
+		it('should parse 1.5s as 2 seconds (rounded)', () => {
+			const result = parseSetInput('4 x 3 @50kg 1.5s');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				restTimeSeconds: 2,
+			});
+		});
+	});
+
 	describe('no rest time', () => {
 		it('should not include restTimeSeconds when not specified', () => {
 			const result = parseSetInput('4 x 3 @50kg');
