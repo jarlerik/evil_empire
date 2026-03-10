@@ -47,7 +47,7 @@ describe('useWorkoutTimer', () => {
 
 	describe('formatTime', () => {
 		it('should format seconds correctly', () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle', isEmom: false }));
 
 			expect(result.current.formatTime(0)).toBe('00:00');
 			expect(result.current.formatTime(30)).toBe('00:30');
@@ -58,7 +58,7 @@ describe('useWorkoutTimer', () => {
 		});
 
 		it('should pad single digit minutes and seconds', () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle', isEmom: false }));
 
 			expect(result.current.formatTime(5)).toBe('00:05');
 			expect(result.current.formatTime(65)).toBe('01:05');
@@ -67,7 +67,7 @@ describe('useWorkoutTimer', () => {
 
 	describe('startRestTimer', () => {
 		it('should set initial rest time', () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest', isEmom: false }));
 
 			act(() => {
 				result.current.startRestTimer(120);
@@ -77,7 +77,7 @@ describe('useWorkoutTimer', () => {
 		});
 
 		it('should countdown each second', async () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest', isEmom: false }));
 
 			act(() => {
 				result.current.startRestTimer(5);
@@ -103,7 +103,7 @@ describe('useWorkoutTimer', () => {
 		});
 
 		it('should stop at zero', async () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest', isEmom: false }));
 
 			act(() => {
 				result.current.startRestTimer(2);
@@ -121,7 +121,7 @@ describe('useWorkoutTimer', () => {
 
 	describe('clearRestTimer', () => {
 		it('should stop the countdown', async () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'rest', isEmom: false }));
 
 			act(() => {
 				result.current.startRestTimer(10);
@@ -152,7 +152,7 @@ describe('useWorkoutTimer', () => {
 
 	describe('setRestTimeRemaining', () => {
 		it('should allow manual setting of rest time', () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle', isEmom: false }));
 
 			act(() => {
 				result.current.setRestTimeRemaining(45);
@@ -164,7 +164,7 @@ describe('useWorkoutTimer', () => {
 
 	describe('initial state', () => {
 		it('should start with zero rest time', () => {
-			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle' }));
+			const { result } = renderHook(() => useWorkoutTimer({ workoutState: 'idle', isEmom: false }));
 
 			expect(result.current.restTimeRemaining).toBe(0);
 		});

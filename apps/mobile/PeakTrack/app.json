@@ -39,7 +39,14 @@
         }
       ],
       "expo-web-browser",
-      "expo-audio"
+      ["expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "playWhenInactive": true,
+          "playWhenBackgrounded": true
+
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
