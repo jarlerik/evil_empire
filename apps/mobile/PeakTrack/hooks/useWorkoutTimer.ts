@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Animated } from 'react-native';
-import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { useAudio } from '../contexts/AudioContext';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
-
-const beepSoundSource = require('../assets/sounds/beep.m4a');
-const beepLongSoundSource = require('../assets/sounds/beep-long.m4a');
 
 interface UseWorkoutTimerProps {
 	workoutState: WorkoutState;
@@ -30,8 +27,7 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const hasActiveCountdown = useRef(false);
-	const beepSound = useAudioPlayer(beepSoundSource);
-	const beepLongSound = useAudioPlayer(beepLongSoundSource);
+	const { beepSound, beepLongSound } = useAudio();
 
 	// Store callback in ref to avoid stale closures in effects
 	const onEmomTimerZeroRef = useRef(onEmomTimerZero);
@@ -92,6 +88,7 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
 		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
 			try {
+				beepSound.seekTo(0);
 				beepSound.play();
 			} catch {
 				// Native audio player may not be ready
@@ -101,6 +98,7 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 		// Long beep at zero
 		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
 			try {
+				beepLongSound.seekTo(0);
 				beepLongSound.play();
 			} catch {
 				// Native audio player may not be ready

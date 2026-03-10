@@ -2,11 +2,11 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useWorkoutTimer } from '../useWorkoutTimer';
 import { Animated } from 'react-native';
 
-// Mock expo-audio
-jest.mock('expo-audio', () => ({
-	useAudioPlayer: jest.fn().mockReturnValue({
-		play: jest.fn(),
-		seekTo: jest.fn(),
+// Mock AudioContext
+jest.mock('../../contexts/AudioContext', () => ({
+	useAudio: jest.fn().mockReturnValue({
+		beepSound: { play: jest.fn() },
+		beepLongSound: { play: jest.fn() },
 	}),
 }));
 
