@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { parseSetInput } from '../lib/parseSetInput';
 import { useExercisePhases } from './useExercisePhases';
-import { useRmLookup } from './useRmLookup';
+import { useRmLookup, RmMatch } from './useRmLookup';
 
 interface UseAddExercisePhaseProps {
 	exerciseId: string | string[] | undefined;
@@ -12,6 +12,8 @@ interface UseAddExercisePhaseProps {
 interface AddPhaseResult {
 	success: boolean;
 	error?: string;
+	needsRm?: boolean;
+	partialMatches?: RmMatch[];
 }
 
 export function useAddExercisePhase({
@@ -32,6 +34,7 @@ export function useAddExercisePhase({
 	const addExercisePhase = useCallback(async (
 		setInput: string,
 		editingPhaseId: string | null,
+		rmWeightOverride?: number,
 	): Promise<AddPhaseResult> => {
 		const parsedData = parseSetInput(setInput);
 
@@ -53,11 +56,17 @@ export function useAddExercisePhase({
 			userId,
 			exerciseName,
 			parsedData,
+			rmWeightOverride,
 		);
 
 		if (!weightResult.success) {
 			setIsLoading(false);
-			return { success: false, error: weightResult.error };
+			return {
+				success: false,
+				error: weightResult.error,
+				needsRm: true,
+				partialMatches: weightResult.partialMatches,
+			};
 		}
 
 		const { weight, weightMin, weightMax, weights: calculatedWeights } = weightResult.weights;

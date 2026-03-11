@@ -9,6 +9,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { useAddExercisePhase } from '../hooks/useAddExercisePhase';
+import { RmFormModal, RmFormData } from '../components/RmFormModal';
+import { RmSelectModal } from '../components/RmSelectModal';
+import { RmMatch } from '../hooks/useRmLookup';
+import { createRepetitionMaximum } from '../services/repetitionMaximumService';
 import { commonStyles } from '../styles/common';
 
 export default function EditExercise() {
@@ -17,6 +21,10 @@ export default function EditExercise() {
 	const [exerciseName] = useState(initialExerciseName as string);
 	const [setInput, setSetInput] = useState('');
 	const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+	const [rmModalVisible, setRmModalVisible] = useState(false);
+	const [rmSelectVisible, setRmSelectVisible] = useState(false);
+	const [rmPartialMatches, setRmPartialMatches] = useState<RmMatch[]>([]);
+	const [rmSaving, setRmSaving] = useState(false);
 	const { user } = useAuth();
 	const inputValueRef = useRef<string>('');
 
@@ -60,12 +68,67 @@ export default function EditExercise() {
 		const result = await addExercisePhase(setInput, editingPhaseId);
 
 		if (!result.success) {
+			if (result.needsRm) {
+				if (result.partialMatches && result.partialMatches.length > 0) {
+					setRmPartialMatches(result.partialMatches);
+					setRmSelectVisible(true);
+				} else {
+					setRmModalVisible(true);
+				}
+				return;
+			}
 			Alert.alert('Error', result.error || 'Unknown error');
 			return;
 		}
 
 		setSetInput('');
 		setEditingPhaseId(null);
+	};
+
+	const handleSelectMatch = async (match: RmMatch) => {
+		setRmSelectVisible(false);
+
+		const result = await addExercisePhase(setInput, editingPhaseId, match.weight);
+		if (result.success) {
+			setSetInput('');
+			setEditingPhaseId(null);
+		} else {
+			Alert.alert('Error', result.error || 'Unknown error');
+		}
+	};
+
+	const handleAddNewFromSelect = () => {
+		setRmSelectVisible(false);
+		setRmModalVisible(true);
+	};
+
+	const handleRmSave = async (data: RmFormData) => {
+		if (!user?.id) {return;}
+		setRmSaving(true);
+		const { error } = await createRepetitionMaximum({
+			userId: user.id,
+			exerciseName: data.exerciseName,
+			reps: data.reps,
+			weight: data.weight,
+			date: data.date,
+		});
+		setRmSaving(false);
+
+		if (error) {
+			Alert.alert('Error', error);
+			return;
+		}
+
+		setRmModalVisible(false);
+
+		// Retry using the just-saved weight directly
+		const result = await addExercisePhase(setInput, editingPhaseId, data.weight);
+		if (result.success) {
+			setSetInput('');
+			setEditingPhaseId(null);
+		} else {
+			Alert.alert('Error', result.error || 'Unknown error');
+		}
 	};
 
 	const handleDeletePhase = async (phaseId: string) => {
@@ -217,6 +280,21 @@ export default function EditExercise() {
 					</View>
 				</View>
 			</ScrollView>
+			<RmSelectModal
+				visible={rmSelectVisible}
+				onClose={() => setRmSelectVisible(false)}
+				onSelect={handleSelectMatch}
+				onAddNew={handleAddNewFromSelect}
+				matches={rmPartialMatches}
+				exerciseName={exerciseName}
+			/>
+			<RmFormModal
+				visible={rmModalVisible}
+				onClose={() => setRmModalVisible(false)}
+				onSave={handleRmSave}
+				defaultExerciseName={exerciseName}
+				isLoading={rmSaving}
+			/>
 		</KeyboardAvoidingView>
 	);
 }
