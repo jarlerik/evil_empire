@@ -1,12 +1,13 @@
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
-import { commonStyles, colors } from '../styles/common';
+import { commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
+import { LoadScreen } from './components/LoadScreen';
 import { RepetitionMaximum } from '../services/types';
 import {
 	fetchRepetitionMaximums,
@@ -130,6 +131,15 @@ export default function RepetitionMaximums() {
 		rms: Object.values(repsMap).sort((a, b) => a.reps - b.reps), // Sort by reps ascending
 	}));
 
+	if (isFetching) {
+		return (
+			<>
+				<LoadScreen />
+				<NavigationBar />
+			</>
+		);
+	}
+
 	return (
 		<>
 		<KeyboardAvoidingView
@@ -151,11 +161,7 @@ export default function RepetitionMaximums() {
 						<Text style={styles.addButtonText}>Add RM</Text>
 					</Pressable>
 
-					{isFetching ? (
-						<View style={styles.emptyContainer}>
-							<ActivityIndicator size="large" color={colors.primary} />
-						</View>
-					) : groupedRmsArray.length === 0 ? (
+					{groupedRmsArray.length === 0 ? (
 						<View style={styles.emptyContainer}>
 							<Text style={styles.emptyText}>No repetition maximums yet</Text>
 							<Text style={styles.emptySubtext}>Add your first RM to get started</Text>

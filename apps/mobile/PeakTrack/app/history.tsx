@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { format, parseISO, subDays } from 'date-fns';
@@ -14,6 +14,7 @@ import { ExercisePhase } from '../lib/formatExercisePhase';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';
+import { LoadScreen } from './components/LoadScreen';
 
 interface CompletedWorkout {
 	workout: Workout;
@@ -153,9 +154,7 @@ export default function History() {
 	if (authLoading || settingsLoading || isLoading) {
 		return (
 			<View style={styles.screen}>
-				<View style={[commonStyles.container, styles.loadingContainer]}>
-					<ActivityIndicator size="large" color={colors.primary} />
-				</View>
+				<LoadScreen />
 				<NavigationBar />
 			</View>
 		);
@@ -200,11 +199,6 @@ export default function History() {
 const styles = StyleSheet.create({
 	screen: {
 		flex: 1,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
 	},
 	scrollContent: {
 		flexGrow: 1,
