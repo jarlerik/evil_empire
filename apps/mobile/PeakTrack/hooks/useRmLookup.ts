@@ -18,6 +18,7 @@ interface CalculatedWeights {
 	weightMax?: number;
 	weights?: number[];
 	rmWeight?: number; // Raw 1RM weight used for calculations
+	rmSourceName?: string; // Name of the exercise the RM came from
 }
 
 export interface CalculateWeightsResult {
@@ -105,6 +106,7 @@ export function useRmLookup() {
 			weightMin?: number;
 			weightMax?: number;
 		},
+		rmSourceName?: string,
 	): { success: true; weights: CalculatedWeights } => {
 		let calculatedWeight = parsedData.weight;
 		let calculatedWeightMin: number | undefined;
@@ -140,6 +142,7 @@ export function useRmLookup() {
 				weightMax: calculatedWeightMax,
 				...(calculatedWeights && { weights: calculatedWeights }),
 				rmWeight,
+				...(rmSourceName && { rmSourceName }),
 			},
 		};
 	};
@@ -161,11 +164,12 @@ export function useRmLookup() {
 			weightMax?: number;
 		},
 		rmWeightOverride?: number,
+		rmSourceNameOverride?: string,
 	): Promise<CalculateWeightsResult> => {
 		if (parsedData.needsRmLookup) {
 			// If caller provided a specific RM weight, use it directly
 			if (rmWeightOverride !== undefined) {
-				return applyRmWeight(rmWeightOverride, parsedData);
+				return applyRmWeight(rmWeightOverride, parsedData, rmSourceNameOverride);
 			}
 
 			const rmResult = await lookupRm(userId, exerciseName);
@@ -179,7 +183,7 @@ export function useRmLookup() {
 				};
 			}
 
-			return applyRmWeight(rmResult.weight, parsedData);
+			return applyRmWeight(rmResult.weight, parsedData, exerciseName);
 		}
 
 		// No RM lookup needed — handle absolute weight ranges

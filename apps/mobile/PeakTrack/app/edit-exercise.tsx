@@ -88,7 +88,7 @@ export default function EditExercise() {
 	const handleSelectMatch = async (match: RmMatch) => {
 		setRmSelectVisible(false);
 
-		const result = await addExercisePhase(setInput, editingPhaseId, match.weight);
+		const result = await addExercisePhase(setInput, editingPhaseId, match.weight, match.exerciseName);
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);
@@ -122,7 +122,7 @@ export default function EditExercise() {
 		setRmModalVisible(false);
 
 		// Retry using the just-saved weight directly
-		const result = await addExercisePhase(setInput, editingPhaseId, data.weight);
+		const result = await addExercisePhase(setInput, editingPhaseId, data.weight, data.exerciseName);
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);

@@ -35,6 +35,7 @@ export function useAddExercisePhase({
 		setInput: string,
 		editingPhaseId: string | null,
 		rmWeightOverride?: number,
+		rmSourceName?: string,
 	): Promise<AddPhaseResult> => {
 		const parsedData = parseSetInput(setInput);
 
@@ -57,6 +58,7 @@ export function useAddExercisePhase({
 			exerciseName,
 			parsedData,
 			rmWeightOverride,
+			rmSourceName,
 		);
 
 		if (!weightResult.success) {
@@ -78,6 +80,32 @@ export function useAddExercisePhase({
 		let finalParsedData = calculatedWeights
 			? { ...parsedData, weights: calculatedWeights }
 			: parsedData;
+
+		// Add RM source note for percentage-based exercises
+		if (parsedData.needsRmLookup && weightResult.weights.rmWeight) {
+			const rmName = weightResult.weights.rmSourceName || exerciseName;
+			const rmW = weightResult.weights.rmWeight;
+			const pct = parsedData.weightPercentage;
+			const pctMin = parsedData.weightMinPercentage;
+			const pctMax = parsedData.weightMaxPercentage;
+
+			let pctLabel: string;
+			if (pctMin !== undefined && pctMax !== undefined) {
+				pctLabel = `${pctMin}-${pctMax}%`;
+			} else if (parsedData.weights && parsedData.weights.length > 1) {
+				pctLabel = parsedData.weights.map(w => `${w}%`).join(', ');
+			} else if (pct !== undefined) {
+				pctLabel = `${pct}%`;
+			} else {
+				pctLabel = '';
+			}
+
+			const note = pctLabel
+				? `${pctLabel} of ${rmName} 1RM (${rmW}kg)`
+				: `${rmName} 1RM (${rmW}kg)`;
+
+			finalParsedData = { ...finalParsedData, notes: note };
+		}
 
 		// For wave phases with per-phase percentages, resolve weights from RM
 		if (finalParsedData.wavePhases && finalParsedData.needsRmLookup) {
