@@ -1,7 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Animated } from 'react-native';
+import { Animated, AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { useAudio } from '../contexts/AudioContext';
+
+const REST_DONE_NOTIFICATION_ID = 'rest-timer-done';
+
+Notifications.setNotificationHandler({
+	handleNotification: async () => ({
+		shouldShowAlert: true,
+		shouldPlaySound: true,
+		shouldSetBadge: false,
+		shouldShowBanner: true,
+		shouldShowList: true,
+	}),
+});
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -27,6 +40,7 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const hasActiveCountdown = useRef(false);
+	const timerEndTimeRef = useRef<number | null>(null);
 	const { beepSound, beepLongSound } = useAudio();
 
 	// Store callback in ref to avoid stale closures in effects
@@ -44,23 +58,45 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
 		}
+		timerEndTimeRef.current = null;
+		Notifications.cancelScheduledNotificationAsync(REST_DONE_NOTIFICATION_ID).catch(() => {});
+	}, []);
+
+	const scheduleTimerNotification = useCallback((duration: number) => {
+		Notifications.scheduleNotificationAsync({
+			identifier: REST_DONE_NOTIFICATION_ID,
+			content: {
+				title: 'Rest Over',
+				body: 'Time to get back to work!',
+				sound: 'default',
+			},
+			trigger: {
+				type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+				seconds: duration,
+			},
+		}).catch(() => {});
 	}, []);
 
 	const startCountdown = useCallback((duration: number) => {
 		clearRestTimer();
 		setRestTimeRemaining(duration);
+		timerEndTimeRef.current = Date.now() + duration * 1000;
+		scheduleTimerNotification(duration);
 
 		restTimerIntervalRef.current = setInterval(() => {
-			setRestTimeRemaining((prev) => {
-				if (prev <= 1) {
-					if (restTimerIntervalRef.current) {
-						clearInterval(restTimerIntervalRef.current);
-						restTimerIntervalRef.current = null;
-					}
-					return 0;
+			const endTime = timerEndTimeRef.current;
+			if (!endTime) {return;}
+
+			const remaining = Math.round((endTime - Date.now()) / 1000);
+			if (remaining <= 0) {
+				if (restTimerIntervalRef.current) {
+					clearInterval(restTimerIntervalRef.current);
+					restTimerIntervalRef.current = null;
 				}
-				return prev - 1;
-			});
+				setRestTimeRemaining(0);
+			} else {
+				setRestTimeRemaining(remaining);
+			}
 		}, 1000) as unknown as number;
 	}, [clearRestTimer]);
 
@@ -73,6 +109,24 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 		hasActiveCountdown.current = true;
 		startCountdown(intervalSeconds);
 	}, [startCountdown]);
+
+	// Recalculate timer when app returns to foreground
+	useEffect(() => {
+		const handleAppStateChange = (nextState: AppStateStatus) => {
+			if (nextState === 'active' && timerEndTimeRef.current && hasActiveCountdown.current) {
+				const remaining = Math.round((timerEndTimeRef.current - Date.now()) / 1000);
+				if (remaining <= 0) {
+					clearRestTimer();
+					setRestTimeRemaining(0);
+				} else {
+					setRestTimeRemaining(remaining);
+				}
+			}
+		};
+
+		const subscription = AppState.addEventListener('change', handleAppStateChange);
+		return () => subscription.remove();
+	}, [clearRestTimer]);
 
 	// Cleanup on unmount
 	useEffect(() => {
