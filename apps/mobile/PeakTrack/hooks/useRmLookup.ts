@@ -46,29 +46,28 @@ export function useRmLookup() {
 			return { weight: foundWeight, found: true };
 		}
 
-		// No exact match — find partial matches for compound exercises
+		// No exact match — find partial matches from all RMs
 		const partialMatches: RmMatch[] = [];
+		const { data: allRms, error: allRmsError } = await fetchAllRmsByReps(userId, 1);
 
-		if (exerciseName.includes('+')) {
-			const { data: allRms, error: allRmsError } = await fetchAllRmsByReps(userId, 1);
+		if (!allRmsError && allRms && allRms.length > 0) {
+			const exerciseParts = exerciseName.includes('+')
+				? exerciseName.split('+').map(part => part.trim().toLowerCase())
+				: [exerciseName.trim().toLowerCase()];
+			const seen = new Set<string>();
 
-			if (!allRmsError && allRms && allRms.length > 0) {
-				const exerciseParts = exerciseName.split('+').map(part => part.trim().toLowerCase());
-				const seen = new Set<string>();
+			for (const rm of allRms) {
+				const rmNameLower = rm.exercise_name.toLowerCase();
+				if (seen.has(rmNameLower)) {continue;}
 
-				for (const rm of allRms) {
-					const rmNameLower = rm.exercise_name.toLowerCase();
-					if (seen.has(rmNameLower)) {continue;}
-
-					for (const part of exerciseParts) {
-						if (rmNameLower.includes(part) || part.includes(rmNameLower)) {
-							seen.add(rmNameLower);
-							partialMatches.push({
-								exerciseName: rm.exercise_name,
-								weight: rm.weight,
-							});
-							break;
-						}
+				for (const part of exerciseParts) {
+					if (rmNameLower.includes(part) || part.includes(rmNameLower)) {
+						seen.add(rmNameLower);
+						partialMatches.push({
+							exerciseName: rm.exercise_name,
+							weight: rm.weight,
+						});
+						break;
 					}
 				}
 			}
