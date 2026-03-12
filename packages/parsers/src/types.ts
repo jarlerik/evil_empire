@@ -3,11 +3,10 @@ export interface ParsedSetData {
 	reps: number;
 	weight: number;
 	weights?: number[]; // For multiple weights (e.g., [50, 60, 70])
-	wavePhases?: Array<{sets: number, reps: number, weight: number, weightPercentage?: number}>; // For wave exercises
 	isValid: boolean;
 	errorMessage?: string; // Error message when parsing fails
-	compoundReps?: number[]; // For compound exercises like "2 + 2"
-	exerciseType?: 'standard' | 'circuit' | 'superset' | 'rm_build'; // Type of exercise
+	compoundReps?: number[]; // For compound exercises like "2 + 2", or per-set rep counts for waves
+	exerciseType?: 'standard' | 'circuit' | 'superset' | 'rm_build' | 'wave'; // Type of exercise
 	notes?: string; // Free-form text for special instructions
 	targetRm?: number; // Target repetition maximum for "Build to XRM" format
 	rirMin?: number; // Minimum Reps in Reserve

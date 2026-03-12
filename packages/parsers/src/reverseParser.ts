@@ -120,6 +120,19 @@ export function reverseParsePhase(phase: PhaseData): string {
 		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
+	// Handle wave exercises
+	if (phase.exercise_type === 'wave' && phase.compound_reps && phase.compound_reps.length > 0) {
+		const repsStr = phase.compound_reps.join('-');
+		let weightStr: string;
+		if (phase.weights && phase.weights.length > 1) {
+			weightStr = phase.weights.map(w => `${w}`).join(', ') + 'kg';
+		} else {
+			weightStr = `${phase.weight}kg`;
+		}
+		result = appendRestTime(`${repsStr}@${weightStr}`, phase.rest_time_seconds);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
+	}
+
 	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
 	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
 		if (phase.compound_reps && phase.compound_reps.length >= 2) {

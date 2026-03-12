@@ -39,9 +39,14 @@ function parseCircuitExercises(exercisePhase: ExercisePhase | null): Array<{reps
 	return exercisePhase.circuit_exercises;
 }
 
-function parseReps(exercisePhase: ExercisePhase | null): string {
+function parseReps(exercisePhase: ExercisePhase | null, currentSet?: number): string {
 	if (!exercisePhase) {
 		return '';
+	}
+
+	// Wave: show per-set rep count
+	if (exercisePhase.exercise_type === 'wave' && exercisePhase.compound_reps && currentSet) {
+		return String(exercisePhase.compound_reps[currentSet - 1] ?? exercisePhase.repetitions);
 	}
 
 	if (exercisePhase.compound_reps) {
@@ -60,6 +65,14 @@ function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, to
 		return `@${weight}kg`;
 	}
 
+	// Wave with multiple weights: map set index to weight group
+	if (exercisePhase.exercise_type === 'wave' && exercisePhase.weights && exercisePhase.weights.length > 1 && exercisePhase.compound_reps) {
+		const repsPerWeight = exercisePhase.compound_reps.length / exercisePhase.weights.length;
+		const weightIdx = Math.floor((currentSet - 1) / repsPerWeight);
+		const weight = exercisePhase.weights[weightIdx] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+		return `@${weight}kg`;
+	}
+
 	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
 		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
 		return `@${weight}kg`;
@@ -73,6 +86,18 @@ function formatPhaseForDisplay(phase: ExercisePhase): string {
 	if (circuits && circuits.length > 0) {
 		const exercisesStr = circuits.map(ex => `${ex.reps} ${ex.name}`).join(', ');
 		return `${phase.sets} x ${exercisesStr}`;
+	}
+
+	// Wave display: "3-2-1-3-2-1 @56, 60kg"
+	if (phase.exercise_type === 'wave' && phase.compound_reps && phase.compound_reps.length > 0) {
+		const repsStr = phase.compound_reps.join('-');
+		let weightStr: string;
+		if (phase.weights && phase.weights.length > 1) {
+			weightStr = phase.weights.map(w => `${w}`).join(', ') + 'kg';
+		} else {
+			weightStr = `${phase.weight}kg`;
+		}
+		return `${repsStr} @${weightStr}`;
 	}
 
 	const sets = phase.sets;
@@ -101,7 +126,7 @@ export function WorkoutTimerDisplay({
 	const displayPhase = nextPhase || exercisePhase;
 	const circuitExercises = parseCircuitExercises(displayPhase);
 	const isCircuit = circuitExercises && circuitExercises.length > 0;
-	const reps = parseReps(displayPhase);
+	const reps = parseReps(displayPhase, nextPhase ? 1 : currentSetInPhase);
 
 	// Set info: if showing next phase, show "1 of X", otherwise show current set
 	const setNumber = nextPhase ? 1 : currentSetInPhase;

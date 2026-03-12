@@ -275,13 +275,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -292,13 +287,9 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 0, // Will be calculated after RM lookup
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 2, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
+				weights: [80],
 				isValid: true,
 				weightPercentage: 80,
 				needsRmLookup: true,
@@ -311,13 +302,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -328,13 +314,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -345,13 +326,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 5, // First rep count for backward compatibility
 				weight: 75.5,
-				wavePhases: [
-					{sets: 1, reps: 5, weight: 75.5},
-					{sets: 1, reps: 4, weight: 75.5},
-					{sets: 1, reps: 3, weight: 75.5},
-					{sets: 1, reps: 2, weight: 75.5},
-					{sets: 1, reps: 1, weight: 75.5},
-				],
+				compoundReps: [5, 4, 3, 2, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -362,13 +338,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -379,13 +350,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 1, // First rep count for backward compatibility
 				weight: 50,
-				wavePhases: [
-					{sets: 1, reps: 1, weight: 50},
-					{sets: 1, reps: 1, weight: 50},
-					{sets: 1, reps: 1, weight: 50},
-					{sets: 1, reps: 1, weight: 50},
-					{sets: 1, reps: 1, weight: 50},
-				],
+				compoundReps: [1, 1, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -396,13 +362,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 10, // First rep count for backward compatibility
 				weight: 100,
-				wavePhases: [
-					{sets: 1, reps: 10, weight: 100},
-					{sets: 1, reps: 8, weight: 100},
-					{sets: 1, reps: 6, weight: 100},
-					{sets: 1, reps: 4, weight: 100},
-					{sets: 1, reps: 2, weight: 100},
-				],
+				compoundReps: [10, 8, 6, 4, 2],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -413,17 +374,8 @@ describe('parseSetInput', () => {
 				sets: 9,
 				reps: 5, // First rep count for backward compatibility
 				weight: 80,
-				wavePhases: [
-					{sets: 1, reps: 5, weight: 80},
-					{sets: 1, reps: 4, weight: 80},
-					{sets: 1, reps: 3, weight: 80},
-					{sets: 1, reps: 2, weight: 80},
-					{sets: 1, reps: 1, weight: 80},
-					{sets: 1, reps: 1, weight: 80},
-					{sets: 1, reps: 1, weight: 80},
-					{sets: 1, reps: 1, weight: 80},
-					{sets: 1, reps: 1, weight: 80},
-				],
+				compoundReps: [5, 4, 3, 2, 1, 1, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -434,13 +386,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -929,13 +876,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -946,13 +888,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 999, // First rep count for backward compatibility
 				weight: 999.99,
-				wavePhases: [
-					{sets: 1, reps: 999, weight: 999.99},
-					{sets: 1, reps: 888, weight: 999.99},
-					{sets: 1, reps: 777, weight: 999.99},
-					{sets: 1, reps: 666, weight: 999.99},
-					{sets: 1, reps: 555, weight: 999.99},
-				],
+				compoundReps: [999, 888, 777, 666, 555],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -963,13 +900,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 5, // First rep count for backward compatibility
 				weight: 75.123,
-				wavePhases: [
-					{sets: 1, reps: 5, weight: 75.123},
-					{sets: 1, reps: 4, weight: 75.123},
-					{sets: 1, reps: 3, weight: 75.123},
-					{sets: 1, reps: 2, weight: 75.123},
-					{sets: 1, reps: 1, weight: 75.123},
-				],
+				compoundReps: [5, 4, 3, 2, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -980,13 +912,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 			});
 		});
@@ -1067,33 +994,27 @@ describe('parseSetInput', () => {
 			expect(compoundResult.isValid).toBe(true);
 		});
 
-		it('should return wavePhases array for wave exercise format', () => {
+		it('should return compoundReps and exerciseType wave for wave exercise format', () => {
 			const result = parseSetInput('3-2-1-1-1 65kg');
-			expect(Array.isArray(result.wavePhases)).toBe(true);
-			expect(result.wavePhases).toEqual([
-				{sets: 1, reps: 3, weight: 65},
-				{sets: 1, reps: 2, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-			]);
+			expect(result.exerciseType).toBe('wave');
+			expect(result.compoundReps).toEqual([3, 2, 1, 1, 1]);
 		});
 
-		it('should not return wavePhases array for non-wave formats', () => {
+		it('should not return wave exerciseType for non-wave formats', () => {
 			const simpleResult = parseSetInput('3 x 1 @50kg');
 			const compoundResult = parseSetInput('3 x 2 + 2@50kg');
 			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70kg');
 
-			expect(simpleResult.wavePhases).toBeUndefined();
-			expect(compoundResult.wavePhases).toBeUndefined();
-			expect(multipleWeightsResult.wavePhases).toBeUndefined();
+			expect(simpleResult.exerciseType).not.toBe('wave');
+			expect(compoundResult.exerciseType).not.toBe('wave');
+			expect(multipleWeightsResult.exerciseType).not.toBe('wave');
 		});
 
 		it('should maintain compatibility with wave exercises (with required units)', () => {
 			const waveResult = parseSetInput('3-2-1-1-1 65kg');
 
 			expect(waveResult.weights).toBeUndefined();
-			expect(waveResult.compoundReps).toBeUndefined();
+			expect(waveResult.compoundReps).toEqual([3, 2, 1, 1, 1]);
 			expect(waveResult.isValid).toBe(true);
 			expect(waveResult.sets).toBe(5);
 			expect(waveResult.reps).toBe(3); // First rep count
@@ -1126,7 +1047,7 @@ describe('parseSetInput', () => {
 
 			expect(circuitResult.weights).toBeUndefined();
 			expect(circuitResult.compoundReps).toBeUndefined();
-			expect(circuitResult.wavePhases).toBeUndefined();
+			expect(circuitResult.exerciseType).not.toBe('wave');
 			expect(circuitResult.isValid).toBe(true);
 			expect(circuitResult.sets).toBe(2);
 			expect(circuitResult.reps).toBe(0); // Circuits don't have a single rep count
@@ -1375,13 +1296,8 @@ describe('parseSetInput', () => {
 				sets: 5,
 				reps: 3, // First rep count for backward compatibility
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				isValid: true,
 				restTimeSeconds: 90,
 			});

@@ -115,17 +115,12 @@ describe('parseSetInput - Rest Time Parsing', () => {
 			const result = parseSetInput('3-2-1-1-1 65kg 90s');
 			expect(result).toEqual({
 				sets: 5,
-				reps: 3, // First rep count for backward compatibility
+				reps: 3,
 				weight: 65,
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 65},
-					{sets: 1, reps: 2, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-					{sets: 1, reps: 1, weight: 65},
-				],
-				isValid: true,
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 				restTimeSeconds: 90,
+				isValid: true,
 			});
 		});
 

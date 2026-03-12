@@ -88,33 +88,27 @@ describe('parseSetInput - Integration Tests', () => {
 			expect(compoundResult.isValid).toBe(true);
 		});
 
-		it('should return wavePhases array for wave exercise format', () => {
+		it('should return compoundReps and exerciseType for wave exercise format', () => {
 			const result = parseSetInput('3-2-1-1-1 65kg');
-			expect(Array.isArray(result.wavePhases)).toBe(true);
-			expect(result.wavePhases).toEqual([
-				{sets: 1, reps: 3, weight: 65},
-				{sets: 1, reps: 2, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-				{sets: 1, reps: 1, weight: 65},
-			]);
+			expect(result.exerciseType).toBe('wave');
+			expect(result.compoundReps).toEqual([3, 2, 1, 1, 1]);
 		});
 
-		it('should not return wavePhases array for non-wave formats', () => {
+		it('should not return wave type for non-wave formats', () => {
 			const simpleResult = parseSetInput('3 x 1 @50kg');
 			const compoundResult = parseSetInput('3 x 2 + 2@50kg');
 			const multipleWeightsResult = parseSetInput('3 x 1 @50 60 70kg');
 
-			expect(simpleResult.wavePhases).toBeUndefined();
-			expect(compoundResult.wavePhases).toBeUndefined();
-			expect(multipleWeightsResult.wavePhases).toBeUndefined();
+			expect(simpleResult.exerciseType).not.toBe('wave');
+			expect(compoundResult.exerciseType).not.toBe('wave');
+			expect(multipleWeightsResult.exerciseType).not.toBe('wave');
 		});
 
 		it('should maintain compatibility with wave exercises (with required units)', () => {
 			const waveResult = parseSetInput('3-2-1-1-1 65kg');
 
 			expect(waveResult.weights).toBeUndefined();
-			expect(waveResult.compoundReps).toBeUndefined();
+			expect(waveResult.compoundReps).toEqual([3, 2, 1, 1, 1]);
 			expect(waveResult.isValid).toBe(true);
 			expect(waveResult.sets).toBe(5);
 			expect(waveResult.reps).toBe(3); // First rep count
@@ -147,7 +141,7 @@ describe('parseSetInput - Integration Tests', () => {
 
 			expect(circuitResult.weights).toBeUndefined();
 			expect(circuitResult.compoundReps).toBeUndefined();
-			expect(circuitResult.wavePhases).toBeUndefined();
+			expect(circuitResult.exerciseType).not.toBe('wave');
 			expect(circuitResult.isValid).toBe(true);
 			expect(circuitResult.sets).toBe(2);
 			expect(circuitResult.reps).toBe(0); // Circuits don't have a single rep count
@@ -173,12 +167,12 @@ describe('parseSetInput - Integration Tests', () => {
 		it('should correctly identify wave format vs other formats', () => {
 			// Wave format
 			const waveResult = parseSetInput('3-2-1 65kg');
-			expect(waveResult.wavePhases).toBeDefined();
+			expect(waveResult.exerciseType).toBe('wave');
 			expect(waveResult.sets).toBe(3);
 
 			// Standard format with range
 			const rangeResult = parseSetInput('3 x 5 @85-89kg');
-			expect(rangeResult.wavePhases).toBeUndefined();
+			expect(rangeResult.exerciseType).not.toBe('wave');
 			expect(rangeResult.weightMin).toBe(85);
 			expect(rangeResult.weightMax).toBe(89);
 		});

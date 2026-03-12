@@ -107,19 +107,15 @@ export function useAddExercisePhase({
 			finalParsedData = { ...finalParsedData, notes: note };
 		}
 
-		// For wave phases with per-phase percentages, resolve weights from RM
-		if (finalParsedData.wavePhases && finalParsedData.needsRmLookup) {
+		// For wave exercises with percentage weights, resolve to kg values
+		if (finalParsedData.exerciseType === 'wave' && finalParsedData.needsRmLookup && finalParsedData.weights) {
 			const rmWeight = weightResult.weights.rmWeight;
-			const resolvedPhases = finalParsedData.wavePhases.map(phase => {
-				if (phase.weightPercentage !== undefined && rmWeight) {
-					return {
-						...phase,
-						weight: Math.round((rmWeight * phase.weightPercentage) / 100),
-					};
-				}
-				return { ...phase, weight: weight };
-			});
-			finalParsedData = { ...finalParsedData, wavePhases: resolvedPhases };
+			if (rmWeight) {
+				const resolvedWeights = finalParsedData.weights.map(pct =>
+					Math.round((rmWeight * pct) / 100)
+				);
+				finalParsedData = { ...finalParsedData, weights: resolvedWeights };
+			}
 		}
 
 		let result: AddPhaseResult;

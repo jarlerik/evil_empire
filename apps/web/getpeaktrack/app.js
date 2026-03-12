@@ -44,16 +44,15 @@ if (demoInput && demoOutput) {
             resultHtml += createResultItem('Type', 'Circuit');
             resultHtml += createResultItem('Rounds', result.sets.toString());
             resultHtml += createResultItem('Exercises', result.circuitExercises.length.toString());
-        } else if (result.wavePhases && result.wavePhases.length > 0) {
+        } else if (result.exerciseType === 'wave' && result.compoundReps) {
             // Wave exercise
             resultHtml += createResultItem('Type', 'Wave');
-            resultHtml += createResultItem('Phases', result.wavePhases.length.toString());
-            const totalSets = result.wavePhases.reduce((acc, p) => acc + p.sets, 0);
-            resultHtml += createResultItem('Total Sets', totalSets.toString());
-            if (result.wavePhases[0].weight) {
-                const weights = result.wavePhases.map(p => p.weight);
-                const uniqueWeights = [...new Set(weights)];
-                resultHtml += createResultItem('Weights', uniqueWeights.join(', ') + 'kg');
+            resultHtml += createResultItem('Reps Pattern', result.compoundReps.join('-'));
+            resultHtml += createResultItem('Total Sets', result.sets.toString());
+            if (result.weights && result.weights.length > 1) {
+                resultHtml += createResultItem('Weights', result.weights.join(', ') + 'kg');
+            } else if (result.weight > 0) {
+                resultHtml += createResultItem('Weight', result.weight + 'kg');
             }
         } else {
             // Standard, compound, percentage, etc.

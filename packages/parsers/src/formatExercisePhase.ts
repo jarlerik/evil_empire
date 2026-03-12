@@ -102,6 +102,18 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 		}
 	}
 
+	// Handle wave exercises
+	if (phase.exercise_type === 'wave' && phase.compound_reps && phase.compound_reps.length > 0) {
+		const repsStr = phase.compound_reps.join('-');
+		let weightStr: string;
+		if (phase.weights && phase.weights.length > 1) {
+			weightStr = phase.weights.map(w => `${w}`).join(', ') + 'kg';
+		} else {
+			weightStr = `${phase.weight}kg`;
+		}
+		return wrapResult(`${repsStr} @${weightStr}`);
+	}
+
 	// Handle compound exercises
 	if (phase.compound_reps && phase.compound_reps.length > 0) {
 		const compoundRepsStr = phase.compound_reps.join(' + ');

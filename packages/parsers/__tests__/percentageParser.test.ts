@@ -55,18 +55,14 @@ describe('parseSetInput - Percentage Format', () => {
 			const result = parseSetInput('3-2-1-1-1 80%');
 			expect(result).toEqual({
 				sets: 5,
-				reps: 3, // First rep count for backward compatibility
-				weight: 0, // Will be calculated after RM lookup
-				wavePhases: [
-					{sets: 1, reps: 3, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 2, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-					{sets: 1, reps: 1, weight: 0, weightPercentage: 80},
-				],
-				isValid: true,
+				reps: 3,
+				weight: 0,
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
+				weights: [80],
 				weightPercentage: 80,
 				needsRmLookup: true,
+				isValid: true,
 			});
 		});
 	});
