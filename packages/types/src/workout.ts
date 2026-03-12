@@ -12,3 +12,10 @@ export interface Exercise {
 	workout_id: string;
 	created_at?: string;
 }
+
+export interface WorkoutRating {
+	id: string;
+	workout_id: string;
+	rating: number;
+	created_at?: string;
+}

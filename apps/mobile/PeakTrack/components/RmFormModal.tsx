@@ -15,6 +15,7 @@ interface RmFormModalProps {
 	onClose: () => void;
 	onSave: (data: RmFormData) => Promise<void>;
 	editingRm?: RepetitionMaximum | null;
+	defaultExerciseName?: string;
 	isLoading: boolean;
 }
 
@@ -23,6 +24,7 @@ export function RmFormModal({
 	onClose,
 	onSave,
 	editingRm,
+	defaultExerciseName,
 	isLoading,
 }: RmFormModalProps) {
 	const [exerciseName, setExerciseName] = useState('');
@@ -39,8 +41,8 @@ export function RmFormModal({
 				setWeight(editingRm.weight.toString());
 				setDate(editingRm.date);
 			} else {
-				setExerciseName('');
-				setReps('');
+				setExerciseName(defaultExerciseName || '');
+				setReps(defaultExerciseName ? '1' : '');
 				setWeight('');
 				setDate(format(new Date(), 'yyyy-MM-dd'));
 			}
@@ -104,6 +106,12 @@ export function RmFormModal({
 					</View>
 
 					<View style={styles.form}>
+						{defaultExerciseName && (
+							<Text style={styles.infoText}>
+								No 1RM found for this exercise. Add your 1RM to calculate percentage-based weights.
+							</Text>
+						)}
+
 						<Text style={styles.label}>Exercise Name</Text>
 						<TextInput
 							style={styles.input}
@@ -134,14 +142,18 @@ export function RmFormModal({
 							keyboardType="decimal-pad"
 						/>
 
-						<Text style={styles.label}>Date</Text>
-						<TextInput
-							style={styles.input}
-							value={date}
-							onChangeText={setDate}
-							placeholder="yyyy-MM-dd"
-							placeholderTextColor="#666"
-						/>
+						{!defaultExerciseName && (
+							<>
+								<Text style={styles.label}>Date</Text>
+								<TextInput
+									style={styles.input}
+									value={date}
+									onChangeText={setDate}
+									placeholder="yyyy-MM-dd"
+									placeholderTextColor="#666"
+								/>
+							</>
+						)}
 
 						<Pressable
 							style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
@@ -193,6 +205,11 @@ const styles = StyleSheet.create({
 	},
 	form: {
 		gap: 16,
+	},
+	infoText: {
+		color: '#999',
+		fontSize: 14,
+		lineHeight: 20,
 	},
 	label: {
 		color: '#fff',

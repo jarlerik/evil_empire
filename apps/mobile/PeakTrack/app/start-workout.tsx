@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Animated, Alert, LayoutAnimation, UIManager } from 'react-native';
+import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, LayoutAnimation, UIManager } from 'react-native';
 import { commonStyles } from '../styles/common';
-import { Audio } from 'expo-av';
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
@@ -14,6 +12,9 @@ import { Exercise } from '../types/workout';
 import { fetchExercisesByWorkoutId } from '../services/exerciseService';
 import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
 import { insertExecutionLog } from '../services/workoutExecutionLogService';
+import { saveWorkoutRating } from '../services/workoutRatingService';
+import { WorkoutRatingModal } from '../components/WorkoutRatingModal';
+import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -32,42 +33,15 @@ export default function StartWorkout() {
 	const [workoutState, setWorkoutState] = useState<WorkoutState>('idle');
 	const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(0);
 	const [currentSetNumber, setCurrentSetNumber] = useState<number>(1);
-	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
-	const restTimerIntervalRef = useRef<number | null>(null);
-	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const scrollViewRef = useRef<ScrollView>(null);
 	const exercisePositions = useRef<Record<number, number>>({});
-	const beepSound = useRef<Audio.Sound | null>(null);
-	const beepLongSound = useRef<Audio.Sound | null>(null);
-	const hasActiveCountdown = useRef(false);
 
 	// Edit execution modal state
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 	const [currentExerciseSaved, setCurrentExerciseSaved] = useState(false);
 
-	const fetchExercises = async () => {
-		if (!workoutId) {return;}
-		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
-		const { data, error } = await fetchExercisesByWorkoutId(workoutIdStr);
-		if (!error && data) {
-			setExercises(data);
-			await fetchExercisePhasesForList(data);
-		}
-	};
-
-	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
-		const phasesMap: Record<string, ExercisePhase[]> = {};
-
-		for (const exercise of exerciseList) {
-			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
-
-			if (!error && data) {
-				phasesMap[exercise.id] = data;
-			}
-		}
-
-		setExercisePhases(phasesMap);
-	};
+	// Rating modal state
+	const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
 
 	const getTotalSetsForExercise = (exerciseId: string): number => {
 		const phases = exercisePhases[exerciseId] || [];
@@ -92,6 +66,42 @@ export default function StartWorkout() {
 		return phases[phases.length - 1] || null;
 	};
 
+	const isEmomPhase = (): boolean => {
+		const phase = getCurrentExercisePhase();
+		return !!(phase?.emom_interval_seconds);
+	};
+
+	const isLastExercise = (): boolean => {
+		return currentExerciseIndex === exercises.length - 1;
+	};
+
+	const isLastSet = (): boolean => {
+		return currentSetNumber === getTotalSetsForExercise(exercises[currentExerciseIndex].id);
+	};
+
+	// EMOM auto-advance handler — called by the timer hook when countdown reaches 0
+	const handleEmomTimerZero = useCallback(() => {
+		if (!isLastSet()) {
+			work();
+		} else {
+			setWorkoutState('exercise_done');
+		}
+	}, [currentExerciseIndex, currentSetNumber, exercises, exercisePhases]);
+
+	const {
+		restTimeRemaining,
+		blinkOpacity,
+		hasActiveCountdown,
+		startRestTimer,
+		startEmomTimer,
+		clearRestTimer,
+		setRestTimeRemaining,
+	} = useWorkoutTimer({
+		workoutState,
+		isEmom: isEmomPhase(),
+		onEmomTimerZero: handleEmomTimerZero,
+	});
+
 	const getNextPhase = (): ExercisePhase | null => {
 		if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
 			return null;
@@ -103,12 +113,10 @@ export default function StartWorkout() {
 		for (let i = 0; i < phases.length; i++) {
 			const phase = phases[i];
 			if (currentSetNumber <= setCount + phase.sets) {
-				// Check if we're on the last set of this phase
 				if (currentSetNumber === setCount + phase.sets) {
-					// Return the next phase if it exists
 					return phases[i + 1] || null;
 				}
-				return null; // Not on last set of phase
+				return null;
 			}
 			setCount += phase.sets;
 		}
@@ -152,79 +160,29 @@ export default function StartWorkout() {
 		return 1;
 	};
 
-	const isLastExercise = (): boolean => {
-		return currentExerciseIndex === exercises.length - 1;
+	const fetchExercises = async () => {
+		if (!workoutId) {return;}
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		const { data, error } = await fetchExercisesByWorkoutId(workoutIdStr);
+		if (!error && data) {
+			setExercises(data);
+			await fetchExercisePhasesForList(data);
+		}
 	};
 
-	const isLastSet = (): boolean => {
-		return currentSetNumber === getTotalSetsForExercise(exercises[currentExerciseIndex].id);
+	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
+		const phasesMap: Record<string, ExercisePhase[]> = {};
+
+		for (const exercise of exerciseList) {
+			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
+
+			if (!error && data) {
+				phasesMap[exercise.id] = data;
+			}
+		}
+
+		setExercisePhases(phasesMap);
 	};
-
-	// Cleanup rest timer
-	useEffect(() => {
-		return () => {
-			if (restTimerIntervalRef.current) {
-				clearInterval(restTimerIntervalRef.current);
-			}
-		};
-	}, []);
-
-	// Load beep sounds on mount
-	useEffect(() => {
-		const loadSounds = async () => {
-			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav'),
-			);
-			beepSound.current = sound;
-
-			const { sound: longSound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep-long.wav'),
-			);
-			beepLongSound.current = longSound;
-		};
-		loadSounds();
-
-		return () => {
-			if (beepSound.current) {
-				beepSound.current.unloadAsync();
-			}
-			if (beepLongSound.current) {
-				beepLongSound.current.unloadAsync();
-			}
-		};
-	}, []);
-
-	// Audio and vibration feedback for rest timer countdown
-	useEffect(() => {
-		if (!hasActiveCountdown.current) {return;}
-
-		const isEmom = isEmomPhase();
-
-		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
-		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
-			if (beepSound.current) {
-				beepSound.current.replayAsync();
-			}
-		}
-
-		// Long beep at zero
-		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
-			if (beepLongSound.current) {
-				beepLongSound.current.replayAsync();
-			}
-			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-		}
-
-		// EMOM auto-advance: when timer hits 0, auto-advance to next round
-		// Works in both 'rest' (user pressed Done) and 'work' (strict pacing) states
-		if (isEmom && (workoutState === 'rest' || workoutState === 'work') && restTimeRemaining === 0) {
-			if (!isLastSet()) {
-				work();
-			} else {
-				setWorkoutState('exercise_done');
-			}
-		}
-	}, [restTimeRemaining, workoutState]);
 
 	// Auto-scroll to current exercise
 	useEffect(() => {
@@ -236,30 +194,6 @@ export default function StartWorkout() {
 			}
 		}
 	}, [currentExerciseIndex]);
-
-	// Blinking animation for WORKING and RESTING states
-	useEffect(() => {
-		if (workoutState === 'work' || workoutState === 'rest') {
-			const blinkAnimation = Animated.loop(
-				Animated.sequence([
-					Animated.timing(blinkOpacity, {
-						toValue: 0.3,
-						duration: 500,
-						useNativeDriver: true,
-					}),
-					Animated.timing(blinkOpacity, {
-						toValue: 1,
-						duration: 500,
-						useNativeDriver: true,
-					}),
-				]),
-			);
-			blinkAnimation.start();
-			return () => blinkAnimation.stop();
-		} else {
-			blinkOpacity.setValue(1);
-		}
-	}, [workoutState, blinkOpacity]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -280,33 +214,6 @@ export default function StartWorkout() {
 				],
 			);
 		}
-	};
-
-	const startEmomTimer = (intervalSeconds: number) => {
-		hasActiveCountdown.current = true;
-		setRestTimeRemaining(intervalSeconds);
-
-		if (restTimerIntervalRef.current) {
-			clearInterval(restTimerIntervalRef.current);
-		}
-
-		restTimerIntervalRef.current = setInterval(() => {
-			setRestTimeRemaining((prev) => {
-				if (prev <= 1) {
-					if (restTimerIntervalRef.current) {
-						clearInterval(restTimerIntervalRef.current);
-						restTimerIntervalRef.current = null;
-					}
-					return 0;
-				}
-				return prev - 1;
-			});
-		}, 1000);
-	};
-
-	const isEmomPhase = (): boolean => {
-		const phase = getCurrentExercisePhase();
-		return !!(phase?.emom_interval_seconds);
 	};
 
 	const handleStartWorkout = () => {
@@ -334,10 +241,7 @@ export default function StartWorkout() {
 		if (!phase) {return;}
 
 		if (isLastSet()) {
-			if (restTimerIntervalRef.current) {
-				clearInterval(restTimerIntervalRef.current);
-				restTimerIntervalRef.current = null;
-			}
+			clearRestTimer();
 			setWorkoutState('exercise_done');
 			setRestTimeRemaining(0);
 			return;
@@ -351,26 +255,8 @@ export default function StartWorkout() {
 
 		const restTime = phase.rest_time_seconds || 0;
 		if (restTime > 0) {
-			hasActiveCountdown.current = true;
-			setRestTimeRemaining(restTime);
+			startRestTimer(restTime);
 			setWorkoutState('rest');
-
-			if (restTimerIntervalRef.current) {
-				clearInterval(restTimerIntervalRef.current);
-			}
-
-			restTimerIntervalRef.current = setInterval(() => {
-				setRestTimeRemaining((prev) => {
-					if (prev <= 1) {
-						if (restTimerIntervalRef.current) {
-							clearInterval(restTimerIntervalRef.current);
-							restTimerIntervalRef.current = null;
-						}
-						return 0;
-					}
-					return prev - 1;
-				});
-			}, 1000);
 		} else {
 			hasActiveCountdown.current = false;
 			setWorkoutState('rest');
@@ -378,10 +264,7 @@ export default function StartWorkout() {
 	};
 
 	const work = () => {
-		if (restTimerIntervalRef.current) {
-			clearInterval(restTimerIntervalRef.current);
-			restTimerIntervalRef.current = null;
-		}
+		clearRestTimer();
 
 		const currentExercise = exercises[currentExerciseIndex];
 		const totalSets = getTotalSetsForExercise(currentExercise.id);
@@ -427,7 +310,6 @@ export default function StartWorkout() {
 	};
 
 	const saveCurrentExerciseWithPlannedValues = async () => {
-		// Skip if already saved manually via the edit modal
 		if (currentExerciseSaved) {
 			return;
 		}
@@ -464,12 +346,8 @@ export default function StartWorkout() {
 	};
 
 	const handleNextExercise = async () => {
-		if (restTimerIntervalRef.current) {
-			clearInterval(restTimerIntervalRef.current);
-			restTimerIntervalRef.current = null;
-		}
+		clearRestTimer();
 
-		// Save the current exercise with planned values before moving on
 		await saveCurrentExerciseWithPlannedValues();
 
 		if (!isLastExercise() && isLastSet()) {
@@ -477,7 +355,7 @@ export default function StartWorkout() {
 			setCurrentSetNumber(1);
 			setWorkoutState('work');
 			setRestTimeRemaining(0);
-			setCurrentExerciseSaved(false); // Reset for the new exercise
+			setCurrentExerciseSaved(false);
 		}
 		if (isLastExercise()) {
 			setWorkoutState('exercise_done');
@@ -506,7 +384,7 @@ export default function StartWorkout() {
 				await handleNextExercise();
 				break;
 			case 'workout_done':
-				router.back();
+				setIsRatingModalVisible(true);
 				break;
 		}
 	};
@@ -575,6 +453,20 @@ export default function StartWorkout() {
 
 	const handleSkipExecution = () => {
 		setIsEditModalVisible(false);
+	};
+
+	const handleRatingSave = async (rating: number) => {
+		const workoutIdStr = Array.isArray(workoutId) ? workoutId[0] : workoutId;
+		if (workoutIdStr) {
+			await saveWorkoutRating(workoutIdStr, rating);
+		}
+		setIsRatingModalVisible(false);
+		router.back();
+	};
+
+	const handleRatingSkip = () => {
+		setIsRatingModalVisible(false);
+		router.back();
 	};
 
 	const currentExercise = currentExerciseIndex >= 0 ? exercises[currentExerciseIndex] : null;
@@ -651,6 +543,11 @@ export default function StartWorkout() {
 					phases={exercisePhases[currentExercise.id] || []}
 				/>
 			)}
+			<WorkoutRatingModal
+				visible={isRatingModalVisible}
+				onSave={handleRatingSave}
+				onSkip={handleRatingSkip}
+			/>
 		</KeyboardAvoidingView>
 	);
 }

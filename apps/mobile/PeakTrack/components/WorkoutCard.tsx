@@ -14,9 +14,10 @@ interface WorkoutCardProps {
 	isMissed?: boolean;
 	onMoveToToday?: () => void;
 	exercisePhases?: Map<string, ExercisePhase[]>;
+	rating?: number | null;
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, exercisePhases }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, exercisePhases, rating }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
 			{isMissed && (
@@ -30,6 +31,9 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 			]}>
 				<View style={styles.workoutNameContainer}>
 					<Text style={styles.workoutName}>{workout.name}</Text>
+					{rating != null && (
+						<Text style={styles.ratingBadge}>{rating}/5</Text>
+					)}
 				</View>
 				{!isReadOnly && !isCompleted && (
 					<View style={styles.workoutActions}>
@@ -140,5 +144,11 @@ const styles = StyleSheet.create({
 		color: '#D32F2F',
 		fontSize: 14,
 		fontWeight: '600',
+	},
+	ratingBadge: {
+		color: '#C65D24',
+		fontSize: 12,
+		fontWeight: '600',
+		marginTop: 2,
 	},
 });

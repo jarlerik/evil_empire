@@ -123,7 +123,7 @@ describe('useExercisePhases', () => {
 			expect(addResult).toEqual({ success: true });
 		});
 
-		it('should add wave phases separately', async () => {
+		it('should add wave phase as single row', async () => {
 			const { result } = renderHook(() => useExercisePhases({ exerciseId: 'ex-1' }));
 
 			// Wait for initial fetch to complete
@@ -136,13 +136,8 @@ describe('useExercisePhases', () => {
 				reps: 3,
 				weight: 65,
 				isValid: true,
-				wavePhases: [
-					{ sets: 1, reps: 3, weight: 65 },
-					{ sets: 1, reps: 2, weight: 65 },
-					{ sets: 1, reps: 1, weight: 65 },
-					{ sets: 1, reps: 1, weight: 65 },
-					{ sets: 1, reps: 1, weight: 65 },
-				],
+				compoundReps: [3, 2, 1, 1, 1],
+				exerciseType: 'wave',
 			};
 
 			let addResult;
@@ -151,8 +146,8 @@ describe('useExercisePhases', () => {
 			});
 
 			expect(addResult).toEqual({ success: true });
-			// Should have been called for each wave phase
-			expect(mockInsertPhase).toHaveBeenCalledTimes(5);
+			// Wave is now a single phase insert
+			expect(mockInsertPhase).toHaveBeenCalledTimes(1);
 		});
 
 		it('should return error when database not available', async () => {

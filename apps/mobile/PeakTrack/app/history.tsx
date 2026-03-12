@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { format, parseISO, subDays } from 'date-fns';
@@ -9,16 +9,19 @@ import { commonStyles, colors } from '../styles/common';
 import { fetchRecentExecutionLogs, fetchExecutionLogsByExerciseIds } from '../services/workoutExecutionLogService';
 import { fetchWorkoutsByIds } from '../services/workoutService';
 import { fetchExercisesByWorkoutIds } from '../services/exerciseService';
+import { fetchWorkoutRatings } from '../services/workoutRatingService';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';
+import { LoadScreen } from './components/LoadScreen';
 
 interface CompletedWorkout {
 	workout: Workout;
 	exercises: Exercise[];
 	exercisePhases: Map<string, ExercisePhase[]>;
 	executedAt: string;
+	rating: number | null;
 }
 
 export default function History() {
@@ -110,6 +113,13 @@ export default function History() {
 					phasesMap.set(log.exercise_id, existing);
 				}
 
+				// Fetch ratings for all workouts
+				const { data: ratings } = await fetchWorkoutRatings(workoutIds);
+				const ratingsMap = new Map<string, number>();
+				for (const r of ratings ?? []) {
+					ratingsMap.set(r.workout_id, r.rating);
+				}
+
 				// Combine into CompletedWorkout[], sorted by most recent execution
 				const completed: CompletedWorkout[] = workoutIds
 					.map((id) => {
@@ -129,6 +139,7 @@ export default function History() {
 							exercises,
 							exercisePhases: workoutPhases,
 							executedAt: workoutMap.get(id)!,
+							rating: ratingsMap.get(id) ?? null,
 						};
 					})
 					.filter((entry): entry is CompletedWorkout => entry !== null);
@@ -143,9 +154,7 @@ export default function History() {
 	if (authLoading || settingsLoading || isLoading) {
 		return (
 			<View style={styles.screen}>
-				<View style={[commonStyles.container, styles.loadingContainer]}>
-					<ActivityIndicator size="large" color={colors.primary} />
-				</View>
+				<LoadScreen />
 				<NavigationBar />
 			</View>
 		);
@@ -163,7 +172,7 @@ export default function History() {
 					{!errorState && completedWorkouts.length === 0 && (
 						<Text style={styles.emptyText}>No completed workouts in the last 30 days.</Text>
 					)}
-					{completedWorkouts.map(({ workout, exercises, exercisePhases, executedAt }) => {
+					{completedWorkouts.map(({ workout, exercises, exercisePhases, executedAt, rating }) => {
 						const dateLabel = format(parseISO(executedAt), 'EEEE, LLLL d');
 						return (
 							<View key={workout.id} style={styles.cardSection}>
@@ -172,6 +181,7 @@ export default function History() {
 									workout={workout}
 									exercises={exercises}
 									exercisePhases={exercisePhases}
+									rating={rating}
 									isReadOnly
 									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: workout.name, workoutId: workout.id } })}
 									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
@@ -189,11 +199,6 @@ export default function History() {
 const styles = StyleSheet.create({
 	screen: {
 		flex: 1,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
 	},
 	scrollContent: {
 		flexGrow: 1,

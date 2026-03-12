@@ -38,7 +38,15 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      ["expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "playWhenInactive": true,
+          "playWhenBackgrounded": true
+
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

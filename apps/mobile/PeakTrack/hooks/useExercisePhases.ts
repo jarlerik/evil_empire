@@ -152,36 +152,6 @@ export function useExercisePhases({ exerciseId }: UseExercisePhasesProps): UseEx
 
 		const exerciseIdStr = Array.isArray(exerciseId) ? exerciseId[0] : exerciseId;
 
-		// Handle wave phases separately
-		if (parsedData.wavePhases) {
-			for (const phase of parsedData.wavePhases) {
-				const phaseData: PhaseInsertData = {
-					exercise_id: exerciseIdStr,
-					sets: phase.sets,
-					repetitions: phase.reps,
-					weight: phase.weight,
-				};
-
-				if (parsedData.restTimeSeconds !== undefined) {
-					phaseData.rest_time_seconds = parsedData.restTimeSeconds;
-				}
-
-				const { error: phaseError } = await insertPhase(phaseData);
-
-				if (phaseError) {
-					setIsLoading(false);
-					return {
-						success: false,
-						error: 'Error adding wave phase: ' + phaseError,
-					};
-				}
-			}
-
-			await fetchExercisePhases();
-			setIsLoading(false);
-			return { success: true };
-		}
-
 		const insertData = buildPhaseData(exerciseIdStr, parsedData, calculatedWeight, weightRange, false);
 
 		const { error } = await insertPhase(insertData);

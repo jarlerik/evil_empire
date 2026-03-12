@@ -5,7 +5,7 @@ import { ParserResult, invalidResult, validResult } from './types';
  * Example: "3-2-1-1-1 65kg", "3-2-1 80%", "3-2-1-3-2-1@70, 75%", "3-2-1-3-2-1 70, 75kg"
  */
 export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserResult {
-	const wavePattern = /^(\d+(?:\s*-\s*\d+)+)(?:\s+|@)(\d+(?:\.\d+)?(?:[\s,]+\d+(?:\.\d+)?)*)\s*(kg|%)$/i;
+	const wavePattern = /^(\d+(?:\s*-\s*\d+)+)(?:\s+@?|@)(\d+(?:\.\d+)?(?:[\s,]+\d+(?:\.\d+)?)*)\s*(kg|%)$/i;
 	const match = cleanInput.match(wavePattern);
 
 	if (!match) {
@@ -51,20 +51,15 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 	const repsPerValue = values.length > 1 ? waveReps.length / values.length : waveReps.length;
 
 	if (unit === 'kg') {
-		// Create individual phases for each set in the wave
-		const wavePhases = waveReps.map((reps, i) => ({
-			sets: 1,
-			reps,
-			weight: values[Math.floor(i / repsPerValue)],
-		}));
-
 		return {
 			matched: true,
 			data: validResult({
 				sets: waveReps.length,
-				reps: waveReps[0], // First rep count for backward compatibility
+				reps: waveReps[0],
 				weight: values[0],
-				wavePhases,
+				compoundReps: waveReps,
+				exerciseType: 'wave',
+				...(values.length > 1 && { weights: values }),
 				...(restTimeSeconds !== undefined && { restTimeSeconds }),
 			}),
 		};
@@ -77,21 +72,15 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 			};
 		}
 
-		// Create individual phases for each set in the wave
-		const wavePhases = waveReps.map((reps, i) => ({
-			sets: 1,
-			reps,
-			weight: 0, // Will be calculated after RM lookup
-			weightPercentage: values[Math.floor(i / repsPerValue)],
-		}));
-
 		return {
 			matched: true,
 			data: validResult({
 				sets: waveReps.length,
-				reps: waveReps[0], // First rep count for backward compatibility
-				weight: 0, // Will be calculated after RM lookup
-				wavePhases,
+				reps: waveReps[0],
+				weight: 0,
+				compoundReps: waveReps,
+				exerciseType: 'wave',
+				weights: values,
 				weightPercentage: values[0],
 				needsRmLookup: true,
 				...(restTimeSeconds !== undefined && { restTimeSeconds }),

@@ -1,112 +1,170 @@
-import { useState, useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
-import { Audio } from 'expo-av';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Animated, AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
+import { useAudio } from '../contexts/AudioContext';
+
+const REST_DONE_NOTIFICATION_ID = 'rest-timer-done';
+
+Notifications.setNotificationHandler({
+	handleNotification: async () => ({
+		shouldShowAlert: true,
+		shouldPlaySound: true,
+		shouldSetBadge: false,
+		shouldShowBanner: true,
+		shouldShowList: true,
+	}),
+});
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
 interface UseWorkoutTimerProps {
 	workoutState: WorkoutState;
+	isEmom: boolean;
+	onEmomTimerZero?: () => void;
 }
 
 interface UseWorkoutTimerReturn {
 	restTimeRemaining: number;
-	setRestTimeRemaining: (time: number) => void;
 	blinkOpacity: Animated.Value;
+	hasActiveCountdown: React.RefObject<boolean>;
 	formatTime: (seconds: number) => string;
 	startRestTimer: (duration: number) => void;
+	startEmomTimer: (intervalSeconds: number) => void;
 	clearRestTimer: () => void;
+	setRestTimeRemaining: (time: number) => void;
 }
 
-export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWorkoutTimerReturn {
+export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWorkoutTimerProps): UseWorkoutTimerReturn {
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
-	const beepSound = useRef<Audio.Sound | null>(null);
-	const beepLongSound = useRef<Audio.Sound | null>(null);
+	const hasActiveCountdown = useRef(false);
+	const timerEndTimeRef = useRef<number | null>(null);
+	const { beepSound, beepLongSound } = useAudio();
 
-	// Helper function to format time as MM:SS
+	// Store callback in ref to avoid stale closures in effects
+	const onEmomTimerZeroRef = useRef(onEmomTimerZero);
+	onEmomTimerZeroRef.current = onEmomTimerZero;
+
 	const formatTime = (seconds: number): string => {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 	};
 
-	// Clear rest timer
-	const clearRestTimer = () => {
+	const clearRestTimer = useCallback(() => {
 		if (restTimerIntervalRef.current) {
 			clearInterval(restTimerIntervalRef.current);
 			restTimerIntervalRef.current = null;
 		}
-	};
+		timerEndTimeRef.current = null;
+		Notifications.cancelScheduledNotificationAsync(REST_DONE_NOTIFICATION_ID).catch(() => {});
+	}, []);
 
-	// Start rest timer countdown
-	const startRestTimer = (duration: number) => {
-		setRestTimeRemaining(duration);
+	const scheduleTimerNotification = useCallback((duration: number) => {
+		Notifications.scheduleNotificationAsync({
+			identifier: REST_DONE_NOTIFICATION_ID,
+			content: {
+				title: 'Rest Over',
+				body: 'Time to get back to work!',
+				sound: 'default',
+			},
+			trigger: {
+				type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+				seconds: duration,
+			},
+		}).catch(() => {});
+	}, []);
 
-		// Clear any existing interval
+	const startCountdown = useCallback((duration: number) => {
 		clearRestTimer();
+		setRestTimeRemaining(duration);
+		timerEndTimeRef.current = Date.now() + duration * 1000;
+		scheduleTimerNotification(duration);
 
-		// Start countdown
 		restTimerIntervalRef.current = setInterval(() => {
-			setRestTimeRemaining((prev) => {
-				if (prev <= 1) {
-					clearRestTimer();
-					return 0;
-				}
-				return prev - 1;
-			});
-		}, 1000) as unknown as number;
-	};
+			const endTime = timerEndTimeRef.current;
+			if (!endTime) {return;}
 
-	// Cleanup rest timer on unmount
+			const remaining = Math.round((endTime - Date.now()) / 1000);
+			if (remaining <= 0) {
+				if (restTimerIntervalRef.current) {
+					clearInterval(restTimerIntervalRef.current);
+					restTimerIntervalRef.current = null;
+				}
+				setRestTimeRemaining(0);
+			} else {
+				setRestTimeRemaining(remaining);
+			}
+		}, 1000) as unknown as number;
+	}, [clearRestTimer]);
+
+	const startRestTimer = useCallback((duration: number) => {
+		hasActiveCountdown.current = true;
+		startCountdown(duration);
+	}, [startCountdown]);
+
+	const startEmomTimer = useCallback((intervalSeconds: number) => {
+		hasActiveCountdown.current = true;
+		startCountdown(intervalSeconds);
+	}, [startCountdown]);
+
+	// Recalculate timer when app returns to foreground
+	useEffect(() => {
+		const handleAppStateChange = (nextState: AppStateStatus) => {
+			if (nextState === 'active' && timerEndTimeRef.current && hasActiveCountdown.current) {
+				const remaining = Math.round((timerEndTimeRef.current - Date.now()) / 1000);
+				if (remaining <= 0) {
+					clearRestTimer();
+					setRestTimeRemaining(0);
+				} else {
+					setRestTimeRemaining(remaining);
+				}
+			}
+		};
+
+		const subscription = AppState.addEventListener('change', handleAppStateChange);
+		return () => subscription.remove();
+	}, [clearRestTimer]);
+
+	// Cleanup on unmount
 	useEffect(() => {
 		return () => {
 			clearRestTimer();
 		};
-	}, []);
-
-	// Load beep sounds on mount
-	useEffect(() => {
-		const loadSounds = async () => {
-			const { sound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep.wav'),
-			);
-			beepSound.current = sound;
-
-			const { sound: longSound } = await Audio.Sound.createAsync(
-				require('../assets/sounds/beep-long.wav'),
-			);
-			beepLongSound.current = longSound;
-		};
-		loadSounds();
-
-		return () => {
-			if (beepSound.current) {
-				beepSound.current.unloadAsync();
-			}
-			if (beepLongSound.current) {
-				beepLongSound.current.unloadAsync();
-			}
-		};
-	}, []);
+	}, [clearRestTimer]);
 
 	// Audio and vibration feedback for rest timer countdown
 	useEffect(() => {
-		if (workoutState === 'rest' && restTimeRemaining <= 5 && restTimeRemaining > 0) {
-			// Play beep sound for final 5 seconds
-			if (beepSound.current) {
-				beepSound.current.replayAsync();
+		if (!hasActiveCountdown.current) {return;}
+
+		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
+		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
+			try {
+				beepSound.seekTo(0);
+				beepSound.play();
+			} catch {
+				// Native audio player may not be ready
 			}
 		}
-		if (workoutState === 'rest' && restTimeRemaining === 0) {
-			if (beepLongSound.current) {
-				beepLongSound.current.replayAsync();
+
+		// Long beep at zero
+		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
+			try {
+				beepLongSound.seekTo(0);
+				beepLongSound.play();
+			} catch {
+				// Native audio player may not be ready
 			}
-			// Vibrate when timer ends
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
-	}, [restTimeRemaining, workoutState]);
+
+		// EMOM auto-advance when timer hits 0
+		if (isEmom && (workoutState === 'rest' || workoutState === 'work') && restTimeRemaining === 0) {
+			onEmomTimerZeroRef.current?.();
+		}
+	}, [restTimeRemaining, workoutState, isEmom]);
 
 	// Blinking animation for WORKING and RESTING states
 	useEffect(() => {
@@ -134,10 +192,12 @@ export function useWorkoutTimer({ workoutState }: UseWorkoutTimerProps): UseWork
 
 	return {
 		restTimeRemaining,
-		setRestTimeRemaining,
 		blinkOpacity,
+		hasActiveCountdown,
 		formatTime,
 		startRestTimer,
+		startEmomTimer,
 		clearRestTimer,
+		setRestTimeRemaining,
 	};
 }

@@ -260,7 +260,7 @@ describe('parseSetInput - Circuit Format', () => {
 
 			expect(circuitResult.weights).toBeUndefined();
 			expect(circuitResult.compoundReps).toBeUndefined();
-			expect(circuitResult.wavePhases).toBeUndefined();
+			expect(circuitResult.exerciseType).not.toBe('wave');
 			expect(circuitResult.isValid).toBe(true);
 			expect(circuitResult.sets).toBe(2);
 			expect(circuitResult.reps).toBe(0); // Circuits don't have a single rep count
