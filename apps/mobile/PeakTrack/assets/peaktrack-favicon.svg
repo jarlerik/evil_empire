@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <clipPath id="rc">
+      <rect width="32" height="32" rx="7" ry="7"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#rc)">
+    <rect width="32" height="32" fill="rgb(23,23,23)"/>
+
+    <!-- Barbell bar -->
+    <rect x="3" y="15" width="26" height="2" rx="1" fill="rgb(58,58,58)"/>
+    <!-- Left plate -->
+    <rect x="3" y="11" width="2" height="10" rx="1" fill="rgb(48,48,48)"/>
+    <!-- Right plate -->
+    <rect x="27" y="11" width="2" height="10" rx="1" fill="rgb(48,48,48)"/>
+
+    <!-- Chart line -->
+    <polyline
+      points="5,17  12,12  17,19  27,7"
+      fill="none" stroke="rgb(198,93,36)" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round"
+    />
+    <circle cx="5" cy="17" r="1.5" fill="rgb(198,93,36)"/>
+    <circle cx="12" cy="12" r="1.5" fill="rgb(198,93,36)"/>
+    <circle cx="17" cy="19" r="1.5" fill="rgb(198,93,36)"/>
+    <circle cx="27" cy="7" r="2" fill="rgb(198,93,36)"/>
+    <circle cx="27" cy="7" r="0.8" fill="white"/>
+  </g>
+</svg>

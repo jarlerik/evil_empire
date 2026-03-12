@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 160" width="820" height="160">
+  <rect width="820" height="160" fill="rgb(23,23,23)"/>
+
+  <!-- Mini barbell icon -->
+  <!-- Bar -->
+  <rect x="20" y="72" width="100" height="6" rx="3" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="0.5"/>
+  <!-- Left plate -->
+  <rect x="22" y="58" width="7" height="34" rx="2" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1"/>
+  <rect x="32" y="64" width="6" height="22" rx="2" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1"/>
+  <!-- Right plate -->
+  <rect x="111" y="58" width="7" height="34" rx="2" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1"/>
+  <rect x="102" y="64" width="6" height="22" rx="2" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1"/>
+
+  <!-- Mini chart line -->
+  <polyline
+    points="28,78  52,62  66,84  112,44"
+    fill="none" stroke="rgb(198,93,36)" stroke-width="2.5"
+    stroke-linecap="round" stroke-linejoin="round"
+  />
+  <circle cx="28" cy="78" r="3" fill="rgb(198,93,36)"/><circle cx="28" cy="78" r="1.3" fill="white"/>
+  <circle cx="52" cy="62" r="3" fill="rgb(198,93,36)"/><circle cx="52" cy="62" r="1.3" fill="white"/>
+  <circle cx="66" cy="84" r="3" fill="rgb(198,93,36)"/><circle cx="66" cy="84" r="1.3" fill="white"/>
+  <circle cx="112" cy="44" r="4" fill="rgb(198,93,36)"/><circle cx="112" cy="44" r="1.8" fill="white"/>
+
+  <!-- Divider line -->
+  <line x1="140" y1="30" x2="140" y2="130" stroke="rgb(58,58,58)" stroke-width="1.5"/>
+
+  <!-- PEAKTRACK wordmark -->
+  <text x="168" y="80"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="62" font-weight="800" letter-spacing="4"
+    fill="rgb(198,93,36)"
+    dominant-baseline="middle">PEAK</text>
+
+  <text x="168" y="128"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="28" font-weight="800" letter-spacing="18"
+    fill="rgb(198,93,36)"
+    dominant-baseline="middle">TRACK</text>
+
+</svg>

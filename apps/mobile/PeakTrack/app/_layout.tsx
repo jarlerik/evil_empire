@@ -3,10 +3,11 @@ import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
 import { AuthProvider } from '../contexts/AuthContext';
 import { UserSettingsProvider } from '../contexts/UserSettingsContext';
 import { AudioProvider } from '../contexts/AudioContext';
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 
 const styles = StyleSheet.create({
 	container: {
@@ -20,6 +21,10 @@ const styles = StyleSheet.create({
 });
 
 export default function Layout() {
+	useEffect(() => {
+		Notifications.requestPermissionsAsync();
+	}, []);
+
 	return (
 		<StrictMode>
 		<AudioProvider>
