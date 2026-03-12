@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="roundClip">
+      <rect width="512" height="512" rx="115" ry="115"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#roundClip)">
+
+    <!-- Background -->
+    <rect width="512" height="512" fill="rgb(23,23,23)"/>
+
+    <!-- PEAK text above -->
+    <text x="256" y="108"
+      font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-size="88"
+      font-weight="800"
+      letter-spacing="18"
+      fill="rgb(198,93,36)"
+      text-anchor="middle"
+      dominant-baseline="middle">PEAK</text>
+
+    <!-- BARBELL -->
+    <rect x="64" y="258" width="384" height="16" rx="8" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1"/>
+
+    <!-- Left plate outer -->
+    <rect x="78" y="218" width="22" height="96" rx="5" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1.5"/>
+    <!-- Left plate inner -->
+    <rect x="103" y="232" width="18" height="68" rx="4" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1.5"/>
+    <!-- Left collar -->
+    <rect x="124" y="248" width="10" height="36" rx="3" fill="rgb(48,48,48)"/>
+
+    <!-- Right collar -->
+    <rect x="378" y="248" width="10" height="36" rx="3" fill="rgb(48,48,48)"/>
+    <!-- Right plate inner -->
+    <rect x="391" y="232" width="18" height="68" rx="4" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1.5"/>
+    <!-- Right plate outer -->
+    <rect x="412" y="218" width="22" height="96" rx="5" fill="rgb(38,38,38)" stroke="rgb(58,58,58)" stroke-width="1.5"/>
+
+    <!-- CHART LINE -->
+    <polyline
+      points="100,280  210,215  270,310  412,158"
+      fill="none"
+      stroke="rgb(198,93,36)"
+      stroke-width="6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Data point dots -->
+    <circle cx="100" cy="280" r="9" fill="rgb(198,93,36)"/>
+    <circle cx="100" cy="280" r="4" fill="white"/>
+
+    <circle cx="210" cy="215" r="9" fill="rgb(198,93,36)"/>
+    <circle cx="210" cy="215" r="4" fill="white"/>
+
+    <circle cx="270" cy="310" r="9" fill="rgb(198,93,36)"/>
+    <circle cx="270" cy="310" r="4" fill="white"/>
+
+    <circle cx="412" cy="158" r="12" fill="rgb(198,93,36)"/>
+    <circle cx="412" cy="158" r="5" fill="white"/>
+
+    <!-- TRACK text below — same style as PEAK -->
+    <text x="256" y="415"
+      font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-size="88"
+      font-weight="800"
+      letter-spacing="18"
+      fill="rgb(198,93,36)"
+      text-anchor="middle"
+      dominant-baseline="middle">TRACK</text>
+
+  </g>
+</svg>

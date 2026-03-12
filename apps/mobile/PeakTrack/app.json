@@ -4,7 +4,7 @@
     "slug": "peaktrack",
     "version": "1.1.5",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/peaktrack-1024.png",
     "scheme": "peaktrack",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -39,6 +39,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-notifications",
       ["expo-audio",
         {
           "enableBackgroundPlayback": true,
