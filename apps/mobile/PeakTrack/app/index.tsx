@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { ExerciseItem } from '../components/ExerciseItem';
 import { WeekDaySelector } from '../components/WeekDaySelector';
-import { commonStyles, colors } from '../styles/common';
+import { commonStyles } from '../styles/common';
 import { Exercise, Workout } from '../types/workout';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { NavigationBar } from '../components/NavigationBar';
@@ -206,6 +206,8 @@ export default function Index() {
 	for (const w of workouts) {
 		const dateKey = w.workout_date;
 		if (!dateKey) continue;
+		const workoutExercises = exercises[w.id] || [];
+		if (workoutExercises.length === 0) continue;
 		const workoutDay = startOfDay(new Date(dateKey + 'T00:00:00'));
 		if (completedWorkoutIds.has(w.id)) {
 			dayStatuses[dateKey] = 'completed';
@@ -277,7 +279,7 @@ export default function Index() {
 												<Ionicons name="stopwatch-outline" size={22} color="#fff" />
 											</Pressable>
 										)}
-										{workoutForSelectedDate && (
+										{workoutForSelectedDate && hasExercises && (
 											<Pressable
 												onPress={handleDeleteWorkout}
 												style={styles.iconButton}
