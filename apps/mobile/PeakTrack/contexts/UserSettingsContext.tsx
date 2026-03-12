@@ -1,16 +1,18 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings } from '../services/userSettingsService';
+import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings, markOnboardingCompleted } from '../services/userSettingsService';
 
 interface UserSettings {
   weight_unit: 'kg' | 'lbs';
   user_weight: string;
+  onboarding_completed: boolean;
 }
 
 interface UserSettingsContextType {
   settings: UserSettings | null;
   loading: boolean;
   updateSettings: (newSettings: Partial<UserSettings>) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
@@ -42,12 +44,14 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
         setSettings({
           weight_unit: data.weight_unit,
           user_weight: data.user_weight,
+          onboarding_completed: data.onboarding_completed ?? false,
         });
       } else {
         // Create default settings if none exist
         const defaultSettings: UserSettings = {
           weight_unit: 'kg',
           user_weight: '85',
+          onboarding_completed: false,
         };
         await updateSettings(defaultSettings);
         setSettings(defaultSettings);
@@ -64,7 +68,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
       if (!user) {return;}
 
       // Ensure we have all required fields by merging with current settings
-      const currentSettings = settings || { weight_unit: 'kg', user_weight: '85' };
+      const currentSettings = settings || { weight_unit: 'kg' as const, user_weight: '85', onboarding_completed: false };
       const updatedSettings = {
         ...currentSettings,
         ...newSettings,
@@ -85,10 +89,19 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
     }
   };
 
+  const completeOnboarding = async () => {
+    if (!user) {return;}
+    const { error } = await markOnboardingCompleted(user.id);
+    if (!error) {
+      setSettings(prev => prev ? { ...prev, onboarding_completed: true } : prev);
+    }
+  };
+
   const value = {
     settings,
     loading,
     updateSettings,
+    completeOnboarding,
   };
 
   return <UserSettingsContext.Provider value={value}>{children}</UserSettingsContext.Provider>;

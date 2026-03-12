@@ -18,6 +18,8 @@ import { Exercise, Workout } from '../types/workout';
 import { ExercisePhase } from '../lib/formatExercisePhase';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
+import { CoachMark } from '../components/CoachMark';
+import { useCoachMark } from '../hooks/useCoachMark';
 
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
@@ -38,6 +40,9 @@ export default function Index() {
 	const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+	const weekDayCoach = useCoachMark('week-day-selector');
+	const addExerciseCoach = useCoachMark('add-exercise-area');
 
 	const getCurrentWeek = () => {
 		return `Week ${getISOWeek(selectedWeekStart)}`;
@@ -223,6 +228,7 @@ export default function Index() {
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 			>
 				<View style={styles.flex}>
+					<CoachMark />
 					<ScrollView
 						contentContainerStyle={styles.scrollContent}
 						keyboardShouldPersistTaps="handled"
@@ -248,12 +254,14 @@ export default function Index() {
 								</View>
 							</View>
 
-							<WeekDaySelector
-								weekStart={selectedWeekStart}
-								selectedDate={selectedDate}
-								onSelectDate={setSelectedDate}
-								dayStatuses={dayStatuses}
-							/>
+							<View ref={weekDayCoach.ref} onLayout={weekDayCoach.onLayout}>
+								<WeekDaySelector
+									weekStart={selectedWeekStart}
+									selectedDate={selectedDate}
+									onSelectDate={setSelectedDate}
+									dayStatuses={dayStatuses}
+								/>
+							</View>
 
 							<View style={styles.workoutsSection}>
 								<View style={styles.dateTitleRow}>
@@ -302,7 +310,7 @@ export default function Index() {
 								)}
 							</View>
 
-							<View style={styles.bottomSection}>
+							<View style={styles.bottomSection} ref={addExerciseCoach.ref} onLayout={addExerciseCoach.onLayout}>
 								<TextInput
 									style={styles.input}
 									value={exerciseName}

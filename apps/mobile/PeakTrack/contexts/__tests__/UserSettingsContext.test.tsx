@@ -57,7 +57,7 @@ describe('UserSettingsContext', () => {
 		jest.clearAllMocks();
 		mockUserState.user = { id: 'user-1', email: 'test@example.com' };
 		mockSingle.mockResolvedValue({
-			data: { weight_unit: 'kg', user_weight: '85' },
+			data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 			error: null,
 		});
 	});
@@ -89,6 +89,7 @@ describe('UserSettingsContext', () => {
 			expect(result.current.settings).toEqual({
 				weight_unit: 'kg',
 				user_weight: '85',
+				onboarding_completed: false,
 			});
 		});
 
@@ -109,11 +110,11 @@ describe('UserSettingsContext', () => {
 		it('should update settings in database and local state', async () => {
 			mockSingle
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85' },
+					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 					error: null,
 				})
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'lbs', user_weight: '185' },
+					data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
 					error: null,
 				});
 
@@ -138,11 +139,11 @@ describe('UserSettingsContext', () => {
 		it('should merge partial updates with existing settings', async () => {
 			mockSingle
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85' },
+					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 					error: null,
 				})
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '90' },
+					data: { weight_unit: 'kg', user_weight: '90', onboarding_completed: false },
 					error: null,
 				});
 
@@ -166,13 +167,14 @@ describe('UserSettingsContext', () => {
 			expect(result.current.settings).toEqual({
 				weight_unit: 'kg',
 				user_weight: '90',
+				onboarding_completed: false,
 			});
 		});
 
 		it('should insert settings if update returns no data', async () => {
 			mockSingle
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85' },
+					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 					error: null,
 				})
 				.mockResolvedValueOnce({
@@ -180,7 +182,7 @@ describe('UserSettingsContext', () => {
 					error: null,
 				})
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'lbs', user_weight: '185' },
+					data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
 					error: null,
 				});
 
@@ -208,7 +210,7 @@ describe('UserSettingsContext', () => {
 			// Third call: insert fails
 			mockSingle
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85' },
+					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 					error: null,
 				})
 				.mockResolvedValueOnce({
@@ -256,7 +258,7 @@ describe('UserSettingsContext', () => {
 			mockSingle
 				.mockRejectedValueOnce({ code: 'PGRST116', message: 'No rows' })
 				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85' },
+					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 					error: null,
 				});
 
@@ -275,7 +277,7 @@ describe('UserSettingsContext', () => {
 	describe('settings values', () => {
 		it('should support kg weight unit', async () => {
 			mockSingle.mockResolvedValue({
-				data: { weight_unit: 'kg', user_weight: '100' },
+				data: { weight_unit: 'kg', user_weight: '100', onboarding_completed: false },
 				error: null,
 			});
 
@@ -290,7 +292,7 @@ describe('UserSettingsContext', () => {
 
 		it('should support lbs weight unit', async () => {
 			mockSingle.mockResolvedValue({
-				data: { weight_unit: 'lbs', user_weight: '220' },
+				data: { weight_unit: 'lbs', user_weight: '220', onboarding_completed: false },
 				error: null,
 			});
 

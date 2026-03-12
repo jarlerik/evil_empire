@@ -19,5 +19,6 @@ export interface UserSettingsRow {
 	user_id: string;
 	weight_unit: 'kg' | 'lbs';
 	user_weight: string;
+	onboarding_completed: boolean;
 	updated_at?: string;
 }
