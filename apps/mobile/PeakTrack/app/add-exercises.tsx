@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
-import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { ExerciseItem } from '../components/ExerciseItem';
+import { ExercisePhase } from '../lib/formatExercisePhase';
 import { commonStyles } from '../styles/common';
 import { Exercise } from '../types/workout';
 import { fetchExercisesByWorkoutId, createExercise } from '../services/exerciseService';
@@ -105,33 +105,13 @@ export default function AddExercises() {
 					</View>
 
 					{exercises.map((exercise) => (
-							<View key={exercise.id} style={styles.exerciseItem}>
-								<View style={styles.exerciseHeader}>
-									<View style={styles.exerciseNameContainer}>
-										<Text style={styles.exerciseName}>{exercise.name}</Text>
-									</View>
-									<View style={styles.exerciseButtons}>
-										<Pressable onPress={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })} style={styles.editButton}>
-											<Ionicons name="pencil-outline" size={22} color="#fff" />
-										</Pressable>
-									</View>
-								</View>
-								{exercisePhases[exercise.id] && exercisePhases[exercise.id].length > 0 && (
-									<View style={styles.phasesContainer}>
-										{exercisePhases[exercise.id].map((phase) => (
-											<View key={phase.id}>
-												<Text style={styles.phaseText}>
-													{formatExercisePhase(phase)}
-												</Text>
-												{phase.notes && (
-													<Text style={styles.phaseNotes}>{phase.notes}</Text>
-												)}
-											</View>
-										))}
-									</View>
-								)}
-							</View>
-						))}
+						<ExerciseItem
+							key={exercise.id}
+							exercise={exercise}
+							phases={exercisePhases[exercise.id] || []}
+							onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
+						/>
+					))}
 
 					<View style={styles.bottomContainer}>
 						<TextInput
@@ -164,52 +144,8 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		marginBottom: 20,
 	},
-	exerciseList: {
-		marginTop: 20,
-	},
-	exerciseItem: {
-		backgroundColor: '#111',
-		padding: 16,
-		borderRadius: 8,
-		marginBottom: 12,
-	},
-	exerciseHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	exerciseButtons: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	exerciseNameContainer: {
-		flex: 1,
-	},
-	exerciseName: {
-		color: '#fff',
-		fontSize: 16,
-	},
-	editButton: {
-		padding: 8,
-		marginRight: 8,
-	},
-	deleteButton: {
-		padding: 8,
-	},
 	bottomContainer: {
 		marginTop: 'auto',
-	},
-	phasesContainer: {
-		marginTop: 12,
-	},
-	phaseText: {
-		color: '#C65D24',
-		fontSize: 14,
-		marginTop: 4,
-	},
-	phaseNotes: {
-		color: '#fff',
-		fontSize: 12,
-		marginTop: 2,
 	},
 	deleteWorkoutButton: {
 		padding: 8,

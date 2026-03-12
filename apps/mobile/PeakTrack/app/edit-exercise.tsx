@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, Keyboard } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -83,6 +83,7 @@ export default function EditExercise() {
 
 		setSetInput('');
 		setEditingPhaseId(null);
+		Keyboard.dismiss();
 	};
 
 	const handleSelectMatch = async (match: RmMatch) => {
@@ -92,6 +93,7 @@ export default function EditExercise() {
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);
+			Keyboard.dismiss();
 		} else {
 			Alert.alert('Error', result.error || 'Unknown error');
 		}
@@ -126,6 +128,7 @@ export default function EditExercise() {
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);
+			Keyboard.dismiss();
 		} else {
 			Alert.alert('Error', result.error || 'Unknown error');
 		}
