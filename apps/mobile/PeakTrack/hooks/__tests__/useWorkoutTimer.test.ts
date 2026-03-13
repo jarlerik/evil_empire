@@ -6,7 +6,8 @@ import { Animated } from 'react-native';
 jest.mock('../../contexts/AudioContext', () => ({
 	useAudio: jest.fn().mockReturnValue({
 		beepSound: { play: jest.fn() },
-		beepLongSound: { play: jest.fn() },
+		tenSecondsSound: { play: jest.fn(), seekTo: jest.fn() },
+		letsGoSound: { play: jest.fn(), seekTo: jest.fn() },
 	}),
 }));
 

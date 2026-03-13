@@ -41,7 +41,7 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
 	const hasActiveCountdown = useRef(false);
 	const timerEndTimeRef = useRef<number | null>(null);
-	const { beepSound, beepLongSound } = useAudio();
+	const { beepSound, tenSecondsSound, letsGoSound } = useAudio();
 
 	// Store callback in ref to avoid stale closures in effects
 	const onEmomTimerZeroRef = useRef(onEmomTimerZero);
@@ -139,24 +139,14 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 	useEffect(() => {
 		if (!hasActiveCountdown.current) {return;}
 
-		// Beep countdown in last 5 seconds (rest state, or EMOM work state)
-		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining <= 5 && restTimeRemaining > 0) {
-			try {
-				beepSound.seekTo(0);
-				beepSound.play();
-			} catch {
-				// Native audio player may not be ready
-			}
+		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 10) {
+			tenSecondsSound.seekTo(0).then(() => tenSecondsSound.play()).catch(() => {});
 		}
 
-		// Long beep at zero
+		// Voice cue and beep at zero
 		if ((workoutState === 'rest' || (workoutState === 'work' && isEmom)) && restTimeRemaining === 0) {
-			try {
-				beepLongSound.seekTo(0);
-				beepLongSound.play();
-			} catch {
-				// Native audio player may not be ready
-			}
+			letsGoSound.seekTo(0).then(() => letsGoSound.play()).catch(() => {});
+			beepSound.seekTo(0).then(() => beepSound.play()).catch(() => {});
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		}
 
