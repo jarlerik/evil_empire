@@ -24,16 +24,23 @@ export interface ExecutionLogData {
 	}>;
 }
 
-function isWeightRangePhase(phase: ExercisePhase): boolean {
-	return phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max;
+function shouldShowPerSetWeights(phase: ExercisePhase): boolean {
+	if (phase.exercise_type === 'rm_build' || phase.exercise_type === 'circuit') return false;
+	return phase.sets >= 1 && phase.weight > 0;
 }
 
-function getInterpolatedWeights(phase: ExercisePhase): number[] {
-	const weights: number[] = [];
-	for (let i = 1; i <= phase.sets; i++) {
-		weights.push(interpolateWeight(phase.weight_min!, phase.weight_max!, i, phase.sets));
+function getPhaseWeights(phase: ExercisePhase): number[] {
+	if (phase.weights && phase.weights.length > 1) {
+		return [...phase.weights];
 	}
-	return weights;
+	if (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max) {
+		const weights: number[] = [];
+		for (let i = 1; i <= phase.sets; i++) {
+			weights.push(interpolateWeight(phase.weight_min, phase.weight_max, i, phase.sets));
+		}
+		return weights;
+	}
+	return Array(phase.sets).fill(phase.weight);
 }
 
 export function EditExecutionModal({
@@ -55,8 +62,8 @@ export function EditExecutionModal({
 			const initialInputs: Record<string, string> = {};
 			const initialWeights: Record<string, number[]> = {};
 			phases.forEach(phase => {
-				if (isWeightRangePhase(phase)) {
-					initialWeights[phase.id] = getInterpolatedWeights(phase);
+				if (shouldShowPerSetWeights(phase)) {
+					initialWeights[phase.id] = getPhaseWeights(phase);
 				} else {
 					initialInputs[phase.id] = formatExercisePhase(phase);
 				}
@@ -89,8 +96,8 @@ export function EditExecutionModal({
 		const executionPhases: ExecutionLogData['phases'] = [];
 
 		for (const phase of phases) {
-			if (isWeightRangePhase(phase)) {
-				const weights = perSetWeights[phase.id] || getInterpolatedWeights(phase);
+			if (shouldShowPerSetWeights(phase)) {
+				const weights = perSetWeights[phase.id] || getPhaseWeights(phase);
 				const repsStr = phase.compound_reps ? phase.compound_reps.join(' + ') : String(phase.repetitions);
 				const weightsStr = weights.join(' ');
 				const input = `${phase.sets} x ${repsStr} @${weightsStr}kg`;
@@ -175,9 +182,9 @@ export function EditExecutionModal({
 									<Text style={styles.plannedNotes}>{phase.notes}</Text>
 								)}
 								<Text style={styles.actualLabel}>Actual:</Text>
-								{isWeightRangePhase(phase) ? (
+								{shouldShowPerSetWeights(phase) ? (
 									<View style={styles.perSetContainer}>
-										{(perSetWeights[phase.id] || getInterpolatedWeights(phase)).map((weight, index) => (
+										{(perSetWeights[phase.id] || getPhaseWeights(phase)).map((weight, index) => (
 											<View key={index} style={styles.perSetRow}>
 												<Text style={styles.perSetLabel}>Set {index + 1}:</Text>
 												<TextInput
