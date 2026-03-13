@@ -111,6 +111,7 @@ export default function Index() {
 	const workoutForSelectedDate = filteredWorkouts[0] ?? null;
 	const currentExercises = workoutForSelectedDate ? (exercises[workoutForSelectedDate.id] || []) : [];
 	const hasExercises = currentExercises.length > 0;
+	const isCompleted = workoutForSelectedDate ? completedWorkoutIds.has(workoutForSelectedDate.id) : false;
 
 	const handleAddExercise = async () => {
 		if (!exerciseName.trim()) {return;}
@@ -271,7 +272,7 @@ export default function Index() {
 										Workout for {format(selectedDate, 'EEEE, LLLL d')}
 									</Text>
 									<View style={styles.dateTitleActions}>
-										{workoutForSelectedDate && hasExercises && (
+										{workoutForSelectedDate && hasExercises && !isCompleted && (
 											<Pressable
 												onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: workoutForSelectedDate.name, workoutId: workoutForSelectedDate.id } })}
 												style={styles.iconButton}
@@ -279,7 +280,7 @@ export default function Index() {
 												<Ionicons name="stopwatch-outline" size={22} color="#fff" />
 											</Pressable>
 										)}
-										{workoutForSelectedDate && hasExercises && (
+										{workoutForSelectedDate && hasExercises && !isCompleted && (
 											<Pressable
 												onPress={handleDeleteWorkout}
 												style={styles.iconButton}
@@ -307,6 +308,7 @@ export default function Index() {
 											exercise={exercise}
 											phases={exercisePhases[exercise.id] || []}
 											onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
+											isCompleted={isCompleted}
 										/>
 									))
 								)}

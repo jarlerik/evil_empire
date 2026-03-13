@@ -7,9 +7,10 @@ interface ExerciseItemProps {
 	exercise: Exercise;
 	phases: ExercisePhase[];
 	onEdit: () => void;
+	isCompleted?: boolean;
 }
 
-export function ExerciseItem({ exercise, phases, onEdit }: ExerciseItemProps) {
+export function ExerciseItem({ exercise, phases, onEdit, isCompleted }: ExerciseItemProps) {
 	return (
 		<View style={styles.exerciseItem}>
 			<View style={styles.exerciseHeader}>
@@ -17,9 +18,15 @@ export function ExerciseItem({ exercise, phases, onEdit }: ExerciseItemProps) {
 					<Text style={styles.exerciseName}>{exercise.name}</Text>
 				</View>
 				<View style={styles.exerciseButtons}>
-					<Pressable onPress={onEdit} style={styles.editButton}>
-						<Ionicons name="pencil-outline" size={22} color="#fff" />
-					</Pressable>
+					{isCompleted ? (
+						<View style={styles.editButton}>
+							<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+						</View>
+					) : (
+						<Pressable onPress={onEdit} style={styles.editButton}>
+							<Ionicons name="pencil-outline" size={22} color="#fff" />
+						</Pressable>
+					)}
 				</View>
 			</View>
 			{phases.length > 0 && (
