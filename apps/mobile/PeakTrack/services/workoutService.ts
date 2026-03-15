@@ -160,6 +160,7 @@ export async function copyWorkout(
 				compound_reps: phase.compound_reps ?? null,
 				weights: phase.weights ?? null,
 				exercise_type: phase.exercise_type ?? undefined,
+				notes: phase.notes ?? null,
 				target_rm: phase.target_rm ?? null,
 				rir_min: phase.rir_min ?? null,
 				rir_max: phase.rir_max ?? null,

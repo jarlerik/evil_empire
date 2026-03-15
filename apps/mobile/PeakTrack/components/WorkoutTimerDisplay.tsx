@@ -230,7 +230,7 @@ export function WorkoutTimerDisplay({
 				)}
 				{workoutState === 'rest' && (
 					<>
-						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
+						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]} adjustsFontSizeToFit numberOfLines={1}>RESTING</Animated.Text>
 						{restTimeRemaining > 0 && (
 							<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
 								{formatTime(restTimeRemaining)}
@@ -265,7 +265,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 	},
 	timerTopSection: {
-		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
