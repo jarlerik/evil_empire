@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Exercise, Workout } from '../types/workout';
 import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
@@ -13,11 +13,13 @@ interface WorkoutCardProps {
 	isCompleted?: boolean;
 	isMissed?: boolean;
 	onMoveToToday?: () => void;
+	onCopy?: () => void;
+	isCopying?: boolean;
 	exercisePhases?: Map<string, ExercisePhase[]>;
 	rating?: number | null;
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, exercisePhases, rating }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, onCopy, isCopying = false, exercisePhases, rating }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
 			{isMissed && (
@@ -48,6 +50,17 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 				{isCompleted && !isReadOnly && (
 					<View style={styles.workoutActions}>
 						<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+					</View>
+				)}
+				{isReadOnly && onCopy && (
+					<View style={styles.workoutActions}>
+						<Pressable onPress={onCopy} disabled={isCopying} style={styles.actionButton}>
+							{isCopying ? (
+								<ActivityIndicator size="small" color="#fff" />
+							) : (
+								<Ionicons name="copy-outline" size={22} color="#fff" />
+							)}
+						</Pressable>
 					</View>
 				)}
 			</View>

@@ -24,6 +24,7 @@ import { useCoachMark } from '../hooks/useCoachMark';
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const [isFetchingWorkouts, setIsFetchingWorkouts] = useState(true);
 	const [errorState, setErrorState] = useState<string | null>(null);
 	const { user, loading: authLoading } = useAuth();
 	const { loading: settingsLoading } = useUserSettings();
@@ -75,6 +76,7 @@ export default function Index() {
 		useCallback(() => {
 			if (!user) {return;}
 			const fetchWorkouts = async () => {
+				setIsFetchingWorkouts(true);
 				const { data, error } = await fetchWorkoutsByUserId(user.id);
 				if (!error && data) {
 					setWorkouts(data);
@@ -101,6 +103,7 @@ export default function Index() {
 						setCompletedWorkoutIds(new Set(completed));
 					}
 				}
+				setIsFetchingWorkouts(false);
 			};
 			fetchWorkouts();
 
@@ -196,7 +199,7 @@ export default function Index() {
 		}
 	};
 
-	if (authLoading || settingsLoading) {
+	if (authLoading || settingsLoading || isFetchingWorkouts) {
 		return <LoadScreen />;
 	}
 

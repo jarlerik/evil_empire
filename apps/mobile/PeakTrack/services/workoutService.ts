@@ -1,6 +1,9 @@
+import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { Workout } from '../types/workout';
 import { ServiceResult } from './types';
+import { createExercise, fetchExercisesByWorkoutId } from './exerciseService';
+import { fetchPhasesByExerciseIds, insertPhase, PhaseInsertData } from './exercisePhaseService';
 
 export async function fetchWorkoutsByUserId(
 	userId: string,
@@ -104,4 +107,72 @@ export async function fetchWorkoutsByIds(
 	}
 
 	return { data, error: null };
+}
+
+export async function copyWorkout(
+	sourceWorkoutId: string,
+	userId: string,
+): Promise<ServiceResult<string>> {
+	const today = format(new Date(), 'yyyy-MM-dd');
+	const workoutName = `Workout - ${format(new Date(), 'LLLL d, yyyy')}`;
+
+	// Create the new workout
+	const { data: newWorkout, error: createError } = await createWorkout(workoutName, userId, today);
+	if (createError || !newWorkout) {
+		return { data: null, error: createError ?? 'Failed to create workout' };
+	}
+
+	// Fetch source exercises
+	const { data: sourceExercises, error: exercisesError } = await fetchExercisesByWorkoutId(sourceWorkoutId);
+	if (exercisesError || !sourceExercises) {
+		return { data: null, error: exercisesError ?? 'Failed to fetch exercises' };
+	}
+
+	// Fetch original exercise phases for all source exercises
+	const sourceExerciseIds = sourceExercises.map((e) => e.id);
+	const { data: sourcePhases, error: phasesError } = await fetchPhasesByExerciseIds(sourceExerciseIds);
+	if (phasesError) {
+		return { data: null, error: phasesError };
+	}
+
+	// Group phases by exercise_id
+	const phasesByExerciseId = new Map<string, typeof sourcePhases>();
+	for (const phase of sourcePhases ?? []) {
+		const existing = phasesByExerciseId.get(phase.exercise_id) ?? [];
+		existing.push(phase);
+		phasesByExerciseId.set(phase.exercise_id, existing);
+	}
+
+	// Copy each exercise and its phases
+	for (const exercise of sourceExercises) {
+		const { data: newExercise, error: newExError } = await createExercise(exercise.name, newWorkout.id);
+		if (newExError || !newExercise) {
+			return { data: null, error: newExError ?? 'Failed to create exercise' };
+		}
+
+		const phases = phasesByExerciseId.get(exercise.id) ?? [];
+		for (const phase of phases) {
+			const phaseData: PhaseInsertData = {
+				exercise_id: newExercise.id,
+				sets: phase.sets,
+				repetitions: phase.repetitions,
+				weight: phase.weight,
+				compound_reps: phase.compound_reps ?? null,
+				weights: phase.weights ?? null,
+				exercise_type: phase.exercise_type ?? undefined,
+				target_rm: phase.target_rm ?? null,
+				rir_min: phase.rir_min ?? null,
+				rir_max: phase.rir_max ?? null,
+				circuit_exercises: Array.isArray(phase.circuit_exercises) ? phase.circuit_exercises : null,
+				rest_time_seconds: phase.rest_time_seconds ?? null,
+				emom_interval_seconds: phase.emom_interval_seconds ?? null,
+			};
+			const { error: phaseError } = await insertPhase(phaseData);
+			if (phaseError) {
+				return { data: null, error: phaseError };
+			}
+		}
+	}
+
+	return { data: newWorkout.id, error: null };
 }
