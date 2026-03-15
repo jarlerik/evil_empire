@@ -181,9 +181,11 @@ export function WorkoutTimerDisplay({
 
 			{/* Middle section: Exercise info */}
 			<View style={styles.timerTopSection}>
-				{nextPhase && (
+				{nextPhase ? (
 					<Text style={styles.nextPhaseLabel}>Next phase:</Text>
-				)}
+				) : workoutState === 'rest' ? (
+					<Text style={styles.nextPhaseLabel}>Next set:</Text>
+				) : null}
 
 				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
 					<Text style={styles.setInfo}>

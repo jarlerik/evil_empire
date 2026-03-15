@@ -474,6 +474,8 @@ export default function StartWorkout() {
 	const nextPhase = getNextPhase();
 	const showNextPhase = workoutState === 'rest' && isLastSetOfCurrentPhase() && nextPhase !== null;
 	const currentSetInPhase = getCurrentSetInPhase();
+	// During rest, show the next set's info so the user can prepare
+	const displaySetInPhase = workoutState === 'rest' && !showNextPhase ? currentSetInPhase + 1 : currentSetInPhase;
 
 	return (
 		<KeyboardAvoidingView
@@ -516,7 +518,7 @@ export default function StartWorkout() {
 							exercisePhase={currentPhase}
 							allPhases={currentExercise ? exercisePhases[currentExercise.id] || [] : []}
 							nextPhase={showNextPhase ? nextPhase : null}
-							currentSetInPhase={currentSetInPhase}
+							currentSetInPhase={displaySetInPhase}
 							restTimeRemaining={restTimeRemaining}
 							blinkOpacity={blinkOpacity}
 							onEditFinishedExercise={handleEditFinishedExercise}
