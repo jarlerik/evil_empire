@@ -199,8 +199,17 @@ export default function Index() {
 		}
 	};
 
-	if (authLoading || settingsLoading || isFetchingWorkouts) {
+	if (authLoading || settingsLoading) {
 		return <LoadScreen />;
+	}
+
+	if (isFetchingWorkouts) {
+		return (
+			<View style={styles.flex}>
+				<LoadScreen />
+				<NavigationBar />
+			</View>
+		);
 	}
 
 	const todayStr = format(new Date(), 'yyyy-MM-dd');
