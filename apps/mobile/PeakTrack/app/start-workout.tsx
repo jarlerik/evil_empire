@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'column',
 	},
 	exercisesContainer: {
-		flex: 0.1,
+		maxHeight: 200,
 	},
 	exercisesContainerExpanded: {
 		flex: 1,

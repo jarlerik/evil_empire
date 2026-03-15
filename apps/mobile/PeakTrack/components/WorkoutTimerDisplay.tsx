@@ -254,7 +254,8 @@ export function WorkoutTimerDisplay({
 
 const styles = StyleSheet.create({
 	timerContainer: {
-		flex: 0.9,
+		flex: 1,
+		marginTop: 8,
 		backgroundColor: '#262626',
 		borderWidth: 1,
 		borderColor: '#fff',
