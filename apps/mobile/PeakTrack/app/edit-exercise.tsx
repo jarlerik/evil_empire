@@ -44,6 +44,7 @@ export default function EditExercise() {
 		exerciseId,
 		exerciseName,
 		userId: user?.id,
+		weightUnit,
 	});
 
 	// Save input value whenever it changes
@@ -302,6 +303,7 @@ export default function EditExercise() {
 				onAddNew={handleAddNewFromSelect}
 				matches={rmPartialMatches}
 				exerciseName={exerciseName}
+				unit={weightUnit}
 			/>
 			<RmFormModal
 				visible={rmModalVisible}

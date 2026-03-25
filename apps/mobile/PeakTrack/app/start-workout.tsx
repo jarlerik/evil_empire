@@ -526,6 +526,7 @@ export default function StartWorkout() {
 							restTimeRemaining={restTimeRemaining}
 							blinkOpacity={blinkOpacity}
 							onEditFinishedExercise={handleEditFinishedExercise}
+							unit={weightUnit}
 						/>
 				</View>
 

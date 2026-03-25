@@ -7,6 +7,7 @@ interface UseAddExercisePhaseProps {
 	exerciseId: string | string[] | undefined;
 	exerciseName: string;
 	userId: string | undefined;
+	weightUnit: string;
 }
 
 interface AddPhaseResult {
@@ -20,6 +21,7 @@ export function useAddExercisePhase({
 	exerciseId,
 	exerciseName,
 	userId,
+	weightUnit,
 }: UseAddExercisePhaseProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const { calculateWeightsFromParsedData } = useRmLookup();
@@ -110,8 +112,8 @@ export function useAddExercisePhase({
 			}
 
 			const note = pctLabel
-				? `${pctLabel} of ${rmName} 1RM (${rmW}kg)`
-				: `${rmName} 1RM (${rmW}kg)`;
+				? `${pctLabel} of ${rmName} 1RM (${rmW}${weightUnit})`
+				: `${rmName} 1RM (${rmW}${weightUnit})`;
 
 			finalParsedData = { ...finalParsedData, notes: note };
 		}
@@ -139,7 +141,7 @@ export function useAddExercisePhase({
 
 		setIsLoading(false);
 		return result;
-	}, [exerciseId, exerciseName, userId, calculateWeightsFromParsedData, addPhase, updatePhase]);
+	}, [exerciseId, exerciseName, userId, weightUnit, calculateWeightsFromParsedData, addPhase, updatePhase]);
 
 	return {
 		exercisePhases,
