@@ -508,4 +508,46 @@ describe('parseSetInput - Standard Format', () => {
 			expect(result.isValid).toBe(false);
 		});
 	});
+
+	describe('lbs unit support', () => {
+		it('should parse basic format with lbs', () => {
+			const result = parseSetInput('4 x 3 @110lbs');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 110,
+				isValid: true,
+			});
+		});
+
+		it('should parse lbs case-insensitive', () => {
+			const result = parseSetInput('4 x 3 @110LBS');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 110,
+				isValid: true,
+			});
+		});
+
+		it('should parse weight range with lbs', () => {
+			const result = parseSetInput('4 x 3 @185-195lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMin).toBe(185);
+			expect(result.weightMax).toBe(195);
+		});
+
+		it('should parse multiple weights with lbs', () => {
+			const result = parseSetInput('3 x 1 @110 120 130lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([110, 120, 130]);
+		});
+
+		it('should parse lbs with rest time', () => {
+			const result = parseSetInput('4 x 3 @110lbs 120s');
+			expect(result.isValid).toBe(true);
+			expect(result.weight).toBe(110);
+			expect(result.restTimeSeconds).toBe(120);
+		});
+	});
 });

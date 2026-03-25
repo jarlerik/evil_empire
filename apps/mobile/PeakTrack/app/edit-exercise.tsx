@@ -16,6 +16,7 @@ import { createRepetitionMaximum } from '../services/repetitionMaximumService';
 import { commonStyles } from '../styles/common';
 import { CoachMark } from '../components/CoachMark';
 import { useCoachMark } from '../hooks/useCoachMark';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 export default function EditExercise() {
 	const params = useLocalSearchParams();
@@ -28,6 +29,8 @@ export default function EditExercise() {
 	const [rmPartialMatches, setRmPartialMatches] = useState<RmMatch[]>([]);
 	const [rmSaving, setRmSaving] = useState(false);
 	const { user } = useAuth();
+	const { settings } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const inputValueRef = useRef<string>('');
 	const setInputCoach = useCoachMark('set-input');
 	const inputOptionsCoach = useCoachMark('input-options');
@@ -60,7 +63,7 @@ export default function EditExercise() {
 
 	const handleEditPhase = (phase: ExercisePhase) => {
 		setEditingPhaseId(phase.id);
-		setSetInput(reverseParsePhase(phase));
+		setSetInput(reverseParsePhase(phase, weightUnit));
 	};
 
 	const handleCancelEdit = () => {
@@ -238,7 +241,7 @@ export default function EditExercise() {
 								style={styles.setInput}
 								value={setInput}
 								onChangeText={setSetInput}
-								placeholder="4 x 3 @100kg 120s"
+								placeholder={`4 x 3 @100${weightUnit} 120s`}
 								placeholderTextColor="#666"
 								returnKeyType="done"
 								onSubmitEditing={handleAddSet}
@@ -264,7 +267,7 @@ export default function EditExercise() {
 							>
 								<View style={styles.phaseContent}>
 									<Text style={styles.phaseText}>
-										{formatExercisePhase(phase)}
+										{formatExercisePhase(phase, weightUnit)}
 									</Text>
 									{phase.notes && (
 										<Text style={styles.phaseNotes}>{phase.notes}</Text>
@@ -306,6 +309,7 @@ export default function EditExercise() {
 				onSave={handleRmSave}
 				defaultExerciseName={exerciseName}
 				isLoading={rmSaving}
+				unit={weightUnit}
 			/>
 		</KeyboardAvoidingView>
 	);

@@ -17,9 +17,10 @@ interface WorkoutCardProps {
 	isCopying?: boolean;
 	exercisePhases?: Map<string, ExercisePhase[]>;
 	rating?: number | null;
+	unit?: 'kg' | 'lbs';
 }
 
-export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, onCopy, isCopying = false, exercisePhases, rating }: WorkoutCardProps) {
+export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, onCopy, isCopying = false, exercisePhases, rating, unit = 'kg' }: WorkoutCardProps) {
 	return (
 		<View style={styles.workoutCard}>
 			{isMissed && (
@@ -75,7 +76,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 								</Text>
 								{phases && phases.map((phase) => (
 									<Text key={phase.id} style={styles.phaseText}>
-										{formatExercisePhase(phase)}
+										{formatExercisePhase(phase, unit)}
 									</Text>
 								))}
 							</View>

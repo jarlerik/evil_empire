@@ -231,4 +231,56 @@ describe('reverseParsePhase', () => {
 			expect(reversed).toBe(original);
 		});
 	});
+
+	describe('lbs unit support', () => {
+		it('should output lbs when unit is lbs', () => {
+			const result = reverseParsePhase({
+				sets: 4,
+				repetitions: 3,
+				weight: 110,
+			}, 'lbs');
+			expect(result).toBe('4 x 3 @110lbs');
+		});
+
+		it('should default to kg when no unit provided', () => {
+			const result = reverseParsePhase({
+				sets: 4,
+				repetitions: 3,
+				weight: 50,
+			});
+			expect(result).toBe('4 x 3 @50kg');
+		});
+
+		it('should output lbs for compound format', () => {
+			const result = reverseParsePhase({
+				sets: 4,
+				repetitions: 4,
+				weight: 110,
+				compound_reps: [2, 2],
+			}, 'lbs');
+			expect(result).toBe('4 x 2 + 2 @110lbs');
+		});
+
+		it('should output lbs for wave format', () => {
+			const result = reverseParsePhase({
+				sets: 3,
+				repetitions: 3,
+				weight: 135,
+				compound_reps: [3, 2, 1],
+				exercise_type: 'wave',
+			}, 'lbs');
+			expect(result).toBe('3-2-1@135lbs');
+		});
+
+		it('should output lbs for weight range', () => {
+			const result = reverseParsePhase({
+				sets: 4,
+				repetitions: 3,
+				weight: 185,
+				weight_min: 185,
+				weight_max: 195,
+			}, 'lbs');
+			expect(result).toBe('4 x 3 @185-195lbs');
+		});
+	});
 });

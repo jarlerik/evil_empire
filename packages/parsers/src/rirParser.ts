@@ -36,7 +36,7 @@ export function parseSimpleRir(cleanInput: string, restTimeSeconds?: number): Pa
  * Note: This pattern is for weight + RIR, not @weightRIR (which is handled by parseSimpleRir)
  */
 export function parseStandardWithRir(cleanInput: string, restTimeSeconds?: number): ParserResult {
-	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*kg(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
+	const standardWithRirPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(?:kg|lbs)(?:,\s*|\s+)(\d+)(?:-(\d+))?\s*rir$/i;
 	const match = cleanInput.match(standardWithRirPattern);
 
 	if (!match) {

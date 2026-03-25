@@ -13,6 +13,7 @@ interface EditExecutionModalProps {
 	exerciseName: string;
 	exerciseId: string;
 	phases: ExercisePhase[];
+	unit?: 'kg' | 'lbs';
 }
 
 export interface ExecutionLogData {
@@ -51,6 +52,7 @@ export function EditExecutionModal({
 	exerciseName,
 	exerciseId,
 	phases,
+	unit = 'kg',
 }: EditExecutionModalProps) {
 	const [phaseInputs, setPhaseInputs] = useState<Record<string, string>>({});
 	const [perSetWeights, setPerSetWeights] = useState<Record<string, number[]>>({});
@@ -65,7 +67,7 @@ export function EditExecutionModal({
 				if (shouldShowPerSetWeights(phase)) {
 					initialWeights[phase.id] = getPhaseWeights(phase);
 				} else {
-					initialInputs[phase.id] = formatExercisePhase(phase);
+					initialInputs[phase.id] = formatExercisePhase(phase, unit);
 				}
 			});
 			setPhaseInputs(initialInputs);
@@ -100,7 +102,7 @@ export function EditExecutionModal({
 				const weights = perSetWeights[phase.id] || getPhaseWeights(phase);
 				const repsStr = phase.compound_reps ? phase.compound_reps.join(' + ') : String(phase.repetitions);
 				const weightsStr = weights.join(' ');
-				const input = `${phase.sets} x ${repsStr} @${weightsStr}kg`;
+				const input = `${phase.sets} x ${repsStr} @${weightsStr}${unit}`;
 
 				const parsed: ParsedSetData = {
 					sets: phase.sets,
@@ -118,7 +120,7 @@ export function EditExecutionModal({
 					parsed,
 				});
 			} else {
-				const input = phaseInputs[phase.id] || formatExercisePhase(phase);
+				const input = phaseInputs[phase.id] || formatExercisePhase(phase, unit);
 				const parsed = parseSetInput(input);
 
 				if (!parsed.isValid) {
@@ -177,7 +179,7 @@ export function EditExecutionModal({
 						{phases.map(phase => (
 							<View key={phase.id} style={styles.phaseItem}>
 								<Text style={styles.plannedLabel}>Planned:</Text>
-								<Text style={styles.plannedValue}>{formatExercisePhase(phase)}</Text>
+								<Text style={styles.plannedValue}>{formatExercisePhase(phase, unit)}</Text>
 								{phase.notes && (
 									<Text style={styles.plannedNotes}>{phase.notes}</Text>
 								)}
@@ -193,7 +195,7 @@ export function EditExecutionModal({
 													onChangeText={(value) => handleWeightChange(phase.id, index, value)}
 													keyboardType="numeric"
 												/>
-												<Text style={styles.perSetUnit}>kg</Text>
+												<Text style={styles.perSetUnit}>{unit}</Text>
 											</View>
 										))}
 									</View>
@@ -202,7 +204,7 @@ export function EditExecutionModal({
 										style={styles.input}
 										value={phaseInputs[phase.id] || ''}
 										onChangeText={(value) => handleInputChange(phase.id, value)}
-										placeholder={formatExercisePhase(phase)}
+										placeholder={formatExercisePhase(phase, unit)}
 										placeholderTextColor="#666"
 									/>
 								)}

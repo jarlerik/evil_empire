@@ -276,7 +276,7 @@ export function parseCompoundMultipleWeightsWithRange(cleanInput: string, restTi
 	}
 
 	// Match: sets x reps1 + reps2 @values... min-max kg
-	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg)?\s+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*kg\s*$/i;
+	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg|lbs)?\s+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|lbs)\s*$/i;
 	const match = cleanInput.match(pattern);
 
 	if (!match) {
@@ -304,7 +304,7 @@ export function parseCompoundMultipleWeightsWithRange(cleanInput: string, restTi
 	const fixedValues = fixedStr
 		.split(/[\s,]+/)
 		.filter(s => s.trim() !== '')
-		.map(s => parseFloat(s.replace(/kg$/i, '')))
+		.map(s => parseFloat(s.replace(/(kg|lbs)$/i, '')))
 		.filter(v => !isNaN(v));
 
 	const allWeights = [...fixedValues, rangeMin];
@@ -359,8 +359,8 @@ export function parseCompoundMultipleWeights(cleanInput: string, restTimeSeconds
 		return { matched: false };
 	}
 
-	// Match: sets x reps1 + reps2 @values... lastvalue kg
-	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg)?\s+)+)(\d+(?:\.\d+)?)\s*kg\s*$/i;
+	// Match: sets x reps1 + reps2 @values... lastvalue kg/lbs
+	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg|lbs)?\s+)+)(\d+(?:\.\d+)?)\s*(kg|lbs)\s*$/i;
 	const match = cleanInput.match(pattern);
 
 	if (!match) {
@@ -387,7 +387,7 @@ export function parseCompoundMultipleWeights(cleanInput: string, restTimeSeconds
 	const fixedValues = fixedStr
 		.split(/[\s,]+/)
 		.filter(s => s.trim() !== '')
-		.map(s => parseFloat(s.replace(/kg$/i, '')))
+		.map(s => parseFloat(s.replace(/(kg|lbs)$/i, '')))
 		.filter(v => !isNaN(v));
 
 	const weights = [...fixedValues, lastValue];
@@ -432,7 +432,7 @@ export function parseCompoundMultipleWeights(cleanInput: string, restTimeSeconds
  * Example: "4 x 2 + 2 @50kg"
  */
 export function parseCompoundWeight(cleanInput: string, restTimeSeconds?: number): ParserResult {
-	const compoundPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*kg$/i;
+	const compoundPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*(kg|lbs)$/i;
 	const match = cleanInput.match(compoundPattern);
 
 	if (!match) {

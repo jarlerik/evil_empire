@@ -24,6 +24,7 @@ jest.mock('../../lib/supabase', () => ({
 			select: () => ({
 				eq: () => ({
 					single: () => mockSingle(),
+					maybeSingle: () => mockSingle(),
 				}),
 			}),
 			update: (data: unknown) => {

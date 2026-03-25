@@ -188,13 +188,13 @@ export function parseSetInput(input: string): ParsedSetData {
 	// Check for "sets x reps" without weight (e.g., "5 x 5", "4x3")
 	const setsRepsNoWeight = /^\d+\s*x\s*\d+(\s*\+\s*\d+)*\s*$/i;
 	if (setsRepsNoWeight.test(cleanInput)) {
-		return invalidResult('Missing weight. Add weight in kg (e.g., "5 x 5 @50kg") or as percentage (e.g., "5 x 5 @80%").');
+		return invalidResult('Missing weight. Add weight (e.g., "5 x 5 @50kg" or "@50lbs") or percentage (e.g., "5 x 5 @80%").');
 	}
 
 	// Check for "sets x reps @weight" without unit (e.g., "5 x 5 @50")
 	const setsRepsWeightNoUnit = /^\d+\s*x\s*\d+(\s*\+\s*\d+)*\s*@\s*[\d.\-\s]+$/i;
 	if (setsRepsWeightNoUnit.test(cleanInput)) {
-		return invalidResult('Missing weight unit. Add "kg" or "%" after the weight (e.g., "@50kg" or "@80%").');
+		return invalidResult('Missing weight unit. Add "kg", "lbs", or "%" after the weight (e.g., "@50kg", "@50lbs", or "@80%").');
 	}
 
 	// Check for multiple weights-like patterns that failed validation
@@ -206,25 +206,25 @@ export function parseSetInput(input: string): ParsedSetData {
 	// Check for wave-like patterns without unit (e.g., "3-2-1 65", "3-2-1@65")
 	const waveNoUnit = /^\d+(-\d+)+(?:\s+|@)[\d.,\s]+$/i;
 	if (waveNoUnit.test(cleanInput)) {
-		return invalidResult('Missing weight unit. Add "kg" or "%" after the weight (e.g., "3-2-1 65kg" or "3-2-1 80%").');
+		return invalidResult('Missing weight unit. Add "kg", "lbs", or "%" after the weight (e.g., "3-2-1 65kg" or "3-2-1 80%").');
 	}
 
 	// Check for wave-like patterns that failed validation
 	const waveLikePattern = /^[\d\-\s]+[\d\.]+/i;
 	if (waveLikePattern.test(cleanInput)) {
-		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.');
+		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit (kg, lbs, or %) is required.');
 	}
 
 	// Check for wave-like patterns with non-numeric characters
 	const waveWithNonNumericPattern = /^[\d\-\s]*[a-zA-Z][\d\-\s]*[\d\.]+/i;
 	if (waveWithNonNumericPattern.test(cleanInput)) {
-		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.');
+		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit (kg, lbs, or %) is required.');
 	}
 
 	// Check for any pattern that looks like wave but failed validation
 	const anyWaveLikePattern = /^[\d\-\s]*[a-zA-Z][\d\-\s]*\d+/i;
 	if (anyWaveLikePattern.test(cleanInput)) {
-		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit is required.');
+		return invalidResult('Invalid wave format. Use "reps1-reps2-reps3... weightkg" or "weight%" (e.g., "3-2-1-1-1 65kg"). Unit (kg, lbs, or %) is required.');
 	}
 
 	// If we get here, none of the patterns matched

@@ -8,9 +8,10 @@ interface ExerciseItemProps {
 	phases: ExercisePhase[];
 	onEdit: () => void;
 	isCompleted?: boolean;
+	unit?: 'kg' | 'lbs';
 }
 
-export function ExerciseItem({ exercise, phases, onEdit, isCompleted }: ExerciseItemProps) {
+export function ExerciseItem({ exercise, phases, onEdit, isCompleted, unit = 'kg' }: ExerciseItemProps) {
 	return (
 		<View style={styles.exerciseItem}>
 			<View style={styles.exerciseHeader}>
@@ -34,7 +35,7 @@ export function ExerciseItem({ exercise, phases, onEdit, isCompleted }: Exercise
 					{phases.map((phase) => (
 						<View key={phase.id}>
 							<Text style={styles.phaseText}>
-								{formatExercisePhase(phase)}
+								{formatExercisePhase(phase, unit)}
 							</Text>
 							{phase.notes && (
 								<Text style={styles.phaseNotes}>{phase.notes}</Text>

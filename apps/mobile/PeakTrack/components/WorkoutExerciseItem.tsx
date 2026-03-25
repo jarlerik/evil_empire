@@ -14,6 +14,7 @@ interface WorkoutExerciseItemProps {
 	phases: ExercisePhase[];
 	isActive: boolean;
 	onLayout?: (y: number) => void;
+	unit?: 'kg' | 'lbs';
 }
 
 export function WorkoutExerciseItem({
@@ -21,6 +22,7 @@ export function WorkoutExerciseItem({
 	phases,
 	isActive,
 	onLayout,
+	unit = 'kg',
 }: WorkoutExerciseItemProps) {
 	return (
 		<View
@@ -44,7 +46,7 @@ export function WorkoutExerciseItem({
 					{phases.map((phase) => (
 						<View key={phase.id}>
 							<Text style={styles.phaseText}>
-								{formatExercisePhase(phase)}
+								{formatExercisePhase(phase, unit)}
 							</Text>
 							{phase.notes && (
 								<Text style={styles.phaseNotes}>{phase.notes}</Text>

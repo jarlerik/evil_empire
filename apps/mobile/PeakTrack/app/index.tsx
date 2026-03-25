@@ -27,7 +27,8 @@ export default function Index() {
 	const [isFetchingWorkouts, setIsFetchingWorkouts] = useState(true);
 	const [errorState, setErrorState] = useState<string | null>(null);
 	const { user, loading: authLoading } = useAuth();
-	const { loading: settingsLoading } = useUserSettings();
+	const { settings, loading: settingsLoading } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -341,6 +342,7 @@ export default function Index() {
 															phases={exercisePhases[exercise.id] || []}
 															onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
 															isCompleted={workoutCompleted}
+														unit={weightUnit}
 														/>
 													))
 												) : (

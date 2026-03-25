@@ -5,7 +5,7 @@ import { ParserResult, invalidResult, validResult } from './types';
  * Example: "3-2-1-1-1 65kg", "3-2-1 80%", "3-2-1-3-2-1@70, 75%", "3-2-1-3-2-1 70, 75kg"
  */
 export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserResult {
-	const wavePattern = /^(\d+(?:\s*-\s*\d+)+)(?:\s+@?|@)(\d+(?:\.\d+)?(?:[\s,]+\d+(?:\.\d+)?)*)\s*(kg|%)$/i;
+	const wavePattern = /^(\d+(?:\s*-\s*\d+)+)(?:\s+@?|@)(\d+(?:\.\d+)?(?:[\s,]+\d+(?:\.\d+)?)*)\s*(kg|lbs|%)$/i;
 	const match = cleanInput.match(wavePattern);
 
 	if (!match) {
@@ -50,7 +50,7 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 
 	const repsPerValue = values.length > 1 ? waveReps.length / values.length : waveReps.length;
 
-	if (unit === 'kg') {
+	if (unit === 'kg' || unit === 'lbs') {
 		return {
 			matched: true,
 			data: validResult({

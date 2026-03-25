@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
@@ -18,6 +19,8 @@ import {
 
 export default function RepetitionMaximums() {
 	const { user } = useAuth();
+	const { settings } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const [rms, setRms] = useState<RepetitionMaximum[]>([]);
 	const [isFetching, setIsFetching] = useState(true);
 	const [isLoading, setIsLoading] = useState(false);
@@ -175,7 +178,7 @@ export default function RepetitionMaximums() {
 										<View key={rm.id} style={styles.rmItem}>
 											<View style={styles.rmInfo}>
 												<Text style={styles.rmText}>
-													{rm.reps}RM: {rm.weight}kg
+													{rm.reps}RM: {rm.weight}{weightUnit}
 												</Text>
 												<Text style={styles.rmDate}>
 													{format(new Date(rm.date), 'MMM d, yyyy')}
@@ -211,6 +214,7 @@ export default function RepetitionMaximums() {
 				onSave={handleSave}
 				editingRm={editingRm}
 				isLoading={isLoading}
+				unit={weightUnit}
 			/>
 		</KeyboardAvoidingView>
 

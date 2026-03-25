@@ -26,7 +26,8 @@ interface CompletedWorkout {
 
 export default function History() {
 	const { user, loading: authLoading } = useAuth();
-	const { loading: settingsLoading } = useUserSettings();
+	const { settings, loading: settingsLoading } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [copyingWorkoutId, setCopyingWorkoutId] = useState<string | null>(null);
@@ -195,6 +196,7 @@ export default function History() {
 									exercises={exercises}
 									exercisePhases={exercisePhases}
 									rating={rating}
+									unit={weightUnit}
 									isReadOnly
 									onCopy={() => handleCopyWorkout(workout.id)}
 									isCopying={copyingWorkoutId === workout.id}

@@ -1,8 +1,12 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import React from 'react';
 import { router } from 'expo-router';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 export default function ExerciseInputHelp() {
+	const { settings } = useUserSettings();
+	const u = settings?.weight_unit || 'kg';
+
 	return (
 		<ScrollView
 			contentContainerStyle={{ flexGrow: 1 }}
@@ -19,15 +23,15 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Basic Format</Text>
 					<Text style={styles.description}>
-						Standard format for sets, reps, and weight. Weight unit is required (kg, %, or RIR).
+						Standard format for sets, reps, and weight. Weight unit is required ({u}, %, or RIR).
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 6@80kg</Text>
+						<Text style={styles.example}>4 x 6@80{u}</Text>
 						<Text style={styles.example}>4 x 6@80%</Text>
 						<Text style={styles.example}>4 x 6@1RIR</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps @weight (kg), sets x reps @percentage (%), or sets x reps @RIR. The unit (kg, %, or RIR) is required.
+						Format: sets x reps @weight ({u}), sets x reps @percentage (%), or sets x reps @RIR. The unit ({u}, %, or RIR) is required.
 					</Text>
 				</View>
 
@@ -36,44 +40,44 @@ export default function ExerciseInputHelp() {
 					<Text style={styles.description}>
 						For exercises with multiple rep parts, such as complex movements. Weight unit is required.
 					</Text>
-					<Text style={styles.description}>Example: Power snatch + Snatch 4 x 2 + 2@50kg</Text>
+					<Text style={styles.description}>Example: Power snatch + Snatch 4 x 2 + 2@50{u}</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 2 + 2@50kg</Text>
+						<Text style={styles.example}>4 x 2 + 2@50{u}</Text>
 						<Text style={styles.example}>4 x 2 + 2@60%</Text>
-						<Text style={styles.example}>3 x 1 + 3@75kg</Text>
-						<Text style={styles.example}>4 x 1 + 2 + 2 + 2@40kg</Text>
+						<Text style={styles.example}>3 x 1 + 3@75{u}</Text>
+						<Text style={styles.example}>4 x 1 + 2 + 2 + 2@40{u}</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps1 + reps2 (+ reps3...) @weight (kg) or @percentage (%). The total reps are calculated automatically. Unit is required.
+						Format: sets x reps1 + reps2 (+ reps3...) @weight ({u}) or @percentage (%). The total reps are calculated automatically. Unit is required.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Multiple Weights</Text>
 					<Text style={styles.description}>
-						Specify different weights for each set. Unit (kg or %) must be at the end.
+						Specify different weights for each set. Unit ({u} or %) must be at the end.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>3 x 1@55 60 65kg</Text>
+						<Text style={styles.example}>3 x 1@55 60 65{u}</Text>
 						<Text style={styles.example}>3 x 1@60 70 75%</Text>
-						<Text style={styles.example}>4 x 5@100 110 120 130kg</Text>
+						<Text style={styles.example}>4 x 5@100 110 120 130{u}</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps @weight1 weight2 weight3...kg or ...%. The number of weights must match the number of sets. Unit (kg or %) must be at the end.
+						Format: sets x reps @weight1 weight2 weight3...{u} or ...%. The number of weights must match the number of sets. Unit ({u} or %) must be at the end.
 					</Text>
 				</View>
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Wave Exercises</Text>
 					<Text style={styles.description}>
-						Decreasing reps across sets with the same weight. Unit (kg or %) is required.
+						Decreasing reps across sets with the same weight. Unit ({u} or %) is required.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>3-2-1-3-2-1 50 55 60 55 65 70kg</Text>
+						<Text style={styles.example}>3-2-1-3-2-1 50 55 60 55 65 70{u}</Text>
 						<Text style={styles.example}>3-2-1-2-2-1 60 70 80 65 75 85%</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: reps1-reps2-reps3... weight (kg) or weight (%). Each number represents reps for one set. Creates multiple phases automatically. Unit is required.
+						Format: reps1-reps2-reps3... weight ({u}) or weight (%). Each number represents reps for one set. Creates multiple phases automatically. Unit is required.
 					</Text>
 				</View>
 
@@ -108,14 +112,14 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Weight Range</Text>
 					<Text style={styles.description}>
-						Specify a range of absolute weights. The kg unit is required.
+						Specify a range of absolute weights. The {u} unit is required.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 5@85-89kg</Text>
-						<Text style={styles.example}>3 x 3@50-55kg</Text>
+						<Text style={styles.example}>4 x 5@85-89{u}</Text>
+						<Text style={styles.example}>3 x 3@50-55{u}</Text>
 					</View>
 					<Text style={styles.note}>
-						Format: sets x reps@min-maxkg. The minimum weight must be less than or equal to the maximum. The kg unit is required.
+						Format: sets x reps@min-max{u}. The minimum weight must be less than or equal to the maximum. The {u} unit is required.
 					</Text>
 				</View>
 
@@ -168,10 +172,10 @@ export default function ExerciseInputHelp() {
 						Add rest time between sets to any format. Rest time unit is mandatory.
 					</Text>
 					<View style={styles.exampleContainer}>
-						<Text style={styles.example}>4 x 3@50kg 120s</Text>
+						<Text style={styles.example}>4 x 3@50{u} 120s</Text>
 						<Text style={styles.example}>4 x 3@50% 2min</Text>
 						<Text style={styles.example}>3 x 5 @80% 90s</Text>
-						<Text style={styles.example}>4 x 3 @50kg 2m</Text>
+						<Text style={styles.example}>4 x 3 @50{u} 2m</Text>
 					</View>
 					<Text style={styles.note}>
 						Format: ...rest time. Add rest time at the end using "s" or "sec" for seconds, or "m", "min", or "minute" for minutes. Examples: "120s" (120 seconds), "2m" or "2min" (2 minutes = 120 seconds). The unit is mandatory.
@@ -196,11 +200,11 @@ export default function ExerciseInputHelp() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Tips</Text>
 					<Text style={styles.description}>
-						• Weight unit is always required: kg, %, or RIR{'\n'}
+						• Weight unit is always required: {u}, %, or RIR{'\n'}
 						• Extra spaces are automatically handled{'\n'}
-						• Case doesn't matter (e.g., "KG", "Kg", "kg" all work){'\n'}
-						• Decimal weights are supported (e.g., 75.5kg){'\n'}
-						• For multiple weights, the unit goes at the end (e.g., "3 x 1@55 60 65kg"){'\n'}
+						• Case doesn't matter (e.g., "{u.toUpperCase()}", "{u}" all work){'\n'}
+						• Decimal weights are supported (e.g., 75.5{u}){'\n'}
+						• For multiple weights, the unit goes at the end (e.g., "3 x 1@55 60 65{u}"){'\n'}
 						• For percentage-based formats, make sure you have a 1RM set in Repetition Maximums{'\n'}
 						• The app will try to match compound exercise names with existing RMs (e.g., "Muscle clean + Push press" will look for "Clean" in your RMs)
 					</Text>
@@ -273,4 +277,3 @@ const styles = StyleSheet.create({
 		fontStyle: 'italic',
 	},
 });
-

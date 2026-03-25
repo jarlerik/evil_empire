@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { ExerciseItem } from '../components/ExerciseItem';
 import { ExercisePhase } from '../lib/formatExercisePhase';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles } from '../styles/common';
 import { Exercise } from '../types/workout';
 import { fetchExercisesByWorkoutId, createExercise } from '../services/exerciseService';
@@ -14,6 +15,8 @@ import { deleteWorkout } from '../services/workoutService';
 export default function AddExercises() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
+	const { settings } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const [exerciseName, setExerciseName] = useState('');
 	const [exercises, setExercises] = useState<Exercise[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
@@ -110,6 +113,7 @@ export default function AddExercises() {
 							exercise={exercise}
 							phases={exercisePhases[exercise.id] || []}
 							onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
+							unit={weightUnit}
 						/>
 					))}
 

@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings, markOnboardingCompleted } from '../services/userSettingsService';
 
 interface UserSettings {
-  weight_unit: 'kg' | 'lbs';
+  weight_unit: 'kg' | 'lbs' | null;
   user_weight: string;
   onboarding_completed: boolean;
 }
@@ -47,13 +47,12 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
           onboarding_completed: data.onboarding_completed ?? false,
         });
       } else {
-        // Create default settings if none exist
+        // No settings exist yet — set null weight_unit so the unit selection modal appears
         const defaultSettings: UserSettings = {
-          weight_unit: 'kg',
+          weight_unit: null,
           user_weight: '85',
           onboarding_completed: false,
         };
-        await updateSettings(defaultSettings);
         setSettings(defaultSettings);
       }
     } catch (error) {
@@ -68,11 +67,17 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
       if (!user) {return;}
 
       // Ensure we have all required fields by merging with current settings
-      const currentSettings = settings || { weight_unit: 'kg' as const, user_weight: '85', onboarding_completed: false };
+      const currentSettings = settings || { weight_unit: null, user_weight: '85', onboarding_completed: false };
       const updatedSettings = {
         ...currentSettings,
         ...newSettings,
       };
+
+      // Only persist to DB if weight_unit has been chosen
+      if (!updatedSettings.weight_unit) {
+        setSettings(updatedSettings);
+        return;
+      }
 
       const { error } = await upsertUserSettings(user.id, {
         weight_unit: updatedSettings.weight_unit,

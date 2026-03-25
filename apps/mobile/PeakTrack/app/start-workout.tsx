@@ -15,6 +15,7 @@ import { insertExecutionLog } from '../services/workoutExecutionLogService';
 import { saveWorkoutRating } from '../services/workoutRatingService';
 import { WorkoutRatingModal } from '../components/WorkoutRatingModal';
 import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 
@@ -26,6 +27,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function StartWorkout() {
 	const params = useLocalSearchParams();
 	const { workoutName, workoutId } = params;
+	const { settings } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const [exercises, setExercises] = useState<Exercise[]>([]);
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 
@@ -506,6 +509,7 @@ export default function StartWorkout() {
 								exercise={exercise}
 								phases={exercisePhases[exercise.id] || []}
 								isActive={currentExerciseIndex === index && workoutState !== 'idle'}
+								unit={weightUnit}
 								onLayout={(y) => {
 									exercisePositions.current[index] = y;
 								}}
@@ -543,6 +547,7 @@ export default function StartWorkout() {
 					exerciseName={currentExercise.name}
 					exerciseId={currentExercise.id}
 					phases={exercisePhases[currentExercise.id] || []}
+					unit={weightUnit}
 				/>
 			)}
 			<WorkoutRatingModal
