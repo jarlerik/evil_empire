@@ -90,7 +90,16 @@ export function useAddExercisePhase({
 			const pctMax = parsedData.weightMaxPercentage;
 
 			let pctLabel: string;
-			if (pctMin !== undefined && pctMax !== undefined) {
+			if (parsedData.weights && parsedData.weights.length > 1 && pctMin !== undefined && pctMax !== undefined) {
+				// Combined: per-set percentages with trailing range (e.g., "80%, 85%, 88-90%")
+				const parts = parsedData.weights.map((w, i) => {
+					if (i === parsedData.weights!.length - 1) {
+						return `${pctMin}-${pctMax}%`;
+					}
+					return `${w}%`;
+				});
+				pctLabel = parts.join(', ');
+			} else if (pctMin !== undefined && pctMax !== undefined) {
 				pctLabel = `${pctMin}-${pctMax}%`;
 			} else if (parsedData.weights && parsedData.weights.length > 1) {
 				pctLabel = parsedData.weights.map(w => `${w}%`).join(', ');

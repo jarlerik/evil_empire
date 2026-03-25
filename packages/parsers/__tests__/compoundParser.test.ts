@@ -263,6 +263,89 @@ describe('parseSetInput - Compound Format', () => {
 		});
 	});
 
+	describe('compound exercise with multiple per-set percentages and trailing range', () => {
+		it('should parse comma-separated percentages with trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 85-90%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+			});
+		});
+
+		it('should parse with rest time', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 85-90% 120s');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+				restTimeSeconds: 120,
+			});
+		});
+
+		it('should parse space-separated percentages with trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @80 85 85-90%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+			});
+		});
+
+		it('should pad range for remaining sets when fewer values than sets', () => {
+			const result = parseSetInput('4 x 2 + 1 @75, 80-85%');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 0,
+				isValid: true,
+				weights: [75, 80, 80, 80],
+				weightPercentage: 75,
+				weightMinPercentage: 80,
+				weightMaxPercentage: 85,
+				needsRmLookup: true,
+				compoundReps: [2, 1],
+			});
+		});
+
+		it('should return invalid when too many values for sets', () => {
+			const result = parseSetInput('2 x 1 + 1 @70, 80, 85-90%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Too many percentages');
+		});
+
+		it('should return invalid when range min > max', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 90-85%');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should return invalid for percentage over 100', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 90-105%');
+			expect(result.isValid).toBe(false);
+		});
+	});
+
 	describe('return type validation', () => {
 		it('should maintain compatibility with compound formats (with required units)', () => {
 			const compoundResult = parseSetInput('4 x 2 + 2@50kg');

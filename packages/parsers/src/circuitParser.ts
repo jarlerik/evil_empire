@@ -100,6 +100,11 @@ export function parseCircuitX(remainingInput: string, cleanInput: string, restTi
 		return { matched: false };
 	}
 
+	// Skip if this looks like a weighted exercise (has @ with % or kg unit)
+	if (exercisesStr.includes('@') && /%|kg/i.test(exercisesStr)) {
+		return { matched: false };
+	}
+
 	if (!exercisesStr.includes(',') && (exercisesStr.includes('@') || !/[a-zA-Z]/.test(exercisesStr))) {
 		return { matched: false };
 	}

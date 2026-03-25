@@ -58,6 +58,84 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 		};
 	}
 
+	// Try multiple percentages with trailing range: "3 x 1 + 1 @80, 85, 85-90%"
+	const compoundMultiPercentRangePattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?[\s,]+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*%$/i;
+	const multiRangeMatch = cleanInput.match(compoundMultiPercentRangePattern);
+
+	if (multiRangeMatch) {
+		const sets = parseInt(multiRangeMatch[1]);
+		const repsSequence = multiRangeMatch[2];
+		const fixedPercentagesStr = multiRangeMatch[3];
+		const rangeMin = parseFloat(multiRangeMatch[4]);
+		const rangeMax = parseFloat(multiRangeMatch[5]);
+
+		const repsParts = repsSequence
+			.split('+')
+			.map(r => r.trim())
+			.map(r => parseInt(r, 10))
+			.filter(r => !isNaN(r) && r > 0);
+
+		if (repsParts.length < 2) {
+			return { matched: false };
+		}
+
+		const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+
+		const fixedPercentages = fixedPercentagesStr
+			.split(/[\s,]+/)
+			.filter(s => s.trim() !== '')
+			.map(s => parseFloat(s));
+
+		if (fixedPercentages.some(p => isNaN(p))) {
+			return { matched: false };
+		}
+
+		// All percentages: fixed ones + the range min as the last entry
+		const allPercentages = [...fixedPercentages, rangeMin];
+
+		if (allPercentages.length > sets) {
+			return {
+				matched: true,
+				data: invalidResult(`Too many percentages: got ${allPercentages.length} for ${sets} sets`),
+			};
+		}
+
+		// Pad with the range values if fewer percentages than sets
+		while (allPercentages.length < sets) {
+			allPercentages.push(rangeMin);
+		}
+
+		if (allPercentages.some(p => p <= 0 || p > 100) || rangeMax <= 0 || rangeMax > 100) {
+			return {
+				matched: true,
+				data: invalidResult('Percentage must be between 0 and 100'),
+			};
+		}
+
+		if (rangeMin > rangeMax) {
+			return {
+				matched: true,
+				data: invalidResult('Minimum percentage must be less than or equal to maximum percentage'),
+			};
+		}
+
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps: totalReps,
+				weight: 0,
+				weights: allPercentages,
+				weightPercentage: fixedPercentages[0],
+				weightMinPercentage: rangeMin,
+				weightMaxPercentage: rangeMax,
+				needsRmLookup: true,
+				compoundReps: repsParts,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	}
+
 	// Try multiple percentages (comma or space separated): "3 x 1 + 1@75, 78, 78%"
 	const compoundMultiPercentPattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?[\s,]+)+\d+(?:\.\d+)?)\s*%$/i;
 	const multiMatch = cleanInput.match(compoundMultiPercentPattern);

@@ -133,28 +133,57 @@ export function reverseParsePhase(phase: PhaseData): string {
 		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
-	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
-	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
-		if (phase.compound_reps && phase.compound_reps.length >= 2) {
-			const repsStr = phase.compound_reps.join(' + ');
-			result = appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
-		} else {
-			result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
-		}
-		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
-	}
-
-	// Handle compound exercises
+	// Handle compound exercises (before weight range check, since compound may have both weights[] and range)
 	if (phase.compound_reps && phase.compound_reps.length >= 2) {
 		const repsStr = phase.compound_reps.join(' + ');
-		result = appendRestTime(`${phase.sets} x ${repsStr} @${phase.weight}kg`, phase.rest_time_seconds);
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		let weightStr: string;
+		if (phase.weights && phase.weights.length > 1 && hasRange) {
+			// Per-set weights with trailing range (e.g., "52kg 55kg 57-59kg")
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}kg`;
+				}
+				return `${w}kg`;
+			});
+			weightStr = parts.join(' ');
+		} else if (phase.weights && phase.weights.length > 1) {
+			weightStr = phase.weights.map(w => `${w}kg`).join(' ');
+		} else if (hasRange) {
+			weightStr = `${phase.weight_min}-${phase.weight_max}kg`;
+		} else {
+			weightStr = `${phase.weight}kg`;
+		}
+		result = appendRestTime(`${phase.sets} x ${repsStr} @${weightStr}`, phase.rest_time_seconds);
 		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 
-	// Handle multiple weights
+	// Handle multiple weights (with optional trailing range)
 	if (phase.weights && phase.weights.length > 1) {
-		const weightsStr = phase.weights.map(w => `${w}kg`).join(' ');
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		let weightsStr: string;
+		if (hasRange) {
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}kg`;
+				}
+				return `${w}kg`;
+			});
+			weightsStr = parts.join(' ');
+		} else {
+			weightsStr = phase.weights.map(w => `${w}kg`).join(' ');
+		}
 		result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${weightsStr}`, phase.rest_time_seconds);
+		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
+	}
+
+	// Handle weight ranges (absolute) - percentage ranges are converted to absolute values when stored
+	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
+		result = appendRestTime(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`, phase.rest_time_seconds);
 		return appendNotes(prependEmom(result, phase.emom_interval_seconds), phase.notes);
 	}
 

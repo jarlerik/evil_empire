@@ -118,7 +118,19 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 	if (phase.compound_reps && phase.compound_reps.length > 0) {
 		const compoundRepsStr = phase.compound_reps.join(' + ');
 		let weightStr: string;
-		if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		if (phase.weights && phase.weights.length > 1 && hasRange) {
+			// Per-set weights with trailing range (e.g., "52kg 55kg 57-59kg")
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}kg`;
+				}
+				return `${w}kg`;
+			});
+			weightStr = parts.join(' ');
+		} else if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
 			weightStr = `${phase.weight_min}-${phase.weight_max}kg`;
 		} else if (phase.weights && phase.weights.length > 1) {
 			weightStr = phase.weights.map(w => `${w}kg`).join(' ');
@@ -128,15 +140,27 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 		return wrapResult(`${phase.sets} x ${compoundRepsStr} @${weightStr}`);
 	}
 
+	// Handle multiple weights (with optional trailing range)
+	if (phase.weights && phase.weights.length > 1) {
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		if (hasRange) {
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}kg`;
+				}
+				return `${w}kg`;
+			});
+			return wrapResult(`${phase.sets} x ${phase.repetitions} @${parts.join(' ')}`);
+		}
+		const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
+		return wrapResult(`${phase.sets} x ${phase.repetitions} @${weightStr}`);
+	}
+
 	// Handle weight ranges (absolute)
 	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
 		return wrapResult(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`);
-	}
-
-	// Handle multiple weights
-	if (phase.weights && phase.weights.length > 1) {
-		const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
-		return wrapResult(`${phase.sets} x ${phase.repetitions} @${weightStr}`);
 	}
 
 	// Handle simple format

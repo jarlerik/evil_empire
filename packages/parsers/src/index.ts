@@ -12,7 +12,7 @@ import { parseRestTime } from './restTimeParser';
 // Import all parsers
 import { parseCompoundPercentage, parseCompoundWeight } from './compoundParser';
 import { parsePercentageRange, parseSimplePercentage } from './percentageParser';
-import { parseWeightRange, parseStandard, parseMultipleWeights } from './standardParser';
+import { parseWeightRange, parseStandard, parseMultipleWeights, parseMultipleWeightsWithRange } from './standardParser';
 import { parseSimpleRir, parseStandardWithRir, parseRirWithoutWeight } from './rirParser';
 import { parseWave } from './waveParser';
 import { parseCircuitSetsOf, parseCircuitX } from './circuitParser';
@@ -121,6 +121,12 @@ export function parseSetInput(input: string): ParsedSetData {
 	const standard = parseStandard(cleanInput, restTimeSeconds);
 	if (standard.matched) {
 		return withExtras(standard.data!);
+	}
+
+	// 8a. Multiple weights with trailing range format
+	const multipleWeightsRange = parseMultipleWeightsWithRange(cleanInput, restTimeSeconds);
+	if (multipleWeightsRange.matched) {
+		return withExtras(multipleWeightsRange.data!);
 	}
 
 	// 8. Multiple weights format

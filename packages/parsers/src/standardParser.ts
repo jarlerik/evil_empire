@@ -108,6 +108,107 @@ export function parseWeightRange(cleanInput: string, restTimeSeconds?: number): 
 }
 
 /**
+ * Pattern 1b2: Multiple weights with trailing range "sets x reps @w1 w2 wMin-wMax kg/%" or comma-separated
+ * Example: "3 x 1 @80, 85, 85-90%" or "3 x 1 @50 60 65-70kg"
+ */
+export function parseMultipleWeightsWithRange(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	// Match: sets x reps @values... min-max unit
+	// Supports comma or space separated values before the range
+	const pattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?[\s,]+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|%)\s*$/i;
+	const match = cleanInput.match(pattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const reps = parseInt(match[2]);
+	const fixedStr = match[3];
+	const rangeMin = parseFloat(match[4]);
+	const rangeMax = parseFloat(match[5]);
+	const unit = match[6]?.toLowerCase() || '';
+
+	const fixedValues = fixedStr
+		.split(/[\s,]+/)
+		.filter(s => s.trim() !== '')
+		.map(s => parseFloat(s));
+
+	if (fixedValues.some(v => isNaN(v))) {
+		return { matched: false };
+	}
+
+	const allWeights = [...fixedValues, rangeMin];
+
+	if (allWeights.length > sets) {
+		return {
+			matched: true,
+			data: invalidResult(`Too many weights: got ${allWeights.length} for ${sets} sets`),
+		};
+	}
+
+	while (allWeights.length < sets) {
+		allWeights.push(rangeMin);
+	}
+
+	if (rangeMin > rangeMax) {
+		return {
+			matched: true,
+			data: invalidResult(unit === 'kg'
+				? 'Minimum weight must be less than or equal to maximum weight'
+				: 'Minimum percentage must be less than or equal to maximum percentage'),
+		};
+	}
+
+	if (unit === 'kg') {
+		if (allWeights.some(w => w <= 0) || rangeMax <= 0) {
+			return {
+				matched: true,
+				data: invalidResult('Weight must be positive'),
+			};
+		}
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: fixedValues[0],
+				weights: allWeights,
+				weightMin: rangeMin,
+				weightMax: rangeMax,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	} else if (unit === '%') {
+		if (allWeights.some(p => p <= 0 || p > 100) || rangeMax <= 0 || rangeMax > 100) {
+			return {
+				matched: true,
+				data: invalidResult('Percentage must be between 0 and 100'),
+			};
+		}
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: 0,
+				weights: allWeights,
+				weightPercentage: fixedValues[0],
+				weightMinPercentage: rangeMin,
+				weightMaxPercentage: rangeMax,
+				needsRmLookup: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	}
+
+	return { matched: false };
+}
+
+/**
  * Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3...kg" or "...%"
  * Example: "3 x 1 @50 60 70kg"
  */

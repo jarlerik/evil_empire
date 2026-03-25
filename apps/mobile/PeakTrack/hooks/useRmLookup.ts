@@ -116,6 +116,12 @@ export function useRmLookup() {
 		if (parsedData.weights && parsedData.weights.length > 1) {
 			calculatedWeights = parsedData.weights.map(p => calculateWeightFromPercentage(rmWeight, p));
 			calculatedWeight = calculatedWeights[0];
+
+			// Also resolve trailing percentage range if present (e.g., "80, 85, 88-90%")
+			if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {
+				calculatedWeightMin = calculateWeightFromPercentage(rmWeight, parsedData.weightMinPercentage);
+				calculatedWeightMax = calculateWeightFromPercentage(rmWeight, parsedData.weightMaxPercentage);
+			}
 		}
 		// Handle percentage ranges
 		else if (parsedData.weightMinPercentage !== undefined && parsedData.weightMaxPercentage !== undefined) {

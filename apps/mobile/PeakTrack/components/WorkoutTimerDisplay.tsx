@@ -60,21 +60,28 @@ function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, to
 		return '';
 	}
 
+	// Per-set weights with optional trailing range (e.g., "52, 55, 57-59kg")
+	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
+		// Wave with multiple weights: map set index to weight group
+		if (exercisePhase.exercise_type === 'wave' && exercisePhase.compound_reps) {
+			const repsPerWeight = exercisePhase.compound_reps.length / exercisePhase.weights.length;
+			const weightIdx = Math.floor((currentSet - 1) / repsPerWeight);
+			const weight = exercisePhase.weights[weightIdx] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+			return `@${weight}kg`;
+		}
+
+		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+		// If this is the last set and there's a weight range, show the range
+		if (currentSet >= exercisePhase.weights.length
+			&& exercisePhase.weight_min != null && exercisePhase.weight_max != null
+			&& exercisePhase.weight_min !== exercisePhase.weight_max) {
+			return `@${exercisePhase.weight_min}-${exercisePhase.weight_max}kg`;
+		}
+		return `@${weight}kg`;
+	}
+
 	if (exercisePhase.weight_min != null && exercisePhase.weight_max != null && exercisePhase.weight_min !== exercisePhase.weight_max) {
 		const weight = interpolateWeight(exercisePhase.weight_min, exercisePhase.weight_max, currentSet, totalSets);
-		return `@${weight}kg`;
-	}
-
-	// Wave with multiple weights: map set index to weight group
-	if (exercisePhase.exercise_type === 'wave' && exercisePhase.weights && exercisePhase.weights.length > 1 && exercisePhase.compound_reps) {
-		const repsPerWeight = exercisePhase.compound_reps.length / exercisePhase.weights.length;
-		const weightIdx = Math.floor((currentSet - 1) / repsPerWeight);
-		const weight = exercisePhase.weights[weightIdx] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
-		return `@${weight}kg`;
-	}
-
-	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
-		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
 		return `@${weight}kg`;
 	}
 
@@ -104,9 +111,23 @@ function formatPhaseForDisplay(phase: ExercisePhase): string {
 	const reps = phase.compound_reps
 		? phase.compound_reps.join(' + ')
 		: String(phase.repetitions);
-	const weight = (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max)
-		? `@${phase.weight_min}-${phase.weight_max}kg`
-		: `@${phase.weight}kg`;
+
+	let weight: string;
+	if (phase.weights && phase.weights.length > 1) {
+		// Per-set weights with optional trailing range
+		const hasRange = phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max;
+		const parts = phase.weights.map((w, i) => {
+			if (hasRange && i === phase.weights!.length - 1) {
+				return `${phase.weight_min}-${phase.weight_max}`;
+			}
+			return `${w}`;
+		});
+		weight = `@${parts.join(' ')}kg`;
+	} else if (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max) {
+		weight = `@${phase.weight_min}-${phase.weight_max}kg`;
+	} else {
+		weight = `@${phase.weight}kg`;
+	}
 	return `${sets} x ${reps} ${weight}`;
 }
 
