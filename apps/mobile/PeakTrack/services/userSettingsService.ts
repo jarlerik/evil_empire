@@ -12,7 +12,7 @@ export async function fetchUserSettings(
 		.from('user_settings')
 		.select('*')
 		.eq('user_id', userId)
-		.single();
+		.maybeSingle();
 
 	if (error) {
 		return { data: null, error: error.message };
