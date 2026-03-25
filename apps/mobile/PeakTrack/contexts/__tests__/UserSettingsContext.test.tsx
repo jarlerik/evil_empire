@@ -54,8 +54,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('UserSettingsContext', () => {
+	let consoleSpy: jest.SpyInstance;
+
 	beforeEach(() => {
 		jest.clearAllMocks();
+		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 		mockUserState.user = { id: 'user-1', email: 'test@example.com' };
 		mockSingle.mockResolvedValue({
 			data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
@@ -63,15 +66,15 @@ describe('UserSettingsContext', () => {
 		});
 	});
 
+	afterEach(() => {
+		consoleSpy.mockRestore();
+	});
+
 	describe('useUserSettings', () => {
 		it('should throw error when used outside UserSettingsProvider', () => {
-			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
 			expect(() => {
 				renderHook(() => useUserSettings());
 			}).toThrow('useUserSettings must be used within a UserSettingsProvider');
-
-			consoleSpy.mockRestore();
 		});
 
 		it('should return initial loading state', () => {
@@ -220,8 +223,6 @@ describe('UserSettingsContext', () => {
 				})
 				.mockRejectedValueOnce({ message: 'Insert failed' });
 
-			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
 			const { result } = renderHook(() => useUserSettings(), { wrapper });
 
 			await waitFor(() => {
@@ -233,8 +234,6 @@ describe('UserSettingsContext', () => {
 					await result.current.updateSettings({ weight_unit: 'lbs' });
 				}),
 			).rejects.toEqual({ message: 'Insert failed' });
-
-			consoleSpy.mockRestore();
 		});
 
 		it('should not update when no user', async () => {

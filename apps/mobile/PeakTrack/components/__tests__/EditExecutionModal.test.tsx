@@ -85,8 +85,15 @@ describe('EditExecutionModal', () => {
 		phases: [mockPhase('p1', 3, 5, 100)],
 	};
 
+	let consoleSpy: jest.SpyInstance;
+
 	beforeEach(() => {
 		jest.clearAllMocks();
+		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		consoleSpy.mockRestore();
 	});
 
 	describe('rendering', () => {
