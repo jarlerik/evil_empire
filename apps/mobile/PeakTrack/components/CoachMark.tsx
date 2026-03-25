@@ -63,20 +63,27 @@ export function CoachMark() {
 }
 
 function getTooltipPosition(layout: { x: number; y: number; width: number; height: number } | undefined) {
-	if (!layout) {
-		return { top: SCREEN_HEIGHT / 2 - 80, left: 20, right: 20 };
-	}
-
 	const tooltipHeight = 160;
 	const margin = 12;
+	const fallback = { top: SCREEN_HEIGHT / 2 - 80, left: 20, right: 20 };
+
+	if (!layout) {
+		return fallback;
+	}
+
+	// If the target is off-screen (e.g., inside a ScrollView beyond viewport), use centered fallback
+	if (layout.y + layout.height < 0 || layout.y > SCREEN_HEIGHT) {
+		return fallback;
+	}
+
 	const spaceBelow = SCREEN_HEIGHT - (layout.y + layout.height);
 	const showBelow = spaceBelow > tooltipHeight + margin;
+	let top = showBelow ? layout.y + layout.height + margin : layout.y - tooltipHeight - margin;
 
-	return {
-		top: showBelow ? layout.y + layout.height + margin : layout.y - tooltipHeight - margin,
-		left: 20,
-		right: 20,
-	};
+	// Clamp to stay within screen bounds
+	top = Math.max(margin, Math.min(top, SCREEN_HEIGHT - tooltipHeight - margin));
+
+	return { top, left: 20, right: 20 };
 }
 
 const styles = StyleSheet.create({

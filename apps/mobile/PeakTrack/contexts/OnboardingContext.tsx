@@ -43,13 +43,19 @@ const STEPS: OnboardingStep[] = [
 		screen: '/edit-exercise',
 		targetId: 'set-input',
 		title: 'Define Sets & Reps',
-		message: 'Enter sets using formats like "4 x 3 @100kg". Tap input options to see all formats.',
+		message: 'Enter sets using formats like "4 x 3 @100kg". You can add rest times too, e.g. "4 x 3 @100kg 120s".',
+	},
+	{
+		screen: '/edit-exercise',
+		targetId: 'set-input',
+		title: 'Use Percentages',
+		message: 'Train with percentages of your 1RM: "4 x 3 @80%". PeakTrack calculates the weight from your Repetition Maximums.',
 	},
 	{
 		screen: '/edit-exercise',
 		targetId: 'input-options',
 		title: "You're All Set!",
-		message: 'PeakTrack supports many formats: percentages, waves, supersets, and more.',
+		message: 'Tap "Input options" to see all supported formats: waves, compound sets, circuits, and more.',
 	},
 ];
 
