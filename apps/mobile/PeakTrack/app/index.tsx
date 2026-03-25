@@ -111,10 +111,23 @@ export default function Index() {
 	);
 
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
-	const workoutForSelectedDate = filteredWorkouts[0] ?? null;
-	const currentExercises = workoutForSelectedDate ? (exercises[workoutForSelectedDate.id] || []) : [];
-	const hasExercises = currentExercises.length > 0;
-	const isCompleted = workoutForSelectedDate ? completedWorkoutIds.has(workoutForSelectedDate.id) : false;
+	// Workouts come sorted by created_at DESC (newest first). Reverse for display (oldest first).
+	const sortedWorkouts = [...filteredWorkouts].reverse();
+	const activeWorkout = filteredWorkouts[0] ?? null; // newest workout
+	const activeWorkoutHasExercises = activeWorkout ? (exercises[activeWorkout.id] || []).length > 0 : false;
+
+	const handleAddAnotherWorkout = async () => {
+		if (!user) {return;}
+		const workoutNumber = filteredWorkouts.length + 1;
+		const autoName = `Workout ${workoutNumber} - ${format(selectedDate, 'MMM d')}`;
+		const { data: newWorkout, error: createError } = await createWorkout(autoName, user.id, format(selectedDate, 'yyyy-MM-dd'));
+		if (createError || !newWorkout) {
+			setErrorState('Failed to create workout. Please try again.');
+			return;
+		}
+		setWorkouts(prev => [newWorkout, ...prev]);
+		setExercises(prev => ({ ...prev, [newWorkout.id]: [] }));
+	};
 
 	const handleAddExercise = async () => {
 		if (!exerciseName.trim()) {return;}
@@ -125,7 +138,7 @@ export default function Index() {
 		setIsLoading(true);
 		setErrorState(null);
 
-		let workoutId = workoutForSelectedDate?.id;
+		let workoutId = activeWorkout?.id;
 
 		// Auto-create workout if none exists for this date
 		if (!workoutId) {
@@ -163,8 +176,7 @@ export default function Index() {
 		});
 	};
 
-	const handleDeleteWorkout = () => {
-		if (!workoutForSelectedDate) {return;}
+	const handleDeleteWorkout = (workout: Workout) => {
 		Alert.alert(
 			'Delete workout',
 			'Are you sure you want to delete this workout and all its exercises?',
@@ -174,12 +186,12 @@ export default function Index() {
 					text: 'Delete',
 					style: 'destructive',
 					onPress: async () => {
-						const { error } = await deleteWorkout(workoutForSelectedDate.id);
+						const { error } = await deleteWorkout(workout.id);
 						if (!error) {
-							setWorkouts(prev => prev.filter(w => w.id !== workoutForSelectedDate.id));
+							setWorkouts(prev => prev.filter(w => w.id !== workout.id));
 							setExercises(prev => {
 								const next = { ...prev };
-								delete next[workoutForSelectedDate.id];
+								delete next[workout.id];
 								return next;
 							});
 						}
@@ -235,8 +247,6 @@ export default function Index() {
 		}
 	}
 
-	const isMissed = workoutForSelectedDate && !completedWorkoutIds.has(workoutForSelectedDate.id) && !!workoutForSelectedDate.workout_date && workoutForSelectedDate.workout_date < todayStr;
-
 		return (
 			<KeyboardAvoidingView
 				style={styles.flex}
@@ -279,50 +289,73 @@ export default function Index() {
 							</View>
 
 							<View style={styles.workoutsSection}>
-								<View style={styles.dateTitleRow}>
-									<Text style={styles.workoutDateTitle}>
-										Workout for {format(selectedDate, 'EEEE, LLLL d')}
-									</Text>
-									<View style={styles.dateTitleActions}>
-										{workoutForSelectedDate && hasExercises && !isCompleted && (
-											<Pressable
-												onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: workoutForSelectedDate.name, workoutId: workoutForSelectedDate.id } })}
-												style={styles.iconButton}
-											>
-												<Ionicons name="stopwatch-outline" size={22} color="#fff" />
-											</Pressable>
-										)}
-										{workoutForSelectedDate && hasExercises && !isCompleted && (
-											<Pressable
-												onPress={handleDeleteWorkout}
-												style={styles.iconButton}
-											>
-												<Text style={styles.deleteButtonText}>×</Text>
-											</Pressable>
-										)}
-										{isMissed && (
-											<Pressable
-												onPress={() => handleMoveToToday(workoutForSelectedDate!.id)}
-												style={styles.iconButton}
-											>
-												<Ionicons name="arrow-forward-outline" size={22} color="#fff" />
-											</Pressable>
-										)}
-									</View>
-								</View>
+								<Text style={styles.workoutDateTitle}>
+									{format(selectedDate, 'EEEE, LLLL d')}
+								</Text>
 
-								{!workoutForSelectedDate || !hasExercises ? (
+								{sortedWorkouts.length === 0 ? (
 									<Text style={styles.noWorkoutText}>No exercises yet.</Text>
 								) : (
-									currentExercises.map((exercise) => (
-										<ExerciseItem
-											key={exercise.id}
-											exercise={exercise}
-											phases={exercisePhases[exercise.id] || []}
-											onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
-											isCompleted={isCompleted}
-										/>
-									))
+									sortedWorkouts.map((workout) => {
+										const workoutExercises = exercises[workout.id] || [];
+										const workoutHasExercises = workoutExercises.length > 0;
+										const workoutCompleted = completedWorkoutIds.has(workout.id);
+										const workoutMissed = !workoutCompleted && !!workout.workout_date && workout.workout_date < todayStr;
+
+										return (
+											<View key={workout.id} style={styles.workoutCard}>
+												<View style={styles.workoutCardHeader}>
+													<Text style={styles.workoutCardTitle}>{workout.name}</Text>
+													<View style={styles.dateTitleActions}>
+														{workoutHasExercises && !workoutCompleted && (
+															<Pressable
+																onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
+																style={styles.iconButton}
+															>
+																<Ionicons name="stopwatch-outline" size={22} color="#fff" />
+															</Pressable>
+														)}
+														{workoutHasExercises && !workoutCompleted && (
+															<Pressable
+																onPress={() => handleDeleteWorkout(workout)}
+																style={styles.iconButton}
+															>
+																<Text style={styles.deleteButtonText}>×</Text>
+															</Pressable>
+														)}
+														{workoutMissed && (
+															<Pressable
+																onPress={() => handleMoveToToday(workout.id)}
+																style={styles.iconButton}
+															>
+																<Ionicons name="arrow-forward-outline" size={22} color="#fff" />
+															</Pressable>
+														)}
+													</View>
+												</View>
+												{workoutHasExercises ? (
+													workoutExercises.map((exercise) => (
+														<ExerciseItem
+															key={exercise.id}
+															exercise={exercise}
+															phases={exercisePhases[exercise.id] || []}
+															onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
+															isCompleted={workoutCompleted}
+														/>
+													))
+												) : (
+													<Text style={styles.noWorkoutText}>No exercises yet.</Text>
+												)}
+											</View>
+										);
+									})
+								)}
+
+								{sortedWorkouts.length > 0 && activeWorkoutHasExercises && (
+									<Pressable onPress={handleAddAnotherWorkout} style={styles.addWorkoutButton}>
+										<Ionicons name="add" size={18} color="#C87E25" />
+										<Text style={styles.addWorkoutText}>Add another workout</Text>
+									</Pressable>
 								)}
 							</View>
 
@@ -418,12 +451,6 @@ const styles = StyleSheet.create({
 	workoutsSection: {
 		marginTop: 32,
 	},
-	dateTitleRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		marginBottom: 12,
-	},
 	dateTitleActions: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -446,6 +473,38 @@ const styles = StyleSheet.create({
 	},
 	noWorkoutText: {
 		color: '#666',
+	},
+	workoutCard: {
+		marginTop: 16,
+	},
+	workoutCardHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 8,
+	},
+	workoutCardTitle: {
+		color: '#C87E25',
+		fontSize: 16,
+		fontWeight: '600',
+		flex: 1,
+	},
+	addWorkoutButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingVertical: 12,
+		marginTop: 16,
+		borderWidth: 1,
+		borderColor: '#333',
+		borderRadius: 8,
+		borderStyle: 'dashed',
+	},
+	addWorkoutText: {
+		color: '#C87E25',
+		fontSize: 14,
+		fontWeight: '500',
+		marginLeft: 6,
 	},
 	bottomSection: {
 		marginTop: 'auto',
