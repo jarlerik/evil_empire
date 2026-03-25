@@ -266,6 +266,168 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 }
 
 /**
+ * Pattern 2a: Compound format with multiple weights and trailing range
+ * "sets x reps1 + reps2 @weight1 weight2 min-maxkg"
+ * Example: "3 x 1 + 1 @52kg 55kg 57-59kg"
+ */
+export function parseCompoundMultipleWeightsWithRange(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	// Match: sets x reps1 + reps2 @values... min-max kg
+	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg)?\s+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*kg\s*$/i;
+	const match = cleanInput.match(pattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const repsSequence = match[2];
+	const fixedStr = match[3];
+	const rangeMin = parseFloat(match[4]);
+	const rangeMax = parseFloat(match[5]);
+
+	const repsParts = repsSequence
+		.split('+')
+		.map(r => r.trim())
+		.map(r => parseInt(r, 10))
+		.filter(r => !isNaN(r) && r > 0);
+
+	if (repsParts.length < 2) {
+		return { matched: false };
+	}
+
+	const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+
+	const fixedValues = fixedStr
+		.split(/[\s,]+/)
+		.filter(s => s.trim() !== '')
+		.map(s => parseFloat(s.replace(/kg$/i, '')))
+		.filter(v => !isNaN(v));
+
+	const allWeights = [...fixedValues, rangeMin];
+
+	if (allWeights.length > sets) {
+		return {
+			matched: true,
+			data: invalidResult(`Too many weights: got ${allWeights.length} for ${sets} sets`),
+		};
+	}
+
+	while (allWeights.length < sets) {
+		allWeights.push(rangeMin);
+	}
+
+	if (rangeMin > rangeMax) {
+		return {
+			matched: true,
+			data: invalidResult('Minimum weight must be less than or equal to maximum weight'),
+		};
+	}
+
+	if (allWeights.some(w => w <= 0) || rangeMax <= 0) {
+		return {
+			matched: true,
+			data: invalidResult('Weight must be positive'),
+		};
+	}
+
+	return {
+		matched: true,
+		data: validResult({
+			sets,
+			reps: totalReps,
+			weight: fixedValues[0],
+			weights: allWeights,
+			weightMin: rangeMin,
+			weightMax: rangeMax,
+			compoundReps: repsParts,
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
+	};
+}
+
+/**
+ * Pattern 2b: Compound format with multiple weights
+ * "sets x reps1 + reps2 @weight1 weight2 weight3kg"
+ * Example: "3 x 1 + 1 @50kg 60kg 70kg"
+ */
+export function parseCompoundMultipleWeights(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	// Match: sets x reps1 + reps2 @values... lastvalue kg
+	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*((?:\d+(?:\.\d+)?(?:kg)?\s+)+)(\d+(?:\.\d+)?)\s*kg\s*$/i;
+	const match = cleanInput.match(pattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const repsSequence = match[2];
+	const fixedStr = match[3];
+	const lastValue = parseFloat(match[4]);
+
+	const repsParts = repsSequence
+		.split('+')
+		.map(r => r.trim())
+		.map(r => parseInt(r, 10))
+		.filter(r => !isNaN(r) && r > 0);
+
+	if (repsParts.length < 2) {
+		return { matched: false };
+	}
+
+	const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+
+	const fixedValues = fixedStr
+		.split(/[\s,]+/)
+		.filter(s => s.trim() !== '')
+		.map(s => parseFloat(s.replace(/kg$/i, '')))
+		.filter(v => !isNaN(v));
+
+	const weights = [...fixedValues, lastValue];
+
+	if (weights.length <= 1) {
+		return { matched: false };
+	}
+
+	if (weights.length > sets) {
+		return {
+			matched: true,
+			data: invalidResult(`Too many weights: got ${weights.length} for ${sets} sets`),
+		};
+	}
+
+	while (weights.length < sets) {
+		weights.push(weights[weights.length - 1]);
+	}
+
+	if (weights.some(w => w <= 0)) {
+		return {
+			matched: true,
+			data: invalidResult('Weight must be positive'),
+		};
+	}
+
+	return {
+		matched: true,
+		data: validResult({
+			sets,
+			reps: totalReps,
+			weight: fixedValues[0],
+			weights,
+			compoundReps: repsParts,
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
+	};
+}
+
+/**
  * Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weightkg"
  * Example: "4 x 2 + 2 @50kg"
  */

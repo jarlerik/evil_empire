@@ -346,6 +346,68 @@ describe('parseSetInput - Compound Format', () => {
 		});
 	});
 
+	describe('compound with multiple weights and trailing range (kg)', () => {
+		it('should parse compound with per-set weights and trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @52kg 55kg 57-59kg');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([52, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+		});
+
+		it('should parse compound with per-set weights, trailing range, and rest time', () => {
+			const result = parseSetInput('3 x 1 + 1 @53kg 55kg 57-59kg 120s');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([53, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+			expect(result.restTimeSeconds).toBe(120);
+		});
+
+		it('should parse compound with per-set weights, trailing range, rest time, and notes', () => {
+			const result = parseSetInput('3 x 1 + 1 @53kg 55kg 57-59kg 120s\n80%, 85%, 88-90% of Power Snatch 1RM (65kg)');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([53, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+			expect(result.restTimeSeconds).toBe(120);
+			expect(result.notes).toBe('80%, 85%, 88-90% of Power Snatch 1RM (65kg)');
+		});
+
+		it('should return invalid when too many weights for sets', () => {
+			const result = parseSetInput('2 x 1 + 1 @50kg 60kg 70-80kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Too many weights');
+		});
+	});
+
+	describe('compound with multiple weights (kg)', () => {
+		it('should parse compound with multiple weights', () => {
+			const result = parseSetInput('3 x 1 + 1 @50kg 60kg 70kg');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([50, 60, 70]);
+			expect(result.compoundReps).toEqual([1, 1]);
+		});
+
+		it('should pad weights when fewer than sets', () => {
+			const result = parseSetInput('4 x 2 + 1 @50kg 60kg');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([50, 60, 60, 60]);
+			expect(result.compoundReps).toEqual([2, 1]);
+		});
+	});
+
 	describe('return type validation', () => {
 		it('should maintain compatibility with compound formats (with required units)', () => {
 			const compoundResult = parseSetInput('4 x 2 + 2@50kg');

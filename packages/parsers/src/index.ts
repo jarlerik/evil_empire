@@ -10,7 +10,7 @@ import { parseEmom } from './emomParser';
 import { parseRestTime } from './restTimeParser';
 
 // Import all parsers
-import { parseCompoundPercentage, parseCompoundWeight } from './compoundParser';
+import { parseCompoundPercentage, parseCompoundMultipleWeightsWithRange, parseCompoundMultipleWeights, parseCompoundWeight } from './compoundParser';
 import { parsePercentageRange, parseSimplePercentage } from './percentageParser';
 import { parseWeightRange, parseStandard, parseMultipleWeights, parseMultipleWeightsWithRange } from './standardParser';
 import { parseSimpleRir, parseStandardWithRir, parseRirWithoutWeight } from './rirParser';
@@ -133,6 +133,18 @@ export function parseSetInput(input: string): ParsedSetData {
 	const multipleWeights = parseMultipleWeights(cleanInput, restTimeSeconds);
 	if (multipleWeights.matched) {
 		return withExtras(multipleWeights.data!);
+	}
+
+	// 9a. Compound with multiple weights and trailing range (e.g., "3 x 1 + 1 @52kg 55kg 57-59kg")
+	const compoundMultiWeightsRange = parseCompoundMultipleWeightsWithRange(cleanInput, restTimeSeconds);
+	if (compoundMultiWeightsRange.matched) {
+		return withExtras(compoundMultiWeightsRange.data!);
+	}
+
+	// 9b. Compound with multiple weights (e.g., "3 x 1 + 1 @50kg 60kg 70kg")
+	const compoundMultiWeights = parseCompoundMultipleWeights(cleanInput, restTimeSeconds);
+	if (compoundMultiWeights.matched) {
+		return withExtras(compoundMultiWeights.data!);
 	}
 
 	// 9. Compound with weight (kg)
