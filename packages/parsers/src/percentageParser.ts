@@ -18,11 +18,11 @@ export function parsePercentageRange(cleanInput: string, restTimeSeconds?: numbe
 	const minPercentage = parseFloat(match[3]);
 	const maxPercentage = parseFloat(match[4]);
 
-	// Validate percentages are between 0 and 100
-	if (minPercentage <= 0 || minPercentage > 100 || maxPercentage <= 0 || maxPercentage > 100) {
+	// Validate percentages are between 0 and 200
+	if (minPercentage <= 0 || minPercentage > 200 || maxPercentage <= 0 || maxPercentage > 200) {
 		return {
 			matched: true,
-			data: invalidResult('Percentage must be between 0 and 100'),
+			data: invalidResult('Percentage must be between 0 and 200'),
 		};
 	}
 
@@ -65,11 +65,11 @@ export function parseSimplePercentage(cleanInput: string, restTimeSeconds?: numb
 	const reps = parseInt(match[2]);
 	const value = parseFloat(match[3]);
 
-	// Validate percentage is between 0 and 100
-	if (value <= 0 || value > 100) {
+	// Validate percentage is between 0 and 200
+	if (value <= 0 || value > 200) {
 		return {
 			matched: true,
-			data: invalidResult('Percentage must be between 0 and 100'),
+			data: invalidResult('Percentage must be between 0 and 200'),
 		};
 	}
 

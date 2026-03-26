@@ -29,10 +29,10 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 
 		const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
 
-		if (minPercentage <= 0 || minPercentage > 100 || maxPercentage <= 0 || maxPercentage > 100) {
+		if (minPercentage <= 0 || minPercentage > 200 || maxPercentage <= 0 || maxPercentage > 200) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 
@@ -105,10 +105,10 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 			allPercentages.push(rangeMin);
 		}
 
-		if (allPercentages.some(p => p <= 0 || p > 100) || rangeMax <= 0 || rangeMax > 100) {
+		if (allPercentages.some(p => p <= 0 || p > 200) || rangeMax <= 0 || rangeMax > 200) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 
@@ -178,10 +178,10 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 			percentages.push(percentages[percentages.length - 1]);
 		}
 
-		if (percentages.some(p => p <= 0 || p > 100)) {
+		if (percentages.some(p => p <= 0 || p > 200)) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 
@@ -225,11 +225,11 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 	const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
 
 	if (unit === '%') {
-		// Validate percentage is between 0 and 100
-		if (value <= 0 || value > 100) {
+		// Validate percentage is between 0 and 200
+		if (value <= 0 || value > 200) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 

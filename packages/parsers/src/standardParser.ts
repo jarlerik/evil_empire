@@ -185,10 +185,10 @@ export function parseMultipleWeightsWithRange(cleanInput: string, restTimeSecond
 			}),
 		};
 	} else if (unit === '%') {
-		if (allWeights.some(p => p <= 0 || p > 100) || rangeMax <= 0 || rangeMax > 100) {
+		if (allWeights.some(p => p <= 0 || p > 200) || rangeMax <= 0 || rangeMax > 200) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 		return {
@@ -289,10 +289,10 @@ export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: numbe
 		};
 	} else if (unit === '%') {
 		// Validate percentages are between 0 and 100
-		if (validWeights.some(w => w <= 0 || w > 100)) {
+		if (validWeights.some(w => w <= 0 || w > 200)) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 		// For percentage multiple weights, use the first one as weightPercentage

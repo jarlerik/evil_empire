@@ -64,11 +64,11 @@ export function parseWave(cleanInput: string, restTimeSeconds?: number): ParserR
 			}),
 		};
 	} else if (unit === '%') {
-		// Validate all percentages are between 0 and 100
-		if (!values.every(v => v > 0 && v <= 100)) {
+		// Validate all percentages are between 0 and 200
+		if (!values.every(v => v > 0 && v <= 200)) {
 			return {
 				matched: true,
-				data: invalidResult('Percentage must be between 0 and 100'),
+				data: invalidResult('Percentage must be between 0 and 200'),
 			};
 		}
 

@@ -187,8 +187,13 @@ describe('parseSetInput - Compound Format', () => {
 			expect(result.isValid).toBe(false);
 		});
 
-		it('should return invalid for percentage over 100 in compound range', () => {
+		it('should accept percentage over 100 in compound range', () => {
 			const result = parseSetInput('3 x 3 + 1@70-105%');
+			expect(result.isValid).toBe(true);
+		});
+
+		it('should return invalid for percentage over 200 in compound range', () => {
+			const result = parseSetInput('3 x 3 + 1@70-205%');
 			expect(result.isValid).toBe(false);
 		});
 	});
@@ -242,9 +247,9 @@ describe('parseSetInput - Compound Format', () => {
 			expect(result.errorMessage).toContain('Too many percentages');
 		});
 
-		it('should return invalid for percentage over 100', () => {
+		it('should accept percentage over 100', () => {
 			const result = parseSetInput('2 x 1 + 1@75, 105%');
-			expect(result.isValid).toBe(false);
+			expect(result.isValid).toBe(true);
 		});
 
 		it('should parse with rest time', () => {
@@ -340,9 +345,9 @@ describe('parseSetInput - Compound Format', () => {
 			expect(result.isValid).toBe(false);
 		});
 
-		it('should return invalid for percentage over 100', () => {
+		it('should accept percentage over 100', () => {
 			const result = parseSetInput('3 x 1 + 1 @80, 85, 90-105%');
-			expect(result.isValid).toBe(false);
+			expect(result.isValid).toBe(true);
 		});
 	});
 
