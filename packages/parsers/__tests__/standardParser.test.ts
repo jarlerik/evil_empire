@@ -436,4 +436,118 @@ describe('parseSetInput - Standard Format', () => {
 			expect(simpleResult.isValid).toBe(true);
 		});
 	});
+
+	describe('multiple weights with trailing range', () => {
+		it('should parse comma-separated percentages with trailing range', () => {
+			const result = parseSetInput('3 x 1 @80, 85, 85-90%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should parse comma-separated kg weights with trailing range', () => {
+			const result = parseSetInput('3 x 3 @50, 60, 65-70kg');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 3,
+				weight: 50,
+				isValid: true,
+				weights: [50, 60, 65],
+				weightMin: 65,
+				weightMax: 70,
+			});
+		});
+
+		it('should parse with rest time', () => {
+			const result = parseSetInput('3 x 1 @80, 85, 85-90% 90s');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 1,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				restTimeSeconds: 90,
+			});
+		});
+
+		it('should pad range for remaining sets', () => {
+			const result = parseSetInput('4 x 1 @80, 85-90%');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 1,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should return invalid when too many values', () => {
+			const result = parseSetInput('2 x 1 @70, 80, 85-90%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Too many weights');
+		});
+
+		it('should return invalid when range min > max', () => {
+			const result = parseSetInput('3 x 1 @80, 85, 90-85%');
+			expect(result.isValid).toBe(false);
+		});
+	});
+
+	describe('lbs unit support', () => {
+		it('should parse basic format with lbs', () => {
+			const result = parseSetInput('4 x 3 @110lbs');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 110,
+				isValid: true,
+			});
+		});
+
+		it('should parse lbs case-insensitive', () => {
+			const result = parseSetInput('4 x 3 @110LBS');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 110,
+				isValid: true,
+			});
+		});
+
+		it('should parse weight range with lbs', () => {
+			const result = parseSetInput('4 x 3 @185-195lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMin).toBe(185);
+			expect(result.weightMax).toBe(195);
+		});
+
+		it('should parse multiple weights with lbs', () => {
+			const result = parseSetInput('3 x 1 @110 120 130lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([110, 120, 130]);
+		});
+
+		it('should parse lbs with rest time', () => {
+			const result = parseSetInput('4 x 3 @110lbs 120s');
+			expect(result.isValid).toBe(true);
+			expect(result.weight).toBe(110);
+			expect(result.restTimeSeconds).toBe(120);
+		});
+	});
 });

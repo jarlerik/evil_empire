@@ -105,7 +105,7 @@ export async function lookupExactRm(
 		.eq('user_id', userId)
 		.ilike('exercise_name', exerciseName.trim())
 		.eq('reps', reps)
-		.order('date', { ascending: false })
+		.order('weight', { ascending: false })
 		.limit(1)
 		.maybeSingle();
 
@@ -129,7 +129,7 @@ export async function fetchAllRmsByReps(
 		.select('exercise_name, weight')
 		.eq('user_id', userId)
 		.eq('reps', reps)
-		.order('date', { ascending: false });
+		.order('weight', { ascending: false });
 
 	if (error) {
 		return { data: null, error: error.message };

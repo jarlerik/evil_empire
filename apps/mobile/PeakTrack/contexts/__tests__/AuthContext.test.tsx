@@ -37,21 +37,23 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('AuthContext', () => {
+	let consoleSpy: jest.SpyInstance;
+
 	beforeEach(() => {
 		jest.clearAllMocks();
+		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 		mockGetSession.mockResolvedValue({ data: { session: null } });
+	});
+
+	afterEach(() => {
+		consoleSpy.mockRestore();
 	});
 
 	describe('useAuth', () => {
 		it('should throw error when used outside AuthProvider', () => {
-			// Suppress console.error for this test
-			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
 			expect(() => {
 				renderHook(() => useAuth());
 			}).toThrow('useAuth must be used within an AuthProvider');
-
-			consoleSpy.mockRestore();
 		});
 
 		it('should return initial state', async () => {

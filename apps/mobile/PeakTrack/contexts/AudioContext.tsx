@@ -3,20 +3,22 @@ import { useAudioPlayer, AudioPlayer } from 'expo-audio';
 
 interface AudioContextValue {
 	beepSound: AudioPlayer;
-	beepLongSound: AudioPlayer;
+	tenSecondsSound: AudioPlayer;
+	letsGoSound: AudioPlayer;
 }
 
 const AudioContext = createContext<AudioContextValue | null>(null);
 
 const beepSource = require('../assets/sounds/beep.m4a');
-const beepLongSource = require('../assets/sounds/beep-long.m4a');
+const tenSecondsSource = require('../assets/sounds/ten_seconds.mp3');
+const letsGoSource = require('../assets/sounds/lets_go.mp3');
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
 	const beepSound = useAudioPlayer(beepSource);
-	const beepLongSound = useAudioPlayer(beepLongSource);
-
+	const tenSecondsSound = useAudioPlayer(tenSecondsSource);
+	const letsGoSound = useAudioPlayer(letsGoSource);
 	return (
-		<AudioContext.Provider value={{ beepSound, beepLongSound }}>
+		<AudioContext.Provider value={{ beepSound, tenSecondsSound, letsGoSound }}>
 			{children}
 		</AudioContext.Provider>
 	);

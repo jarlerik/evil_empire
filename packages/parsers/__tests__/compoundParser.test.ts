@@ -187,8 +187,13 @@ describe('parseSetInput - Compound Format', () => {
 			expect(result.isValid).toBe(false);
 		});
 
-		it('should return invalid for percentage over 100 in compound range', () => {
+		it('should accept percentage over 100 in compound range', () => {
 			const result = parseSetInput('3 x 3 + 1@70-105%');
+			expect(result.isValid).toBe(true);
+		});
+
+		it('should return invalid for percentage over 200 in compound range', () => {
+			const result = parseSetInput('3 x 3 + 1@70-205%');
 			expect(result.isValid).toBe(false);
 		});
 	});
@@ -242,9 +247,9 @@ describe('parseSetInput - Compound Format', () => {
 			expect(result.errorMessage).toContain('Too many percentages');
 		});
 
-		it('should return invalid for percentage over 100', () => {
+		it('should accept percentage over 100', () => {
 			const result = parseSetInput('2 x 1 + 1@75, 105%');
-			expect(result.isValid).toBe(false);
+			expect(result.isValid).toBe(true);
 		});
 
 		it('should parse with rest time', () => {
@@ -260,6 +265,151 @@ describe('parseSetInput - Compound Format', () => {
 				compoundReps: [1, 1],
 				restTimeSeconds: 90,
 			});
+		});
+	});
+
+	describe('compound exercise with multiple per-set percentages and trailing range', () => {
+		it('should parse comma-separated percentages with trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 85-90%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+			});
+		});
+
+		it('should parse with rest time', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 85-90% 120s');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+				restTimeSeconds: 120,
+			});
+		});
+
+		it('should parse space-separated percentages with trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @80 85 85-90%');
+			expect(result).toEqual({
+				sets: 3,
+				reps: 2,
+				weight: 0,
+				isValid: true,
+				weights: [80, 85, 85],
+				weightPercentage: 80,
+				weightMinPercentage: 85,
+				weightMaxPercentage: 90,
+				needsRmLookup: true,
+				compoundReps: [1, 1],
+			});
+		});
+
+		it('should pad range for remaining sets when fewer values than sets', () => {
+			const result = parseSetInput('4 x 2 + 1 @75, 80-85%');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 3,
+				weight: 0,
+				isValid: true,
+				weights: [75, 80, 80, 80],
+				weightPercentage: 75,
+				weightMinPercentage: 80,
+				weightMaxPercentage: 85,
+				needsRmLookup: true,
+				compoundReps: [2, 1],
+			});
+		});
+
+		it('should return invalid when too many values for sets', () => {
+			const result = parseSetInput('2 x 1 + 1 @70, 80, 85-90%');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Too many percentages');
+		});
+
+		it('should return invalid when range min > max', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 90-85%');
+			expect(result.isValid).toBe(false);
+		});
+
+		it('should accept percentage over 100', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 90-105%');
+			expect(result.isValid).toBe(true);
+		});
+	});
+
+	describe('compound with multiple weights and trailing range (kg)', () => {
+		it('should parse compound with per-set weights and trailing range', () => {
+			const result = parseSetInput('3 x 1 + 1 @52kg 55kg 57-59kg');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([52, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+		});
+
+		it('should parse compound with per-set weights, trailing range, and rest time', () => {
+			const result = parseSetInput('3 x 1 + 1 @53kg 55kg 57-59kg 120s');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([53, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+			expect(result.restTimeSeconds).toBe(120);
+		});
+
+		it('should parse compound with per-set weights, trailing range, rest time, and notes', () => {
+			const result = parseSetInput('3 x 1 + 1 @53kg 55kg 57-59kg 120s\n80%, 85%, 88-90% of Power Snatch 1RM (65kg)');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([53, 55, 57]);
+			expect(result.weightMin).toBe(57);
+			expect(result.weightMax).toBe(59);
+			expect(result.compoundReps).toEqual([1, 1]);
+			expect(result.restTimeSeconds).toBe(120);
+			expect(result.notes).toBe('80%, 85%, 88-90% of Power Snatch 1RM (65kg)');
+		});
+
+		it('should return invalid when too many weights for sets', () => {
+			const result = parseSetInput('2 x 1 + 1 @50kg 60kg 70-80kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Too many weights');
+		});
+	});
+
+	describe('compound with multiple weights (kg)', () => {
+		it('should parse compound with multiple weights', () => {
+			const result = parseSetInput('3 x 1 + 1 @50kg 60kg 70kg');
+			expect(result.isValid).toBe(true);
+			expect(result.sets).toBe(3);
+			expect(result.reps).toBe(2);
+			expect(result.weights).toEqual([50, 60, 70]);
+			expect(result.compoundReps).toEqual([1, 1]);
+		});
+
+		it('should pad weights when fewer than sets', () => {
+			const result = parseSetInput('4 x 2 + 1 @50kg 60kg');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([50, 60, 60, 60]);
+			expect(result.compoundReps).toEqual([2, 1]);
 		});
 	});
 

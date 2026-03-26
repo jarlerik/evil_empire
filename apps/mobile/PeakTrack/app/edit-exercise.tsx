@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, Keyboard } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,6 +14,9 @@ import { RmSelectModal } from '../components/RmSelectModal';
 import { RmMatch } from '../hooks/useRmLookup';
 import { createRepetitionMaximum } from '../services/repetitionMaximumService';
 import { commonStyles } from '../styles/common';
+import { CoachMark } from '../components/CoachMark';
+import { useCoachMark } from '../hooks/useCoachMark';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 export default function EditExercise() {
 	const params = useLocalSearchParams();
@@ -26,7 +29,11 @@ export default function EditExercise() {
 	const [rmPartialMatches, setRmPartialMatches] = useState<RmMatch[]>([]);
 	const [rmSaving, setRmSaving] = useState(false);
 	const { user } = useAuth();
+	const { settings } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const inputValueRef = useRef<string>('');
+	const setInputCoach = useCoachMark('set-input');
+	const inputOptionsCoach = useCoachMark('input-options');
 
 	const {
 		exercisePhases,
@@ -37,6 +44,7 @@ export default function EditExercise() {
 		exerciseId,
 		exerciseName,
 		userId: user?.id,
+		weightUnit,
 	});
 
 	// Save input value whenever it changes
@@ -56,7 +64,7 @@ export default function EditExercise() {
 
 	const handleEditPhase = (phase: ExercisePhase) => {
 		setEditingPhaseId(phase.id);
-		setSetInput(reverseParsePhase(phase));
+		setSetInput(reverseParsePhase(phase, weightUnit));
 	};
 
 	const handleCancelEdit = () => {
@@ -83,6 +91,7 @@ export default function EditExercise() {
 
 		setSetInput('');
 		setEditingPhaseId(null);
+		Keyboard.dismiss();
 	};
 
 	const handleSelectMatch = async (match: RmMatch) => {
@@ -92,6 +101,7 @@ export default function EditExercise() {
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);
+			Keyboard.dismiss();
 		} else {
 			Alert.alert('Error', result.error || 'Unknown error');
 		}
@@ -126,6 +136,7 @@ export default function EditExercise() {
 		if (result.success) {
 			setSetInput('');
 			setEditingPhaseId(null);
+			Keyboard.dismiss();
 		} else {
 			Alert.alert('Error', result.error || 'Unknown error');
 		}
@@ -184,6 +195,7 @@ export default function EditExercise() {
 			style={{ flex: 1 }}
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
+			<CoachMark />
 			<ScrollView
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
@@ -207,6 +219,8 @@ export default function EditExercise() {
 							<Text style={commonStyles.subtitle}>Sets and repetitions</Text>
 							<View style={styles.headerButtons}>
 								<Pressable
+									ref={inputOptionsCoach.ref}
+									onLayout={inputOptionsCoach.onLayout}
 									style={styles.inputOptionsButton}
 									onPress={() => router.push('/exercise-input-help')}
 								>
@@ -223,23 +237,25 @@ export default function EditExercise() {
 							</View>
 						</View>
 
-						<TextInput
-							style={styles.setInput}
-							value={setInput}
-							onChangeText={setSetInput}
-							placeholder="4 x 3 @100kg 120s"
-							placeholderTextColor="#666"
-							returnKeyType="done"
-							onSubmitEditing={handleAddSet}
-							multiline
-							textAlignVertical="top"
-						/>
-						<Button
-							title={editingPhaseId ? 'Update' : 'Add'}
-							onPress={handleAddSet}
-							disabled={isLoading}
-							style={{ marginTop: 12 }}
-						/>
+						<View ref={setInputCoach.ref} onLayout={setInputCoach.onLayout}>
+							<TextInput
+								style={styles.setInput}
+								value={setInput}
+								onChangeText={setSetInput}
+								placeholder={`4 x 3 @100${weightUnit} 120s`}
+								placeholderTextColor="#666"
+								returnKeyType="done"
+								onSubmitEditing={handleAddSet}
+								multiline
+								textAlignVertical="top"
+							/>
+							<Button
+								title={editingPhaseId ? 'Update' : 'Add'}
+								onPress={handleAddSet}
+								disabled={isLoading}
+								style={{ marginTop: 12 }}
+							/>
+						</View>
 					</View>
 
 					{exercisePhases.map((phase) => (
@@ -252,7 +268,7 @@ export default function EditExercise() {
 							>
 								<View style={styles.phaseContent}>
 									<Text style={styles.phaseText}>
-										{formatExercisePhase(phase)}
+										{formatExercisePhase(phase, weightUnit)}
 									</Text>
 									{phase.notes && (
 										<Text style={styles.phaseNotes}>{phase.notes}</Text>
@@ -287,6 +303,7 @@ export default function EditExercise() {
 				onAddNew={handleAddNewFromSelect}
 				matches={rmPartialMatches}
 				exerciseName={exerciseName}
+				unit={weightUnit}
 			/>
 			<RmFormModal
 				visible={rmModalVisible}
@@ -294,6 +311,7 @@ export default function EditExercise() {
 				onSave={handleRmSave}
 				defaultExerciseName={exerciseName}
 				isLoading={rmSaving}
+				unit={weightUnit}
 			/>
 		</KeyboardAvoidingView>
 	);

@@ -268,4 +268,24 @@ describe('parseSetInput - Circuit Format', () => {
 			expect(circuitResult.exerciseType).toBe('circuit');
 		});
 	});
+
+	describe('should not match weighted exercises with commas', () => {
+		it('should not parse compound with per-set percentages as circuit', () => {
+			const result = parseSetInput('3 x 1 + 1 @80, 85, 85-90%');
+			expect(result.exerciseType).not.toBe('circuit');
+			expect(result.isValid).toBe(true);
+		});
+
+		it('should not parse standard with per-set percentages as circuit', () => {
+			const result = parseSetInput('3 x 1 @80, 85, 85-90%');
+			expect(result.exerciseType).not.toBe('circuit');
+			expect(result.isValid).toBe(true);
+		});
+
+		it('should not parse compound multi-percent as circuit', () => {
+			const result = parseSetInput('3 x 1 + 1@75, 78, 78%');
+			expect(result.exerciseType).not.toBe('circuit');
+			expect(result.isValid).toBe(true);
+		});
+	});
 });

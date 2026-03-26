@@ -16,6 +16,7 @@ interface WorkoutTimerDisplayProps {
 	restTimeRemaining: number;
 	blinkOpacity: Animated.Value;
 	onEditFinishedExercise: () => void;
+	unit: string;
 }
 
 function formatTime(seconds: number): string {
@@ -55,33 +56,40 @@ function parseReps(exercisePhase: ExercisePhase | null, currentSet?: number): st
 	return String(exercisePhase.repetitions);
 }
 
-function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, totalSets: number): string {
+function parseWeight(exercisePhase: ExercisePhase | null, currentSet: number, totalSets: number, unit: string): string {
 	if (!exercisePhase) {
 		return '';
 	}
 
+	// Per-set weights with optional trailing range (e.g., "52, 55, 57-59kg")
+	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
+		// Wave with multiple weights: map set index to weight group
+		if (exercisePhase.exercise_type === 'wave' && exercisePhase.compound_reps) {
+			const repsPerWeight = exercisePhase.compound_reps.length / exercisePhase.weights.length;
+			const weightIdx = Math.floor((currentSet - 1) / repsPerWeight);
+			const weight = exercisePhase.weights[weightIdx] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+			return `@${weight}${unit}`;
+		}
+
+		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
+		// If this is the last set and there's a weight range, show the range
+		if (currentSet >= exercisePhase.weights.length
+			&& exercisePhase.weight_min != null && exercisePhase.weight_max != null
+			&& exercisePhase.weight_min !== exercisePhase.weight_max) {
+			return `@${exercisePhase.weight_min}-${exercisePhase.weight_max}${unit}`;
+		}
+		return `@${weight}${unit}`;
+	}
+
 	if (exercisePhase.weight_min != null && exercisePhase.weight_max != null && exercisePhase.weight_min !== exercisePhase.weight_max) {
 		const weight = interpolateWeight(exercisePhase.weight_min, exercisePhase.weight_max, currentSet, totalSets);
-		return `@${weight}kg`;
+		return `@${weight}${unit}`;
 	}
 
-	// Wave with multiple weights: map set index to weight group
-	if (exercisePhase.exercise_type === 'wave' && exercisePhase.weights && exercisePhase.weights.length > 1 && exercisePhase.compound_reps) {
-		const repsPerWeight = exercisePhase.compound_reps.length / exercisePhase.weights.length;
-		const weightIdx = Math.floor((currentSet - 1) / repsPerWeight);
-		const weight = exercisePhase.weights[weightIdx] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
-		return `@${weight}kg`;
-	}
-
-	if (exercisePhase.weights && exercisePhase.weights.length > 1) {
-		const weight = exercisePhase.weights[currentSet - 1] ?? exercisePhase.weights[exercisePhase.weights.length - 1];
-		return `@${weight}kg`;
-	}
-
-	return `@${exercisePhase.weight}kg`;
+	return `@${exercisePhase.weight}${unit}`;
 }
 
-function formatPhaseForDisplay(phase: ExercisePhase): string {
+function formatPhaseForDisplay(phase: ExercisePhase, unit: string): string {
 	const circuits = parseCircuitExercises(phase);
 	if (circuits && circuits.length > 0) {
 		const exercisesStr = circuits.map(ex => `${ex.reps} ${ex.name}`).join(', ');
@@ -93,9 +101,9 @@ function formatPhaseForDisplay(phase: ExercisePhase): string {
 		const repsStr = phase.compound_reps.join('-');
 		let weightStr: string;
 		if (phase.weights && phase.weights.length > 1) {
-			weightStr = phase.weights.map(w => `${w}`).join(', ') + 'kg';
+			weightStr = phase.weights.map(w => `${w}`).join(', ') + unit;
 		} else {
-			weightStr = `${phase.weight}kg`;
+			weightStr = `${phase.weight}${unit}`;
 		}
 		return `${repsStr} @${weightStr}`;
 	}
@@ -104,9 +112,23 @@ function formatPhaseForDisplay(phase: ExercisePhase): string {
 	const reps = phase.compound_reps
 		? phase.compound_reps.join(' + ')
 		: String(phase.repetitions);
-	const weight = (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max)
-		? `@${phase.weight_min}-${phase.weight_max}kg`
-		: `@${phase.weight}kg`;
+
+	let weight: string;
+	if (phase.weights && phase.weights.length > 1) {
+		// Per-set weights with optional trailing range
+		const hasRange = phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max;
+		const parts = phase.weights.map((w, i) => {
+			if (hasRange && i === phase.weights!.length - 1) {
+				return `${phase.weight_min}-${phase.weight_max}`;
+			}
+			return `${w}`;
+		});
+		weight = `@${parts.join(' ')}${unit}`;
+	} else if (phase.weight_min != null && phase.weight_max != null && phase.weight_min !== phase.weight_max) {
+		weight = `@${phase.weight_min}-${phase.weight_max}${unit}`;
+	} else {
+		weight = `@${phase.weight}${unit}`;
+	}
 	return `${sets} x ${reps} ${weight}`;
 }
 
@@ -120,6 +142,7 @@ export function WorkoutTimerDisplay({
 	restTimeRemaining,
 	blinkOpacity,
 	onEditFinishedExercise,
+	unit,
 }: WorkoutTimerDisplayProps) {
 
 	// Determine which phase to display (current or next)
@@ -131,7 +154,7 @@ export function WorkoutTimerDisplay({
 	// Set info: if showing next phase, show "1 of X", otherwise show current set
 	const setNumber = nextPhase ? 1 : currentSetInPhase;
 	const totalSets = displayPhase?.sets || 0;
-	const weight = parseWeight(displayPhase, setNumber, totalSets);
+	const weight = parseWeight(displayPhase, setNumber, totalSets, unit);
 
 	// Render exercise done state with all phases
 	if (workoutState === 'exercise_done') {
@@ -144,7 +167,7 @@ export function WorkoutTimerDisplay({
 					<View style={styles.phasesList}>
 						{allPhases.map((phase, index) => (
 							<Text key={phase.id || index} style={styles.phaseItem}>
-								{formatPhaseForDisplay(phase)}
+								{formatPhaseForDisplay(phase, unit)}
 							</Text>
 						))}
 					</View>
@@ -181,9 +204,11 @@ export function WorkoutTimerDisplay({
 
 			{/* Middle section: Exercise info */}
 			<View style={styles.timerTopSection}>
-				{nextPhase && (
+				{nextPhase ? (
 					<Text style={styles.nextPhaseLabel}>Next phase:</Text>
-				)}
+				) : workoutState === 'rest' ? (
+					<Text style={styles.nextPhaseLabel}>Next set:</Text>
+				) : null}
 
 				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
 					<Text style={styles.setInfo}>
@@ -228,7 +253,7 @@ export function WorkoutTimerDisplay({
 				)}
 				{workoutState === 'rest' && (
 					<>
-						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]}>RESTING</Animated.Text>
+						<Animated.Text style={[styles.stateRest, { opacity: blinkOpacity }]} adjustsFontSizeToFit numberOfLines={1}>RESTING</Animated.Text>
 						{restTimeRemaining > 0 && (
 							<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
 								{formatTime(restTimeRemaining)}
@@ -252,7 +277,8 @@ export function WorkoutTimerDisplay({
 
 const styles = StyleSheet.create({
 	timerContainer: {
-		flex: 0.9,
+		flex: 1,
+		marginTop: 8,
 		backgroundColor: '#262626',
 		borderWidth: 1,
 		borderColor: '#fff',
@@ -263,7 +289,6 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 	},
 	timerTopSection: {
-		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',

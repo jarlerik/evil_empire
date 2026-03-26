@@ -1,44 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { Exercise } from '../types/workout';
 
-interface ExerciseDB {
-	id: string;
-	name: string;
-	workout_id: string;
-	created_at?: string;
-}
-
-interface WorkoutExerciseItemProps {
-	exercise: ExerciseDB;
+interface ExerciseItemProps {
+	exercise: Exercise;
 	phases: ExercisePhase[];
-	isActive: boolean;
-	onLayout?: (y: number) => void;
+	onEdit: () => void;
+	isCompleted?: boolean;
 	unit?: 'kg' | 'lbs';
 }
 
-export function WorkoutExerciseItem({
-	exercise,
-	phases,
-	isActive,
-	onLayout,
-	unit = 'kg',
-}: WorkoutExerciseItemProps) {
+export function ExerciseItem({ exercise, phases, onEdit, isCompleted, unit = 'kg' }: ExerciseItemProps) {
 	return (
-		<View
-			style={[
-				styles.exerciseItem,
-				isActive && styles.exerciseItemActive,
-			]}
-			onLayout={(event) => {
-				if (onLayout) {
-					onLayout(event.nativeEvent.layout.y);
-				}
-			}}
-		>
+		<View style={styles.exerciseItem}>
 			<View style={styles.exerciseHeader}>
 				<View style={styles.exerciseNameContainer}>
 					<Text style={styles.exerciseName}>{exercise.name}</Text>
+				</View>
+				<View style={styles.exerciseButtons}>
+					{isCompleted ? (
+						<View style={styles.editButton}>
+							<Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+						</View>
+					) : (
+						<Pressable onPress={onEdit} style={styles.editButton}>
+							<Ionicons name="pencil-outline" size={22} color="#fff" />
+						</Pressable>
+					)}
 				</View>
 			</View>
 			{phases.length > 0 && (
@@ -61,16 +50,16 @@ export function WorkoutExerciseItem({
 
 const styles = StyleSheet.create({
 	exerciseItem: {
-		backgroundColor: '#262626',
+		backgroundColor: '#111',
 		padding: 16,
 		borderRadius: 8,
 		marginBottom: 12,
 	},
-	exerciseItemActive: {
-		borderWidth: 1,
-		borderColor: '#fff',
-	},
 	exerciseHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	exerciseButtons: {
 		flexDirection: 'row',
 		alignItems: 'center',
 	},
@@ -80,6 +69,10 @@ const styles = StyleSheet.create({
 	exerciseName: {
 		color: '#fff',
 		fontSize: 16,
+	},
+	editButton: {
+		padding: 8,
+		marginRight: 8,
 	},
 	phasesContainer: {
 		marginTop: 12,

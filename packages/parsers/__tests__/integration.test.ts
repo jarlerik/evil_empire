@@ -208,4 +208,41 @@ describe('parseSetInput - Integration Tests', () => {
 			expect(parseSetInput('3 x 5 @80-85%').isValid).toBe(true);
 		});
 	});
+
+	describe('lbs unit across all formats', () => {
+		it('should parse compound format with lbs', () => {
+			const result = parseSetInput('4 x 2 + 2 @110lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weight).toBe(110);
+			expect(result.compoundReps).toEqual([2, 2]);
+		});
+
+		it('should parse wave format with lbs', () => {
+			const result = parseSetInput('3-2-1 135lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weight).toBe(135);
+			expect(result.exerciseType).toBe('wave');
+		});
+
+		it('should parse standard with RIR and lbs', () => {
+			const result = parseSetInput('4 x 6 @110lbs, 2-3RIR');
+			expect(result.isValid).toBe(true);
+			expect(result.weight).toBe(110);
+			expect(result.rirMin).toBe(2);
+			expect(result.rirMax).toBe(3);
+		});
+
+		it('should parse compound multiple weights with lbs', () => {
+			const result = parseSetInput('3 x 1 + 1 @110lbs 120lbs 130lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weights).toEqual([110, 120, 130]);
+		});
+
+		it('should parse multiple weights with trailing range lbs', () => {
+			const result = parseSetInput('3 x 1 @110, 120, 130-140lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMin).toBe(130);
+			expect(result.weightMax).toBe(140);
+		});
+	});
 });

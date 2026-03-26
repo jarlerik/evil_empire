@@ -9,6 +9,7 @@ interface RmSelectModalProps {
 	onAddNew: () => void;
 	matches: RmMatch[];
 	exerciseName: string;
+	unit: string;
 }
 
 export function RmSelectModal({
@@ -18,6 +19,7 @@ export function RmSelectModal({
 	onAddNew,
 	matches,
 	exerciseName,
+	unit,
 }: RmSelectModalProps) {
 	return (
 		<Modal
@@ -47,7 +49,7 @@ export function RmSelectModal({
 								onPress={() => onSelect(match)}
 							>
 								<Text style={styles.matchName}>{match.exerciseName}</Text>
-								<Text style={styles.matchWeight}>{match.weight} kg</Text>
+								<Text style={styles.matchWeight}>{match.weight} {unit}</Text>
 							</Pressable>
 						))}
 					</View>

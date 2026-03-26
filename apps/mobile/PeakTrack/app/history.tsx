@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Alert, View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { format, parseISO, subDays } from 'date-fns';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles, colors } from '../styles/common';
 import { fetchRecentExecutionLogs, fetchExecutionLogsByExerciseIds } from '../services/workoutExecutionLogService';
-import { fetchWorkoutsByIds } from '../services/workoutService';
+import { fetchWorkoutsByIds, copyWorkout } from '../services/workoutService';
 import { fetchExercisesByWorkoutIds } from '../services/exerciseService';
 import { fetchWorkoutRatings } from '../services/workoutRatingService';
 import { ExercisePhase } from '../lib/formatExercisePhase';
@@ -26,9 +26,11 @@ interface CompletedWorkout {
 
 export default function History() {
 	const { user, loading: authLoading } = useAuth();
-	const { loading: settingsLoading } = useUserSettings();
+	const { settings, loading: settingsLoading } = useUserSettings();
+	const weightUnit = settings?.weight_unit || 'kg';
 	const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+	const [copyingWorkoutId, setCopyingWorkoutId] = useState<string | null>(null);
 	const [errorState, setErrorState] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -151,6 +153,18 @@ export default function History() {
 		}, [user]),
 	);
 
+	const handleCopyWorkout = async (workoutId: string) => {
+		if (!user || copyingWorkoutId) {return;}
+		setCopyingWorkoutId(workoutId);
+		const { error } = await copyWorkout(workoutId, user.id);
+		setCopyingWorkoutId(null);
+		if (error) {
+			Alert.alert('Error', 'Failed to copy workout. Please try again.');
+			return;
+		}
+		router.replace('/');
+	};
+
 	if (authLoading || settingsLoading || isLoading) {
 		return (
 			<View style={styles.screen}>
@@ -182,7 +196,10 @@ export default function History() {
 									exercises={exercises}
 									exercisePhases={exercisePhases}
 									rating={rating}
+									unit={weightUnit}
 									isReadOnly
+									onCopy={() => handleCopyWorkout(workout.id)}
+									isCopying={copyingWorkoutId === workout.id}
 									onEdit={() => router.push({ pathname: '/add-exercises', params: { workoutName: workout.name, workoutId: workout.id } })}
 									onStart={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
 								/>

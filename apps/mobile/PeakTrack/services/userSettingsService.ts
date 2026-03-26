@@ -12,7 +12,7 @@ export async function fetchUserSettings(
 		.from('user_settings')
 		.select('*')
 		.eq('user_id', userId)
-		.single();
+		.maybeSingle();
 
 	if (error) {
 		return { data: null, error: error.message };
@@ -66,4 +66,23 @@ export async function upsertUserSettings(
 	}
 
 	return { data, error: null };
+}
+
+export async function markOnboardingCompleted(
+	userId: string,
+): Promise<ServiceResult<null>> {
+	if (!supabase) {
+		return { data: null, error: 'Database not available' };
+	}
+
+	const { error } = await supabase
+		.from('user_settings')
+		.update({ onboarding_completed: true })
+		.eq('user_id', userId);
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data: null, error: null };
 }

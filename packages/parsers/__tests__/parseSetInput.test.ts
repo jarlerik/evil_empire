@@ -645,16 +645,23 @@ describe('parseSetInput', () => {
 			expect(result.errorMessage).toBe('Minimum percentage must be less than or equal to maximum percentage');
 		});
 
-		it('should return invalid for percentage range with values > 100', () => {
+		it('should accept percentage range with values > 100', () => {
 			const result = parseSetInput('3 x 5@101-105%');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMinPercentage).toBe(101);
+			expect(result.weightMaxPercentage).toBe(105);
+		});
+
+		it('should return invalid for percentage range with values > 200', () => {
+			const result = parseSetInput('3 x 5@201-205%');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Percentage must be between 0 and 100');
+			expect(result.errorMessage).toBe('Percentage must be between 0 and 200');
 		});
 
 		it('should return invalid for percentage range with values <= 0', () => {
 			const result = parseSetInput('3 x 5@0-5%');
 			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toBe('Percentage must be between 0 and 100');
+			expect(result.errorMessage).toBe('Percentage must be between 0 and 200');
 		});
 
 		it('should return invalid for weight range with zero or negative values', () => {

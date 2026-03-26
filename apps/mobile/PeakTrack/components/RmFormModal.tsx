@@ -17,6 +17,7 @@ interface RmFormModalProps {
 	editingRm?: RepetitionMaximum | null;
 	defaultExerciseName?: string;
 	isLoading: boolean;
+	unit?: 'kg' | 'lbs';
 }
 
 export function RmFormModal({
@@ -26,6 +27,7 @@ export function RmFormModal({
 	editingRm,
 	defaultExerciseName,
 	isLoading,
+	unit = 'kg',
 }: RmFormModalProps) {
 	const [exerciseName, setExerciseName] = useState('');
 	const [reps, setReps] = useState('');
@@ -132,7 +134,7 @@ export function RmFormModal({
 							keyboardType="numeric"
 						/>
 
-						<Text style={styles.label}>Weight (kg)</Text>
+						<Text style={styles.label}>Weight ({unit})</Text>
 						<TextInput
 							style={styles.input}
 							value={weight}

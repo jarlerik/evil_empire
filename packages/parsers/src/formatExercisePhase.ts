@@ -21,7 +21,7 @@ export interface ExercisePhase {
 	created_at: string;
 }
 
-export function formatExercisePhase(phase: ExercisePhase): string {
+export function formatExercisePhase(phase: ExercisePhase, unit: 'kg' | 'lbs' = 'kg'): string {
 	// Helper function to prepend EMOM prefix
 	const prependEmom = (str: string): string => {
 		if (phase.emom_interval_seconds !== undefined && phase.emom_interval_seconds !== null) {
@@ -90,11 +90,11 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 		if (phase.weight > 0) {
 			let weightStr: string;
 			if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
-				weightStr = `${phase.weight_min}-${phase.weight_max}kg`;
+				weightStr = `${phase.weight_min}-${phase.weight_max}${unit}`;
 			} else if (phase.weights && phase.weights.length > 1) {
-				weightStr = phase.weights.map(w => `${w}kg`).join(' ');
+				weightStr = phase.weights.map(w => `${w}${unit}`).join(' ');
 			} else {
-				weightStr = `${phase.weight}kg`;
+				weightStr = `${phase.weight}${unit}`;
 			}
 			return wrapResult(`${phase.sets} x ${phase.repetitions} @${weightStr}, ${rirStr}`);
 		} else {
@@ -107,9 +107,9 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 		const repsStr = phase.compound_reps.join('-');
 		let weightStr: string;
 		if (phase.weights && phase.weights.length > 1) {
-			weightStr = phase.weights.map(w => `${w}`).join(', ') + 'kg';
+			weightStr = phase.weights.map(w => `${w}`).join(', ') + unit;
 		} else {
-			weightStr = `${phase.weight}kg`;
+			weightStr = `${phase.weight}${unit}`;
 		}
 		return wrapResult(`${repsStr} @${weightStr}`);
 	}
@@ -118,28 +118,52 @@ export function formatExercisePhase(phase: ExercisePhase): string {
 	if (phase.compound_reps && phase.compound_reps.length > 0) {
 		const compoundRepsStr = phase.compound_reps.join(' + ');
 		let weightStr: string;
-		if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
-			weightStr = `${phase.weight_min}-${phase.weight_max}kg`;
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		if (phase.weights && phase.weights.length > 1 && hasRange) {
+			// Per-set weights with trailing range (e.g., "52kg 55kg 57-59kg")
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}${unit}`;
+				}
+				return `${w}${unit}`;
+			});
+			weightStr = parts.join(' ');
+		} else if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
+			weightStr = `${phase.weight_min}-${phase.weight_max}${unit}`;
 		} else if (phase.weights && phase.weights.length > 1) {
-			weightStr = phase.weights.map(w => `${w}kg`).join(' ');
+			weightStr = phase.weights.map(w => `${w}${unit}`).join(' ');
 		} else {
-			weightStr = `${phase.weight}kg`;
+			weightStr = `${phase.weight}${unit}`;
 		}
 		return wrapResult(`${phase.sets} x ${compoundRepsStr} @${weightStr}`);
 	}
 
-	// Handle weight ranges (absolute)
-	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
-		return wrapResult(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}kg`);
-	}
-
-	// Handle multiple weights
+	// Handle multiple weights (with optional trailing range)
 	if (phase.weights && phase.weights.length > 1) {
-		const weightStr = phase.weights.map(w => `${w}kg`).join(' ');
+		const hasRange = phase.weight_min !== undefined && phase.weight_max !== undefined
+			&& phase.weight_min !== null && phase.weight_max !== null
+			&& phase.weight_min !== phase.weight_max;
+		if (hasRange) {
+			const parts = phase.weights.map((w, i) => {
+				if (i === phase.weights!.length - 1) {
+					return `${phase.weight_min}-${phase.weight_max}${unit}`;
+				}
+				return `${w}${unit}`;
+			});
+			return wrapResult(`${phase.sets} x ${phase.repetitions} @${parts.join(' ')}`);
+		}
+		const weightStr = phase.weights.map(w => `${w}${unit}`).join(' ');
 		return wrapResult(`${phase.sets} x ${phase.repetitions} @${weightStr}`);
 	}
 
+	// Handle weight ranges (absolute)
+	if (phase.weight_min !== undefined && phase.weight_max !== undefined && phase.weight_min !== null && phase.weight_max !== null) {
+		return wrapResult(`${phase.sets} x ${phase.repetitions} @${phase.weight_min}-${phase.weight_max}${unit}`);
+	}
+
 	// Handle simple format
-	const weightStr = phase.weights ? phase.weights.map(w => `${w}kg`).join(' ') : `${phase.weight}kg`;
+	const weightStr = phase.weights ? phase.weights.map(w => `${w}${unit}`).join(' ') : `${phase.weight}${unit}`;
 	return wrapResult(`${phase.sets} x ${phase.repetitions} @${weightStr}`);
 }

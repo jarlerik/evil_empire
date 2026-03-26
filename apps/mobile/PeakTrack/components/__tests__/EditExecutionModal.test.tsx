@@ -36,6 +36,11 @@ jest.mock('../../lib/formatExercisePhase', () => ({
 	}),
 }));
 
+// Mock interpolateWeight
+jest.mock('../../lib/interpolateWeight', () => ({
+	interpolateWeight: jest.fn((min: number, _max: number, _i: number, _total: number) => min),
+}));
+
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
@@ -53,6 +58,22 @@ const mockPhase = (
 	created_at: '2024-01-01',
 });
 
+// Phase with weight=0 uses text input (not per-set weights)
+const mockPhaseNoWeight = (
+	id: string,
+	sets: number,
+	reps: number,
+): ExercisePhase => ({
+	id,
+	exercise_id: 'ex-1',
+	sets,
+	repetitions: reps,
+	weight: 0,
+	exercise_type: 'circuit',
+	circuit_exercises: [{ reps: '10', name: 'Push-ups' }],
+	created_at: '2024-01-01',
+});
+
 describe('EditExecutionModal', () => {
 	const defaultProps = {
 		visible: true,
@@ -64,8 +85,15 @@ describe('EditExecutionModal', () => {
 		phases: [mockPhase('p1', 3, 5, 100)],
 	};
 
+	let consoleSpy: jest.SpyInstance;
+
 	beforeEach(() => {
 		jest.clearAllMocks();
+		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		consoleSpy.mockRestore();
 	});
 
 	describe('rendering', () => {
@@ -116,13 +144,28 @@ describe('EditExecutionModal', () => {
 		});
 	});
 
-	describe('form initialization', () => {
-		it('should pre-populate inputs with formatted planned values', () => {
-			const { getByDisplayValue } = render(
+	describe('per-set weight inputs', () => {
+		it('should render per-set weight inputs for phases with weight > 0', () => {
+			const { getAllByText, getAllByDisplayValue } = render(
 				<EditExecutionModal {...defaultProps} />,
 			);
 
-			expect(getByDisplayValue('3 x 5 @100kg')).toBeTruthy();
+			// 3 sets = 3 "Set N:" labels
+			expect(getAllByText(/Set \d+:/).length).toBe(3);
+			// 3 inputs pre-filled with "100"
+			expect(getAllByDisplayValue('100').length).toBe(3);
+		});
+
+		it('should update individual set weight', () => {
+			const { getAllByDisplayValue } = render(
+				<EditExecutionModal {...defaultProps} />,
+			);
+
+			const inputs = getAllByDisplayValue('100');
+			fireEvent.changeText(inputs[0], '105');
+
+			expect(getAllByDisplayValue('105').length).toBe(1);
+			expect(getAllByDisplayValue('100').length).toBe(2);
 		});
 
 		it('should show formatted planned values', () => {
@@ -132,46 +175,49 @@ describe('EditExecutionModal', () => {
 		});
 	});
 
-	describe('input handling', () => {
-		it('should update input value when text changes', () => {
-			const { getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} />,
-			);
-
-			const input = getByDisplayValue('3 x 5 @100kg');
-			fireEvent.changeText(input, '3 x 6 @105kg');
-
-			expect(getByDisplayValue('3 x 6 @105kg')).toBeTruthy();
-		});
-
-		it('should handle multiple phase inputs independently', () => {
+	describe('text input for non-weight phases', () => {
+		it('should pre-populate text input for phases without weight', () => {
 			const props = {
 				...defaultProps,
-				phases: [
-					mockPhase('p1', 3, 5, 100),
-					mockPhase('p2', 3, 3, 110),
-				],
+				phases: [mockPhaseNoWeight('p1', 2, 10)],
 			};
 
-			const { getByDisplayValue } = render(<EditExecutionModal {...props} />);
+			const { getByDisplayValue } = render(
+				<EditExecutionModal {...props} />,
+			);
 
-			const input1 = getByDisplayValue('3 x 5 @100kg');
-			fireEvent.changeText(input1, '3 x 4 @95kg');
+			expect(getByDisplayValue('2 x 10 @0kg')).toBeTruthy();
+		});
 
-			// First input should be updated
-			expect(getByDisplayValue('3 x 4 @95kg')).toBeTruthy();
-			// Second input should remain unchanged
-			expect(getByDisplayValue('3 x 3 @110kg')).toBeTruthy();
+		it('should update text input value when text changes', () => {
+			const props = {
+				...defaultProps,
+				phases: [mockPhaseNoWeight('p1', 2, 10)],
+			};
+
+			const { getByDisplayValue } = render(
+				<EditExecutionModal {...props} />,
+			);
+
+			const input = getByDisplayValue('2 x 10 @0kg');
+			fireEvent.changeText(input, 'invalid input');
+
+			expect(getByDisplayValue('invalid input')).toBeTruthy();
 		});
 	});
 
 	describe('validation', () => {
-		it('should show error alert for invalid input format', async () => {
+		it('should show error alert for invalid text input format', async () => {
+			const props = {
+				...defaultProps,
+				phases: [mockPhaseNoWeight('p1', 2, 10)],
+			};
+
 			const { getByText, getByDisplayValue } = render(
-				<EditExecutionModal {...defaultProps} />,
+				<EditExecutionModal {...props} />,
 			);
 
-			const input = getByDisplayValue('3 x 5 @100kg');
+			const input = getByDisplayValue('2 x 10 @0kg');
 			fireEvent.changeText(input, 'invalid input');
 
 			fireEvent.press(getByText('Save'));
@@ -186,7 +232,7 @@ describe('EditExecutionModal', () => {
 	});
 
 	describe('submission', () => {
-		it('should call onSave with correct execution data', async () => {
+		it('should call onSave with per-set weight data', async () => {
 			const onSave = jest.fn().mockResolvedValue(undefined);
 			const { getByText } = render(
 				<EditExecutionModal {...defaultProps} onSave={onSave} />,
@@ -200,8 +246,12 @@ describe('EditExecutionModal', () => {
 					phases: expect.arrayContaining([
 						expect.objectContaining({
 							exercise_phase_id: 'p1',
-							input: '3 x 5 @100kg',
+							input: expect.stringContaining('100'),
 							parsed: expect.objectContaining({
+								sets: 3,
+								reps: 5,
+								weight: 100,
+								weights: [100, 100, 100],
 								isValid: true,
 							}),
 						}),
@@ -289,7 +339,7 @@ describe('EditExecutionModal', () => {
 		});
 
 		it('should reinitialize inputs when modal reopens with new phases', () => {
-			const { rerender, getByDisplayValue } = render(
+			const { rerender, getAllByDisplayValue } = render(
 				<EditExecutionModal {...defaultProps} visible={false} />,
 			);
 
@@ -302,7 +352,8 @@ describe('EditExecutionModal', () => {
 
 			rerender(<EditExecutionModal {...newProps} />);
 
-			expect(getByDisplayValue('4 x 6 @120kg')).toBeTruthy();
+			// Per-set weight inputs: 4 sets, each showing "120"
+			expect(getAllByDisplayValue('120').length).toBe(4);
 		});
 	});
 

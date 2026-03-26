@@ -6,7 +6,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from '../contexts/AuthContext';
 import { UserSettingsProvider } from '../contexts/UserSettingsContext';
+import { OnboardingProvider } from '../contexts/OnboardingContext';
 import { AudioProvider } from '../contexts/AudioContext';
+import { UnitSelectionModal } from '../components/UnitSelectionModal';
 import { StrictMode, useEffect } from 'react';
 
 const styles = StyleSheet.create({
@@ -30,6 +32,7 @@ export default function Layout() {
 		<AudioProvider>
 		<AuthProvider>
 			<UserSettingsProvider>
+			<OnboardingProvider>
 				<GestureHandlerRootView style={{ flex: 1 }}>
 					<SafeAreaProvider>
 						<SafeAreaView style={styles.safeArea}>
@@ -47,11 +50,13 @@ export default function Layout() {
 								<Stack.Screen name="edit-exercise" />
 								<Stack.Screen name="repetition-maximums" />
 								</Stack>
-								<StatusBar style="light" />
+								<UnitSelectionModal />
+							<StatusBar style="light" />
 							</View>
 						</SafeAreaView>
 					</SafeAreaProvider>
 				</GestureHandlerRootView>
+			</OnboardingProvider>
 			</UserSettingsProvider>
 		</AuthProvider>
 		</AudioProvider>
