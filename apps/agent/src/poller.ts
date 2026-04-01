@@ -19,7 +19,7 @@ export async function pollForIssue(): Promise<ParsedIssue | null> {
   const proc = Bun.spawn(
     [
       'sh', '-c',
-      `gh issue list --repo ${REPO} --label agent-todo --json number,title,body,labels --sort created --order asc --limit 10`,
+      `gh issue list --repo ${REPO} --label agent-todo --json number,title,body,labels --search "sort:created-asc" --limit 10`,
     ],
     { stdout: 'pipe', stderr: 'pipe' }
   )
