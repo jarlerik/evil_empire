@@ -5,6 +5,8 @@ permalink: evil-empire/daily-log/daily-log-02.04.2026
 tags:
 - daily-log
 - coding-agent
+- warrior-trading
+- phase-1
 ---
 
 ## Fix agent pipeline issues from first e2e test run
@@ -22,3 +24,23 @@ Implemented the feedback loop: polling detects closed-unmerged PRs, reads review
 ## Add systemd deployment files (Phase 8)
 
 Created `apps/agent/deploy/` with service, timer, and setup script. Ready to deploy to VPS — just needs `.env` and `sudo bash setup.sh`.
+
+## Warrior Trading Bot — Phase 1 Foundation
+
+Built the complete Phase 1 foundation for the Warrior Trading Bot (`apps/warrior_trading/`). New standalone app in the monorepo using Bun runtime, TypeScript, and Alpaca Trade API.
+
+### What was built
+- Project setup: `package.json` (pnpm), `tsconfig.json` (strict), `.env.example`, added to `pnpm-workspace.yaml`
+- `src/config.ts` — 16 configurable parameters with env loading, strategy validation, risk-per-trade lowered to 1.5%
+- `src/alpaca/client.ts` — REST client via `@alpacahq/typescript-sdk` + custom WebSocket streaming with exponential backoff reconnection
+- `src/alpaca/market-data.ts` — bars, snapshots, latest bars with typed conversions
+- `src/alpaca/orders.ts` — order placement, bracket orders, fill confirmation polling, market-hours guard, position closing
+- `src/utils/logger.ts` — colored structured logging
+- `src/utils/bar.ts` — Bar/Quote/Snapshot types and candle helpers
+
+### Plan review updates
+Reviewed and improved the PLAN.md with: WebSocket reconnection strategy, fill confirmation loop, market-hours guard, SDK correction (typescript-sdk over legacy), risk-per-trade lowered from 5% to 1.5%, state persistence task, bar replay harness task, candlestick directory split.
+
+## Warrior Trading Bot — Phase 2 Scanner
+
+Built the pre-market scanner pipeline: gap scanner (batch snapshots, gap % / price / volume filtering), float filter (direct REST API since SDK lacks shares_outstanding), news filter (catalyst keyword matching against Alpaca news), and integrated pipeline with scoring/ranking to produce a top-3 watchlist.
