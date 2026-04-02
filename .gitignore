@@ -58,3 +58,5 @@ supabase/.temp/
 .aws-sam/
 samconfig.toml
 .mcp.json
+
+docs/.obsidian/workspace.json
