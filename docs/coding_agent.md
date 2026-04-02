@@ -307,7 +307,7 @@ Build these before anything else — they protect every subsequent phase.
 
 ## Phase 8 — systemd Timer (not bare cron)
 
-- [ ] Create systemd service file:
+- [x] Create systemd service file:
   ```bash
   sudo nano /etc/systemd/system/coding-agent.service
   ```
@@ -326,7 +326,7 @@ Build these before anything else — they protect every subsequent phase.
   StandardError=journal
   ```
 
-- [ ] Create systemd timer file:
+- [x] Create systemd timer file:
   ```bash
   sudo nano /etc/systemd/system/coding-agent.timer
   ```
@@ -343,7 +343,7 @@ Build these before anything else — they protect every subsequent phase.
   WantedBy=timers.target
   ```
 
-- [ ] Enable and start the timer:
+- [ ] Enable and start the timer (run on VPS):
   ```bash
   sudo systemctl daemon-reload
   sudo systemctl enable coding-agent.timer
@@ -351,7 +351,7 @@ Build these before anything else — they protect every subsequent phase.
   sudo systemctl list-timers | grep coding-agent
   ```
 
-- [ ] View logs via journald:
+- [ ] View logs via journald (run on VPS):
   ```bash
   journalctl -u coding-agent.service -f
   ```
