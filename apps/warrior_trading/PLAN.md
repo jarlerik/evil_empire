@@ -85,12 +85,12 @@ warrior_trading/
 
 ### Phase 3: Indicators
 
-- [ ] **3.1** Build `src/indicators/ema.ts` — EMA(9), EMA(20), EMA(50), EMA(200)
-- [ ] **3.2** Build `src/indicators/vwap.ts` — intraday VWAP
-- [ ] **3.3** Build `src/indicators/macd.ts` — MACD line, signal line, histogram
-- [ ] **3.4** Build `src/indicators/atr.ts` — ATR(14) for dynamic stop sizing
-- [ ] **3.5** Build `src/indicators/relative-volume.ts` — current volume vs 30-day average
-- [ ] **3.6** Build `src/indicators/candlestick/` — all 13 bullish/bearish patterns from the reference chart, split into single-candle, double-candle, and triple-candle pattern families
+- [x] **3.1** Build `src/indicators/ema.ts` — EMA(9), EMA(20), EMA(50), EMA(200)
+- [x] **3.2** Build `src/indicators/vwap.ts` — intraday VWAP
+- [x] **3.3** Build `src/indicators/macd.ts` — MACD line, signal line, histogram
+- [x] **3.4** Build `src/indicators/atr.ts` — ATR(14) for dynamic stop sizing
+- [x] **3.5** Build `src/indicators/relative-volume.ts` — current volume vs 30-day average
+- [x] **3.6** Build `src/indicators/candlestick/` — all 13 bullish/bearish patterns from the reference chart, split into single-candle, double-candle, and triple-candle pattern families
 
 ### Phase 4: Strategies
 

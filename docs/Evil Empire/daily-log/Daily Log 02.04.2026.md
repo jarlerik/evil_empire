@@ -44,3 +44,7 @@ Reviewed and improved the PLAN.md with: WebSocket reconnection strategy, fill co
 ## Warrior Trading Bot — Phase 2 Scanner
 
 Built the pre-market scanner pipeline: gap scanner (batch snapshots, gap % / price / volume filtering), float filter (direct REST API since SDK lacks shares_outstanding), news filter (catalyst keyword matching against Alpaca news), and integrated pipeline with scoring/ranking to produce a top-3 watchlist.
+
+## Warrior Trading Bot — Phase 3 Indicators
+
+Built all technical indicators: EMA (streaming state machine with multi-EMA 9/20/50/200), VWAP (cumulative with session reset), MACD (12/26/9 with proper priming), ATR (Wilder's smoothing), relative volume (30-day lookback), and 22 candlestick patterns across single/double/triple families.
