@@ -68,3 +68,11 @@ Replaced stub index.ts with full boot sequence: config load, debug log level, li
 ## Warrior Trading Bot — Phase 8 Verification
 
 Built bar replay harness (CLI tool feeding historical bars through all strategies, outputs JSON signals). Verified tsc + bun build pass clean (262KB, 158 modules). Reviewed risk math: 1.5% × 3 losses = 4.5% worst case, well under 10% daily limit, plus pre-trade breach check as second safeguard. Tasks 8.2/8.3 (live paper testing) left for market hours.
+
+## Fix all code review issues (#1-30)
+
+Fixed all 30 issues from pre-production code review: race condition guards, atomic state persistence with runtime validation, wired up relative volume in scanner, config hardening, async session timer, parallel scanner batches, ring buffer, doji tolerance, and dead code removal.
+
+## Add test plan for warrior trading bot
+
+Wrote comprehensive test plan (`TEST-PLAN.md`) with 27 tasks across 5 priority levels, covering risk math, indicators, strategies, engine, scanner, and Alpaca client. Uses `bun:test` framework with coverage targets from 60% (alpaca wrappers) to 100% (risk module).
