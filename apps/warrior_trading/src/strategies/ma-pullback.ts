@@ -52,7 +52,10 @@ export const maPullback: Strategy = {
     if (stopDistance <= 0) return null;
 
     // Target: use recent swing high or 2:1
-    const recentHigh = Math.max(...bars.slice(-8).map((b) => b.high));
+    let recentHigh = bars[bars.length - 1].high;
+    for (let i = bars.length - 2; i >= bars.length - 8 && i >= 0; i--) {
+      if (bars[i].high > recentHigh) recentHigh = bars[i].high;
+    }
     const targetPrice = Math.max(
       entryPrice + stopDistance * 2,
       recentHigh

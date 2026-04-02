@@ -16,6 +16,8 @@ export interface GapCandidate {
 
 // Alpaca limits snapshot requests to ~200 symbols at a time
 const SNAPSHOT_BATCH_SIZE = 200;
+// Number of snapshot batches to fetch in parallel
+const PARALLEL_BATCH_GROUP = 5;
 
 export async function scanForGaps(
   client: AlpacaClient,
@@ -24,36 +26,46 @@ export async function scanForGaps(
 ): Promise<GapCandidate[]> {
   const candidates: GapCandidate[] = [];
 
-  // Batch snapshot requests
+  // Build all batches
+  const batches: string[][] = [];
   for (let i = 0; i < symbols.length; i += SNAPSHOT_BATCH_SIZE) {
-    const batch = symbols.slice(i, i + SNAPSHOT_BATCH_SIZE);
-    const snapshots = await getSnapshots(client, batch);
+    batches.push(symbols.slice(i, i + SNAPSHOT_BATCH_SIZE));
+  }
 
-    for (const [symbol, snap] of snapshots) {
-      const prevClose = snap.prevDailyBar.close;
-      if (prevClose === 0) continue;
+  // Process batches in parallel groups of PARALLEL_BATCH_GROUP
+  for (let g = 0; g < batches.length; g += PARALLEL_BATCH_GROUP) {
+    const group = batches.slice(g, g + PARALLEL_BATCH_GROUP);
+    const snapshotResults = await Promise.all(
+      group.map((batch) => getSnapshots(client, batch))
+    );
 
-      const currentPrice = snap.latestBar.close || snap.minuteBar.close;
-      if (currentPrice === 0) continue;
+    for (const snapshots of snapshotResults) {
+      for (const [symbol, snap] of snapshots) {
+        const prevClose = snap.prevDailyBar.close;
+        if (prevClose === 0) continue;
 
-      const gapPct = ((currentPrice - prevClose) / prevClose) * 100;
+        const currentPrice = snap.latestBar.close || snap.minuteBar.close;
+        if (currentPrice === 0) continue;
 
-      // Filter: minimum gap %, price range
-      if (gapPct < config.scanner.minGapPct) continue;
-      if (currentPrice < config.scanner.minPrice) continue;
-      if (currentPrice > config.scanner.maxPrice) continue;
+        const gapPct = ((currentPrice - prevClose) / prevClose) * 100;
 
-      // Volume — use daily bar volume as current session volume
-      const volume = snap.latestBar.volume;
+        // Filter: minimum gap %, price range
+        if (gapPct < config.scanner.minGapPct) continue;
+        if (currentPrice < config.scanner.minPrice) continue;
+        if (currentPrice > config.scanner.maxPrice) continue;
 
-      candidates.push({
-        symbol,
-        gapPct,
-        price: currentPrice,
-        volume,
-        prevClose,
-        relativeVolume: 0, // filled in by relative volume indicator later
-      });
+        // Volume — use daily bar volume as current session volume
+        const volume = snap.latestBar.volume;
+
+        candidates.push({
+          symbol,
+          gapPct,
+          price: currentPrice,
+          volume,
+          prevClose,
+          relativeVolume: 0, // enriched by computeRelativeVolumeBatch in runScanner
+        });
+      }
     }
   }
 

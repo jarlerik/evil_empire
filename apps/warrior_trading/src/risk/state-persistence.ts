@@ -1,5 +1,6 @@
 import { createLogger } from "../utils/logger.js";
 import { existsSync } from "fs";
+import { rename } from "fs/promises";
 
 const log = createLogger("risk:state");
 
@@ -13,6 +14,23 @@ export interface PersistedRiskState {
   tradesWon: number;
   startingEquity: number;
 }
+
+function isValidState(s: unknown): s is PersistedRiskState {
+  if (typeof s !== "object" || s === null) return false;
+  const r = s as Record<string, unknown>;
+  return (
+    typeof r.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.date) &&
+    Number.isFinite(r.dailyPnL as number) &&
+    Number.isFinite(r.consecutiveLosses as number) &&
+    Number.isFinite(r.tradesCompleted as number) &&
+    Number.isFinite(r.tradesWon as number) &&
+    Number.isFinite(r.startingEquity as number) &&
+    (r.startingEquity as number) > 0
+  );
+}
+
+const MAX_CONSECUTIVE_SAVE_FAILURES = 3;
+let consecutiveSaveFailures = 0;
 
 function defaultState(startingEquity: number): PersistedRiskState {
   return {
@@ -35,7 +53,12 @@ export async function loadRiskState(
     }
 
     const raw = await Bun.file(STATE_FILE).text();
-    const state = JSON.parse(raw) as PersistedRiskState;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidState(parsed)) {
+      log.warn("Persisted state failed validation, starting fresh");
+      return defaultState(startingEquity);
+    }
+    const state = parsed;
 
     // Reset if it's a new trading day
     const today = new Date().toISOString().slice(0, 10);
@@ -67,21 +90,24 @@ export async function saveRiskState(state: PersistedRiskState): Promise<void> {
   try {
     // Atomic write: write to temp file, then rename
     await Bun.write(tmpFile, JSON.stringify(state, null, 2));
-    await Bun.write(STATE_FILE, await Bun.file(tmpFile).text());
+    await rename(tmpFile, STATE_FILE);
 
-    // Clean up tmp
-    try {
-      const { unlink } = await import("fs/promises");
-      await unlink(tmpFile);
-    } catch {
-      // ignore cleanup failure
-    }
+    consecutiveSaveFailures = 0;
 
     log.debug("Risk state persisted", {
       dailyPnL: state.dailyPnL,
       consecutiveLosses: state.consecutiveLosses,
     });
   } catch (err) {
-    log.error("Failed to persist risk state", { error: String(err) });
+    consecutiveSaveFailures++;
+    log.error("Failed to persist risk state", {
+      error: String(err),
+      consecutiveFailures: consecutiveSaveFailures,
+    });
+    if (consecutiveSaveFailures >= MAX_CONSECUTIVE_SAVE_FAILURES) {
+      throw new Error(
+        `Risk state persistence failed ${consecutiveSaveFailures} consecutive times — halting trading`
+      );
+    }
   }
 }

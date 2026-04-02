@@ -46,13 +46,22 @@ export async function filterByFloat(
 ): Promise<GapCandidate[]> {
   const results: GapCandidate[] = [];
 
-  // Fetch asset details in parallel (batched to avoid rate limits)
+  // Fetch asset details in parallel batches
   const BATCH_SIZE = 10;
+  const batches: GapCandidate[][] = [];
   for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
-    const batch = candidates.slice(i, i + BATCH_SIZE);
-    const details = await Promise.all(
-      batch.map((c) => fetchAssetDetails(c.symbol, config))
-    );
+    batches.push(candidates.slice(i, i + BATCH_SIZE));
+  }
+
+  const allDetails = await Promise.all(
+    batches.map((batch) =>
+      Promise.all(batch.map((c) => fetchAssetDetails(c.symbol, config)))
+    )
+  );
+
+  for (let b = 0; b < batches.length; b++) {
+    const batch = batches[b];
+    const details = allDetails[b];
 
     for (let j = 0; j < batch.length; j++) {
       const detail = details[j];

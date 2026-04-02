@@ -34,7 +34,8 @@ export const bullFlag: Strategy = {
       if (poleRange === 0) continue;
 
       // Flag bars: should show consolidation (lower highs or tight range)
-      const flagBars = bars.slice(flagStart, bars.length - 1);
+      const flagEnd = bars.length - 1;
+      const flagBars = bars.slice(flagStart, flagEnd);
       let hasLowerHighs = true;
       let flagHigh = flagBars[0].high;
       let flagLow = flagBars[0].low;
@@ -52,7 +53,10 @@ export const bullFlag: Strategy = {
       if (flagRange > poleRange * 0.5) continue;
 
       // Most flag bars should be slightly bearish or doji
-      const bearishCount = flagBars.filter((b) => isBearish(b)).length;
+      let bearishCount = 0;
+      for (let i = 0; i < flagBars.length; i++) {
+        if (isBearish(flagBars[i])) bearishCount++;
+      }
       if (bearishCount < flagBars.length * 0.4) continue;
 
       // Current bar must break above the flag high

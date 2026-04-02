@@ -32,9 +32,20 @@ async function main() {
     log.warn("⚠️  LIVE TRADING MODE — real money at risk!");
     log.warn("Set ALPACA_PAPER=true to use paper trading");
 
-    // 5-second grace period to abort
-    log.warn("Starting in 5 seconds... Press Ctrl+C to abort");
-    await Bun.sleep(5000);
+    // In non-interactive environments (Docker/systemd/CI), require explicit confirmation
+    if (!process.stdin.isTTY) {
+      if (Bun.env.CONFIRM_LIVE_TRADING !== "yes") {
+        log.error(
+          "Non-interactive environment detected. Set CONFIRM_LIVE_TRADING=yes to confirm live trading."
+        );
+        process.exit(1);
+      }
+      log.warn("Live trading confirmed via CONFIRM_LIVE_TRADING=yes");
+    } else {
+      // 5-second grace period to abort (interactive terminal)
+      log.warn("Starting in 5 seconds... Press Ctrl+C to abort");
+      await Bun.sleep(5000);
+    }
   } else {
     log.info("Paper trading mode (safe)");
   }
@@ -53,10 +64,13 @@ async function main() {
   // Verify connectivity
   try {
     const account = await client.getAccount();
-    const equity = parseFloat(
-      (account as unknown as Record<string, string>).equity
-    );
-    const status = (account as unknown as Record<string, string>).status;
+    const rawEquity = (account as Record<string, unknown>).equity;
+    const equity =
+      typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
+    if (!Number.isFinite(equity) || equity <= 0) {
+      throw new Error(`Invalid equity value from Alpaca: ${rawEquity}`);
+    }
+    const status = (account as Record<string, unknown>).status;
     log.info("Alpaca account connected", {
       status,
       equity: `$${equity.toFixed(2)}`,

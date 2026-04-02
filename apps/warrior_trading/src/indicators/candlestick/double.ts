@@ -53,7 +53,7 @@ export function isBearishHarami(prev: Bar, curr: Bar): boolean {
 
 // Tweezer Bottom: two bars with same/similar lows (bullish reversal)
 export function isTweezerBottom(prev: Bar, curr: Bar): boolean {
-  const tolerance = barRange(prev) * 0.05;
+  const tolerance = Math.max(barRange(prev) * 0.05, 0.01);
   return (
     isBearish(prev) &&
     isBullish(curr) &&
@@ -63,7 +63,7 @@ export function isTweezerBottom(prev: Bar, curr: Bar): boolean {
 
 // Tweezer Top: two bars with same/similar highs (bearish reversal)
 export function isTweezerTop(prev: Bar, curr: Bar): boolean {
-  const tolerance = barRange(prev) * 0.05;
+  const tolerance = Math.max(barRange(prev) * 0.05, 0.01);
   return (
     isBullish(prev) &&
     isBearish(curr) &&

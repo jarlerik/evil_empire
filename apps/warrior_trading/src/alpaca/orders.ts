@@ -43,13 +43,15 @@ export interface OrderResult {
 const PRE_MARKET_OPEN_HOUR = 4; // 4:00 AM ET
 const MARKET_CLOSE_HOUR = 20; // 8:00 PM ET (post-market close)
 
+const etHourFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "numeric",
+  hour12: false,
+});
+
 function isWithinTradingHours(): boolean {
-  const now = new Date();
-  // Convert to ET
-  const et = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/New_York" })
-  );
-  const hour = et.getHours();
+  const parts = etHourFormatter.formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === "hour")!.value);
   return hour >= PRE_MARKET_OPEN_HOUR && hour < MARKET_CLOSE_HOUR;
 }
 
@@ -178,6 +180,12 @@ export async function waitForFill(
   return getOrder(client, orderId);
 }
 
+/**
+ * Close a single position by symbol. Intentionally bypasses the
+ * `assertTradingHours()` guard so that emergency position flattening
+ * (e.g. during the "close" session phase or manual risk intervention)
+ * can execute outside regular trading hours.
+ */
 export async function closePosition(
   client: AlpacaClient,
   symbol: string
@@ -187,6 +195,12 @@ export async function closePosition(
   return normalizeOrder(order);
 }
 
+/**
+ * Close all open positions. Intentionally bypasses the
+ * `assertTradingHours()` guard so that emergency position flattening
+ * (e.g. during the "close" session phase or manual risk intervention)
+ * can execute outside regular trading hours.
+ */
 export async function closeAllPositions(
   client: AlpacaClient
 ): Promise<void> {
@@ -194,8 +208,21 @@ export async function closeAllPositions(
   await client.closePositions();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeOrder(raw: any): OrderResult {
+interface AlpacaRawOrder {
+  id: string;
+  client_order_id: string;
+  symbol: string;
+  qty: string;
+  side: string;
+  type: string;
+  status: string;
+  filled_qty: string;
+  filled_avg_price: string | null;
+  created_at: string;
+  legs?: AlpacaRawOrder[];
+}
+
+function normalizeOrder(raw: AlpacaRawOrder): OrderResult {
   return {
     id: raw.id,
     clientOrderId: raw.client_order_id,

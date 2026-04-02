@@ -16,7 +16,6 @@ export function createAlpacaClient(config: Config): AlpacaClient {
 
   log.info("Alpaca REST client initialized", {
     paper: config.alpaca.paper,
-    endpoint: config.alpaca.endpoint,
   });
 
   return client;
@@ -62,7 +61,7 @@ type WSMessage =
   | RawWSBar
   | RawWSQuote;
 
-const WS_BASE = "wss://stream.data.alpaca.markets/v2/sqs";
+const WS_BASE = "wss://stream.data.alpaca.markets/v2/iex";
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_DELAY_MS = 1000;
 
@@ -96,7 +95,16 @@ export class AlpacaStream {
     };
 
     this.ws.onmessage = (event) => {
-      const messages: WSMessage[] = JSON.parse(event.data as string);
+      let messages: WSMessage[];
+      try {
+        messages = JSON.parse(event.data as string);
+      } catch (err) {
+        log.error("Failed to parse WebSocket message", {
+          error: String(err),
+          data: String(event.data).slice(0, 200),
+        });
+        return;
+      }
       for (const msg of messages) {
         this.handleMessage(msg);
       }

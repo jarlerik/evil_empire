@@ -19,8 +19,43 @@ const log = createLogger("engine:watchlist");
 
 const MAX_BARS = 50; // keep last N bars in memory
 
+class BarRingBuffer {
+  private buf: Bar[];
+  private head = 0;
+  private count = 0;
+  private readonly cap: number;
+
+  constructor(capacity: number) {
+    this.cap = capacity;
+    this.buf = new Array<Bar>(capacity);
+  }
+
+  push(bar: Bar): void {
+    const idx = (this.head + this.count) % this.cap;
+    this.buf[idx] = bar;
+    if (this.count < this.cap) {
+      this.count++;
+    } else {
+      this.head = (this.head + 1) % this.cap;
+    }
+  }
+
+  get length(): number {
+    return this.count;
+  }
+
+  /** Return bars in chronological order (oldest first). */
+  toArray(): Bar[] {
+    const result = new Array<Bar>(this.count);
+    for (let i = 0; i < this.count; i++) {
+      result[i] = this.buf[(this.head + i) % this.cap];
+    }
+    return result;
+  }
+}
+
 interface SymbolState {
-  bars: Bar[];
+  bars: BarRingBuffer;
   ema: MultiEMA;
   emaValues: MultiEMAValues;
   vwap: VWAPState;
@@ -61,7 +96,7 @@ export class Watchlist {
 
     for (const entry of entries) {
       const state: SymbolState = {
-        bars: [],
+        bars: new BarRingBuffer(MAX_BARS),
         ema: createMultiEMA(),
         emaValues: { ema9: 0, ema20: 0, ema50: 0, ema200: 0 },
         vwap: createVWAP(),
@@ -160,9 +195,6 @@ export class Watchlist {
 
   private processBar(symbol: string, state: SymbolState, bar: Bar): void {
     state.bars.push(bar);
-    if (state.bars.length > MAX_BARS) {
-      state.bars.shift();
-    }
 
     state.emaValues = updateMultiEMA(state.ema, bar.close);
     state.vwapValue = updateVWAP(state.vwap, bar);
@@ -175,7 +207,7 @@ export class Watchlist {
     if (!state || state.bars.length === 0) return null;
 
     return {
-      bars: [...state.bars],
+      bars: state.bars.toArray(),
       ema: { ...state.emaValues },
       vwap: state.vwapValue,
       macd: { ...state.macdValues },
