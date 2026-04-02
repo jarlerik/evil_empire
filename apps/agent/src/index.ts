@@ -10,7 +10,7 @@ const MAX_RETRIES = parseInt(process.env.MAX_RETRIES ?? '3', 10)
 const BACKOFF_MS = [30_000, 60_000, 120_000]
 
 // Errors that should not be retried
-const NO_RETRY_ERRORS = ['Token budget exceeded', 'Max iterations reached', 'git conflict']
+const NO_RETRY_ERRORS = ['Token budget exceeded', 'Max iterations reached', 'git conflict', 'not_found_error']
 
 let currentIssueNumber: number | null = null
 

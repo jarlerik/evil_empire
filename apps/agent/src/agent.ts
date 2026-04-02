@@ -2,8 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ParsedIssue } from './poller'
 import { logger } from './utils/logger'
 import { CostTracker } from './utils/cost'
-import { getRepoTree } from './utils/git'
-import { readFile, writeFile, listDirectory, fileExists } from './tools/files'
+import { getRepoTree, push } from './utils/git'
+import { readFile, writeFile, listDirectory } from './tools/files'
 import { runCommand } from './tools/bash'
 import { createPr, addIssueComment } from './tools/github'
 import { readFileSync } from 'node:fs'
@@ -56,8 +56,19 @@ const tools: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'push_branch',
+    description: 'Push the current branch to the remote. Only works on feature branches — cannot push to main or develop.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        branch: { type: 'string', description: 'Branch name to push' },
+      },
+      required: ['branch'],
+    },
+  },
+  {
     name: 'create_pr',
-    description: 'Create a pull request against the develop branch.',
+    description: 'Create a pull request against the develop branch. The branch must be pushed first using push_branch.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -108,6 +119,10 @@ async function handleToolCall(name: string, input: Record<string, unknown>): Pro
       const result = await runCommand(command)
       return `Exit code: ${result.exitCode}\nStdout:\n${result.stdout}\nStderr:\n${result.stderr}`
     }
+    case 'push_branch': {
+      await push(input.branch as string)
+      return `Branch ${input.branch} pushed to origin.`
+    }
     case 'create_pr':
       return await createPr(input.branch as string, input.title as string, input.body as string)
     case 'add_issue_comment': {
@@ -146,7 +161,9 @@ ${repoTree}
 - ALWAYS write a docs/agent-log entry when done
 - ALWAYS run tests before creating a PR
 - If tests fail, fix them before proceeding
-- Keep changes minimal and focused on the issue`
+- Keep changes minimal and focused on the issue
+- After committing, use push_branch to push, then create_pr to open the PR
+- Do NOT try to use git push via run_command — it is blocked. Use the push_branch tool instead.`
 
   const userPrompt = `## Issue #${issue.number}: ${issue.title}
 
@@ -174,7 +191,7 @@ Complete this task. Create a branch, make changes, run tests, and open a PR agai
     logger.info({ phase: 'agent', iteration: iterations, totalTokens: costTracker.totalTokens })
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8096,
       system: systemPrompt,
       tools,

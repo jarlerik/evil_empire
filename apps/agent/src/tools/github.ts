@@ -3,9 +3,9 @@ import { logger } from '../utils/logger'
 const WORK_DIR = process.env.WORK_DIR ?? '/tmp/agent-workspace'
 const REPO = process.env.GITHUB_REPO ?? 'jarlerik/evil_empire'
 
-async function gh(args: string): Promise<string> {
+async function gh(args: string, cwd?: string): Promise<string> {
   const proc = Bun.spawn(['sh', '-c', `gh ${args}`], {
-    cwd: WORK_DIR,
+    cwd: cwd ?? process.env.HOME ?? '/tmp',
     stdout: 'pipe',
     stderr: 'pipe',
     env: { ...process.env },
@@ -25,7 +25,8 @@ export async function createPr(branch: string, title: string, body: string): Pro
   // Never create PR against main
   logger.info({ phase: 'github', action: 'create_pr', branch, title })
   const result = await gh(
-    `pr create --repo ${REPO} --base develop --head ${branch} --title "${title.replace(/"/g, '\\"')}" --body "${body.replace(/"/g, '\\"')}"`
+    `pr create --repo ${REPO} --base develop --head ${branch} --title "${title.replace(/"/g, '\\"')}" --body "${body.replace(/"/g, '\\"')}"`,
+    WORK_DIR
   )
   return result // returns PR URL
 }
