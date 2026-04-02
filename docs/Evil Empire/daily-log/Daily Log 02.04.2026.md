@@ -40,3 +40,7 @@ Built the complete Phase 1 foundation for the Warrior Trading Bot (`apps/warrior
 
 ### Plan review updates
 Reviewed and improved the PLAN.md with: WebSocket reconnection strategy, fill confirmation loop, market-hours guard, SDK correction (typescript-sdk over legacy), risk-per-trade lowered from 5% to 1.5%, state persistence task, bar replay harness task, candlestick directory split.
+
+## Warrior Trading Bot — Phase 2 Scanner
+
+Built the pre-market scanner pipeline: gap scanner (batch snapshots, gap % / price / volume filtering), float filter (direct REST API since SDK lacks shares_outstanding), news filter (catalyst keyword matching against Alpaca news), and integrated pipeline with scoring/ranking to produce a top-3 watchlist.

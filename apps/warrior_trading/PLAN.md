@@ -78,10 +78,10 @@ warrior_trading/
 
 ### Phase 2: Scanner
 
-- [ ] **2.1** Build `src/scanner/gap-scanner.ts` — scan all tradeable assets for gap %, price range, relative volume
-- [ ] **2.2** Build `src/scanner/float-filter.ts` — filter by float using Alpaca asset data (shares outstanding as proxy)
-- [ ] **2.3** Build `src/scanner/news-filter.ts` — check Alpaca news API for recent catalyst headlines
-- [ ] **2.4** Integrate scanner modules: gap → float → news → ranked watchlist of top 3
+- [x] **2.1** Build `src/scanner/gap-scanner.ts` — scan all tradeable assets for gap %, price range, relative volume
+- [x] **2.2** Build `src/scanner/float-filter.ts` — filter by float using Alpaca asset data (shares outstanding as proxy)
+- [x] **2.3** Build `src/scanner/news-filter.ts` — check Alpaca news API for recent catalyst headlines
+- [x] **2.4** Integrate scanner modules: gap → float → news → ranked watchlist of top 3
 
 ### Phase 3: Indicators
 
