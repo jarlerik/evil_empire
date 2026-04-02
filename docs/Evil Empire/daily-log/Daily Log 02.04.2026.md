@@ -48,3 +48,7 @@ Built the pre-market scanner pipeline: gap scanner (batch snapshots, gap % / pri
 ## Warrior Trading Bot — Phase 3 Indicators
 
 Built all technical indicators: EMA (streaming state machine with multi-EMA 9/20/50/200), VWAP (cumulative with session reset), MACD (12/26/9 with proper priming), ATR (Wilder's smoothing), relative volume (30-day lookback), and 22 candlestick patterns across single/double/triple families.
+
+## Warrior Trading Bot — Phase 4 Strategies
+
+Built all five trading strategies: Gap-and-Go (premarket high breakout), Micro Pullback (tiny red candle after surge), Bull Flag (3-7 bar consolidation breakout with flagpole projection), Flat Top (resistance touch counting), and MA Pullback (9/20 EMA bounce with candlestick confirmation). All enforce 2:1+ R:R with confidence scoring.

@@ -94,12 +94,12 @@ warrior_trading/
 
 ### Phase 4: Strategies
 
-- [ ] **4.1** Define `src/strategies/types.ts` — `StrategySignal` interface (entry price, stop, target, strategy name, confidence)
-- [ ] **4.2** Build `src/strategies/gap-and-go.ts` — breakout above premarket high / bull flag high with volume
-- [ ] **4.3** Build `src/strategies/micro-pullback.ts` — tiny red candle after momentum surge, entry on new high
-- [ ] **4.4** Build `src/strategies/bull-flag.ts` — consolidation with lower highs, breakout on volume
-- [ ] **4.5** Build `src/strategies/flat-top.ts` — multiple touches of resistance, breakout on third attempt
-- [ ] **4.6** Build `src/strategies/ma-pullback.ts` — bounce off 9/20 EMA in uptrend
+- [x] **4.1** Define `src/strategies/types.ts` — `StrategySignal` interface (entry price, stop, target, strategy name, confidence)
+- [x] **4.2** Build `src/strategies/gap-and-go.ts` — breakout above premarket high / bull flag high with volume
+- [x] **4.3** Build `src/strategies/micro-pullback.ts` — tiny red candle after momentum surge, entry on new high
+- [x] **4.4** Build `src/strategies/bull-flag.ts` — consolidation with lower highs, breakout on volume
+- [x] **4.5** Build `src/strategies/flat-top.ts` — multiple touches of resistance, breakout on third attempt
+- [x] **4.6** Build `src/strategies/ma-pullback.ts` — bounce off 9/20 EMA in uptrend
 
 ### Phase 5: Risk Management
 
