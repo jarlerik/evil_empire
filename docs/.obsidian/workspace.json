@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "619dea54372d09f8",
+        "id": "57fdfde00727a4eb",
         "type": "tabs",
         "children": [
           {
-            "id": "fe24620fa81a369e",
+            "id": "551f72ede254e276",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "PeakTrack Roadmap.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "PeakTrack Roadmap"
+              "title": "New tab"
             }
           }
         ]
@@ -94,7 +90,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "PeakTrack Roadmap.md",
+                "file": "coding_agent.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +100,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for PeakTrack Roadmap"
+              "title": "Backlinks for coding_agent"
             }
           },
           {
@@ -113,12 +109,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "PeakTrack Roadmap.md",
+                "file": "coding_agent.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from PeakTrack Roadmap"
+              "title": "Outgoing links from coding_agent"
             }
           },
           {
@@ -156,13 +152,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "PeakTrack Roadmap.md",
+                "file": "coding_agent.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of PeakTrack Roadmap"
+              "title": "Outline of coding_agent"
             }
           }
         ]
@@ -183,8 +179,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "fe24620fa81a369e",
+  "active": "ac630708e628deed",
   "lastOpenFiles": [
+    "Evil Empire/daily-log/Daily Log 26.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 25.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 15.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 13.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 12.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 11.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 10.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 09.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 08.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 07.03.2026.md",
+    "Evil Empire/daily-log/Daily Log 06.03.2026.md",
+    "PeakTrack Roadmap.md",
     "Evil Empire/daily-log/Daily Log 02.04.2026.md",
     "Evil Empire/daily-log/Daily Log 01.04.2026.md",
     "Evil Empire/daily-log",
@@ -192,7 +200,6 @@
     "coding_agent.md",
     "Percentage-Based Exercise Input RM Handling Flow.md",
     "kek.md",
-    "PeakTrack Roadmap.md",
     "Open issues.md",
     "plans/onboarding-plan.md",
     "plans/Onboarding Plan.md",
@@ -205,17 +212,8 @@
     "daily-log/Daily Log 26.03.2026.md",
     "daily-log/Daily Log 11.03.2026.md",
     "daily-log/Daily Log 08.03.2026.md",
-    "daily-log/Daily Log 13.03.2026.md",
-    "daily-log/Daily Log 07.03.2026.md",
-    "daily-log/Daily Log 09.03.2026.md",
-    "daily-log/Daily Log 15.03.2026.md",
-    "daily-log/Daily Log 10.03.2026.md",
-    "daily-log/Daily Log 06.03.2026.md",
-    "daily-log/Daily Log 12.03.2026.md",
-    "daily-log/Daily Log 25.03.2026.md",
     "daily-log",
     "daily-log.textClipping",
-    "2026-03-26.md",
     "Untitled.base",
     "Untitled"
   ]
