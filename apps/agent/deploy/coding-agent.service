@@ -10,4 +10,5 @@ EnvironmentFile=/home/openclaw/evil_empire/apps/agent/.env
 ExecStart=/home/openclaw/.bun/bin/bun run src/index.ts
 StandardOutput=journal
 StandardError=journal
-TimeoutStartSec=600
+TimeoutStartSec=3600
+TimeoutStopSec=30
