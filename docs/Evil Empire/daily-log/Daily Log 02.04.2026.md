@@ -14,3 +14,7 @@ Fixed model ID (`claude-sonnet-4-6`), added `push_branch` tool so the agent can 
 ## Close remaining gaps in agent hardening
 
 Added gh auth error handling, dirty workspace cleanup, cp/mv path sandboxing, orchestrator-enforced agent-log entries, weekly cost summary, and bumped token budget to 500k. All small defensive gaps from Phases 3-6 now closed.
+
+## Add PR review feedback loop (Phase 7)
+
+Implemented the feedback loop: polling detects closed-unmerged PRs, reads review comments, creates [RETRY] issues with feedback context. Agent prompt includes previous attempt feedback for retry issues. Retry depth capped at 1.
