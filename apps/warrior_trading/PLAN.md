@@ -130,12 +130,12 @@ warrior_trading/
 
 ### Phase 8: Verification
 
-- [ ] **8.0** Build bar replay harness — feed historical OHLCV data through the strategy pipeline offline and log signals to a file. Validate signal quality before live paper testing
-- [ ] **8.1** Verify all modules import/compile cleanly with `bun build`
+- [x] **8.0** Build bar replay harness — feed historical OHLCV data through the strategy pipeline offline and log signals to a file. Validate signal quality before live paper testing
+- [x] **8.1** Verify all modules import/compile cleanly with `bun build`
 - [ ] **8.2** Test scanner against live Alpaca paper account
 - [ ] **8.3** Run one full simulated session in paper mode
-- [ ] **8.4** Review risk manager edge cases (what happens at exactly 3 losses, at daily max, etc.)
-- [ ] **8.5** Verify RISK_PER_TRADE_PCT math against MAX_DAILY_LOSS_PCT — ensure worst-case drawdown at MAX_CONSEC_LOSSES cannot exceed the daily loss limit
+- [x] **8.4** Review risk manager edge cases (what happens at exactly 3 losses, at daily max, etc.)
+- [x] **8.5** Verify RISK_PER_TRADE_PCT math against MAX_DAILY_LOSS_PCT — ensure worst-case drawdown at MAX_CONSEC_LOSSES cannot exceed the daily loss limit
 
 ---
 

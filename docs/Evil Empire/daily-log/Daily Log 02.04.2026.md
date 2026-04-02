@@ -64,3 +64,7 @@ Built the trading engine: session timer (ET-based phase detection with event emi
 ## Warrior Trading Bot — Phase 7 Entry Point & Polish
 
 Replaced stub index.ts with full boot sequence: config load, debug log level, live trading 5-second abort window, Alpaca connectivity check, SIGINT/SIGTERM graceful shutdown. Paper trading is default with explicit warning when live.
+
+## Warrior Trading Bot — Phase 8 Verification
+
+Built bar replay harness (CLI tool feeding historical bars through all strategies, outputs JSON signals). Verified tsc + bun build pass clean (262KB, 158 modules). Reviewed risk math: 1.5% × 3 losses = 4.5% worst case, well under 10% daily limit, plus pre-trade breach check as second safeguard. Tasks 8.2/8.3 (live paper testing) left for market hours.
