@@ -90,7 +90,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "coding_agent.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +99,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for coding_agent"
+              "title": "Backlinks"
             }
           },
           {
@@ -109,12 +108,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "coding_agent.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from coding_agent"
+              "title": "Outgoing links"
             }
           },
           {
@@ -181,40 +179,41 @@
   },
   "active": "ac630708e628deed",
   "lastOpenFiles": [
-    "Evil Empire/daily-log/Daily Log 26.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 25.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 15.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 13.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 12.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 11.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 10.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 09.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 08.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 07.03.2026.md",
-    "Evil Empire/daily-log/Daily Log 06.03.2026.md",
-    "PeakTrack Roadmap.md",
-    "Evil Empire/daily-log/Daily Log 02.04.2026.md",
-    "Evil Empire/daily-log/Daily Log 01.04.2026.md",
-    "Evil Empire/daily-log",
-    "Evil Empire",
-    "coding_agent.md",
-    "Percentage-Based Exercise Input RM Handling Flow.md",
-    "kek.md",
-    "Open issues.md",
-    "plans/onboarding-plan.md",
-    "plans/Onboarding Plan.md",
-    "plans",
-    "marketing/TestFlight Internal Testing Setup.md",
-    "marketing/Early User Feedback Strategy.md",
-    "marketing",
-    "ideas/Stats View - Exercise History Visualization.md",
-    "ideas",
-    "daily-log/Daily Log 26.03.2026.md",
-    "daily-log/Daily Log 11.03.2026.md",
-    "daily-log/Daily Log 08.03.2026.md",
-    "daily-log",
-    "daily-log.textClipping",
-    "Untitled.base",
-    "Untitled"
+    "evil_empire/coding_agent.md",
+    "evil_empire/warrior_trading/TEST-PLAN.md",
+    "evil_empire/warrior_trading/REVIEW.md",
+    "evil_empire/warrior_trading/PLAN.md",
+    "evil_empire/daily_log/Daily Log 26.03.2026.md",
+    "evil_empire/daily_log/Daily Log 25.03.2026.md",
+    "evil_empire/daily_log/Daily Log 15.03.2026.md",
+    "evil_empire/daily_log/Daily Log 12.03.2026.md",
+    "evil_empire/daily_log/Daily Log 13.03.2026.md",
+    "evil_empire/daily_log/Daily Log 11.03.2026.md",
+    "evil_empire/daily_log/Daily Log 10.03.2026.md",
+    "evil_empire/daily_log/Daily Log 09.03.2026.md",
+    "evil_empire/daily_log/Daily Log 08.03.2026.md",
+    "evil_empire/daily_log/Daily Log 07.03.2026.md",
+    "evil_empire/daily_log/Daily Log 06.03.2026.md",
+    "evil_empire/daily_log/Daily Log 02.04.2026.md",
+    "evil_empire/daily_log/Daily Log 01.04.2026.md",
+    "evil_empire/daily_log",
+    "evil_empire/peakTrack/marketing/TestFlight Internal Testing Setup.md",
+    "evil_empire/peakTrack/plans/onboarding-plan.md",
+    "evil_empire/peakTrack/marketing/Early User Feedback Strategy.md",
+    "evil_empire/peakTrack/ideas/Stats View - Exercise History Visualization.md",
+    "evil_empire/peakTrack/plans",
+    "evil_empire/peakTrack/marketing",
+    "evil_empire/peakTrack/ideas",
+    "evil_empire/peakTrack/Percentage-Based Exercise Input RM Handling Flow.md",
+    "evil_empire/peakTrack/PeakTrack Roadmap.md",
+    "evil_empire/peakTrack/Open issues.md",
+    "evil_empire/daily-log/Daily Log 26.03.2026.md",
+    "evil_empire/daily-log/Daily Log 25.03.2026.md",
+    "evil_empire/warrior_trading",
+    "evil_empire/peakTrack",
+    "evil_empire/daily-log",
+    "evil_empire",
+    "Evil Empire/warrior_trading",
+    "Evil Empire/peakTrack/plans"
   ]
 }
