@@ -19,6 +19,8 @@ export async function cloneOrPull(): Promise<void> {
   const { existsSync } = await import('node:fs')
   if (existsSync(`${WORK_DIR}/.git`)) {
     logger.info({ phase: 'git', action: 'pull' })
+    // Clean up any dirty state from a previous failed run
+    await run('git checkout -- . 2>/dev/null; git clean -fd 2>/dev/null; true')
     await run('git fetch origin && git checkout develop && git reset --hard origin/develop')
   } else {
     logger.info({ phase: 'git', action: 'clone' })
@@ -61,6 +63,28 @@ export async function push(branch: string): Promise<void> {
 export async function cleanup(): Promise<void> {
   const { rmSync } = await import('node:fs')
   rmSync(WORK_DIR, { recursive: true, force: true })
+}
+
+export async function ensureAgentLogEntry(issueNumber: number, summary: string, tokensUsed: number, costUsd: number): Promise<void> {
+  const { existsSync, mkdirSync, writeFileSync } = await import('node:fs')
+  const { join } = await import('node:path')
+
+  const logDir = join(WORK_DIR, 'docs', 'agent-log')
+  const date = new Date().toISOString().split('T')[0]
+  const logFile = join(logDir, `${date}.md`)
+
+  // Skip if agent already wrote an entry today
+  if (existsSync(logFile)) {
+    logger.info({ phase: 'git', action: 'agent_log_exists', logFile })
+    return
+  }
+
+  mkdirSync(logDir, { recursive: true })
+  const content = `# Agent Log — ${date}\n\n## Issue #${issueNumber}\n\n${summary}\n\n**Tokens used:** ${tokensUsed.toLocaleString()}\n**Cost:** $${costUsd.toFixed(2)}\n`
+  writeFileSync(logFile, content, 'utf-8')
+  await run('git add docs/agent-log/')
+  await run(`git commit -m "docs: add agent-log entry for ${date}"`)
+  logger.info({ phase: 'git', action: 'agent_log_written', logFile })
 }
 
 export async function getRepoTree(depth = 3): Promise<string> {

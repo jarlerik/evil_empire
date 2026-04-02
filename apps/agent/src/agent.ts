@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const WORK_DIR = process.env.WORK_DIR ?? '/tmp/agent-workspace'
-const TOKEN_BUDGET = parseInt(process.env.MAX_TOKENS_PER_RUN ?? '200000', 10)
+const TOKEN_BUDGET = parseInt(process.env.MAX_TOKENS_PER_RUN ?? '500000', 10)
 const MAX_ITERATIONS = 50
 
 const SECRET_PATTERNS = ['sk_', 'pk_', 'ghp_', 'xoxb-', 'AKIA', '-----BEGIN', '.env']

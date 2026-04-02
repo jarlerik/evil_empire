@@ -29,6 +29,9 @@ export async function pollForIssue(): Promise<ParsedIssue | null> {
   const exitCode = await proc.exited
 
   if (exitCode !== 0) {
+    if (stderr.includes('auth login') || stderr.includes('401') || stderr.includes('authentication')) {
+      throw new Error(`gh CLI not authenticated. Run 'gh auth login' or set GITHUB_TOKEN. Details: ${stderr.trim()}`)
+    }
     throw new Error(`gh issue list failed: ${stderr.trim()}`)
   }
 

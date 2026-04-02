@@ -30,6 +30,19 @@ function validateCommand(command: string): void {
   if (!allowed) {
     throw new Error(`Command not in allowlist: ${trimmed}`)
   }
+
+  // Block cp/mv with absolute paths outside WORK_DIR
+  if (trimmed.startsWith('cp ') || trimmed.startsWith('mv ')) {
+    const args = trimmed.split(/\s+/).slice(1)
+    for (const arg of args) {
+      if (arg.startsWith('/') && !arg.startsWith(WORK_DIR) && !arg.startsWith('-')) {
+        throw new Error(`${trimmed.split(' ')[0]} target outside workspace blocked: ${arg}`)
+      }
+      if (arg.includes('..')) {
+        throw new Error(`${trimmed.split(' ')[0]} with path traversal blocked: ${arg}`)
+      }
+    }
+  }
 }
 
 export interface CommandResult {

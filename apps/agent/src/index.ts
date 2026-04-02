@@ -1,7 +1,7 @@
 import { logger } from './utils/logger'
 import { acquireLock, releaseLock } from './utils/lock'
 import { pollForIssue, markInProgress, markDone, markFailed, markTodo } from './poller'
-import { cloneOrPull, createBranch, commitAll, push } from './utils/git'
+import { cloneOrPull, createBranch, commitAll, push, ensureAgentLogEntry } from './utils/git'
 import { sendTelegram } from './utils/telegram'
 import { appendRun, getState } from './utils/state'
 import { runAgent } from './agent'
@@ -85,6 +85,9 @@ async function main() {
         // Run agent
         const { prUrl, costTracker } = await runAgent(issue)
         await costTracker.checkAlert()
+
+        // Ensure agent-log entry exists (if agent didn't write one)
+        await ensureAgentLogEntry(issue.number, issue.title, costTracker.totalTokens, costTracker.costUsd)
 
         // Record success
         appendRun({

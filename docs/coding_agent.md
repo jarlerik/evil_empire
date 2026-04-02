@@ -83,7 +83,7 @@ systemd timer (every 15min)
   TELEGRAM_BOT_TOKEN=
   TELEGRAM_CHAT_ID=
   WORK_DIR=/tmp/agent-workspace
-  MAX_TOKENS_PER_RUN=200000
+  MAX_TOKENS_PER_RUN=500000
   MAX_COST_ALERT_USD=2.00
   MAX_RETRIES=3
   ```
@@ -164,7 +164,7 @@ Build these before anything else — they protect every subsequent phase.
   ```
 - [x] Return oldest issue first (FIFO — use `--search "sort:created-asc"`)
 - [x] Skip issues already labeled `agent-in-progress`
-- [ ] Handle `gh` CLI not authenticated gracefully
+- [x] Handle `gh` CLI not authenticated gracefully
 
 - [x] Issue parsing — use Claude to extract intent:
   - [x] If issue follows the template, parse sections directly
@@ -199,7 +199,7 @@ Build these before anything else — they protect every subsequent phase.
   - [x] `push(branch)` — push to origin
   - [x] `cleanup(workDir)` — remove workspace after done
   - [x] `getRepoTree(depth)` — generate directory tree snapshot for context injection
-- [ ] Handle dirty workspace from previous failed run
+- [x] Handle dirty workspace from previous failed run
 - [x] Never allow push to `main` or `develop` — hard check before any push
 
 ---
@@ -239,7 +239,7 @@ Build these before anything else — they protect every subsequent phase.
 - [x] Timeout: 5 minutes per command
 - [x] Capture stdout, stderr, exit code
 - [x] Log every command executed with timestamp
-- [ ] Never allow commands that write outside `WORK_DIR`
+- [x] Never allow commands that write outside `WORK_DIR`
 
 ### github.ts
 - [x] All operations via `gh` CLI:
@@ -278,14 +278,14 @@ Build these before anything else — they protect every subsequent phase.
   - [x] **Pre-commit secret scan** before any `git commit`:
     - [x] Grep staged files for patterns: `sk_`, `pk_`, `ghp_`, `xoxb-`, `AKIA`, `-----BEGIN`, `.env`
     - [x] Abort commit and log warning if secrets detected
-  - [ ] On completion, write `docs/agent-log/YYYY-MM-DD.md` entry
+  - [x] On completion, write `docs/agent-log/YYYY-MM-DD.md` entry
 
 - [x] Implement `src/utils/cost.ts`:
   - [x] Track input/output tokens per run
   - [x] Calculate cost (Sonnet: $3/MTok in, $15/MTok out)
   - [x] Log cost per run to structured log
   - [x] Alert via Telegram if single run exceeds `MAX_COST_ALERT_USD`
-  - [ ] Write weekly cost summary to `docs/agent-log/cost-summary.md`
+  - [x] Write weekly cost summary to `docs/agent-log/cost-summary.md`
 
 ---
 
@@ -445,7 +445,7 @@ Build these before anything else — they protect every subsequent phase.
 | `TELEGRAM_BOT_TOKEN` | Bot token | required |
 | `TELEGRAM_CHAT_ID` | Your numeric Telegram ID | required |
 | `WORK_DIR` | Temp workspace directory | `/tmp/agent-workspace` |
-| `MAX_TOKENS_PER_RUN` | Hard token budget per run | `200000` |
+| `MAX_TOKENS_PER_RUN` | Hard token budget per run | `500000` |
 | `MAX_COST_ALERT_USD` | Alert threshold per run | `2.00` |
 | `MAX_RETRIES` | Retry attempts before fail | `3` |
 
