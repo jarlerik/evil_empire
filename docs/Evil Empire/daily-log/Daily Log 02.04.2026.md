@@ -56,3 +56,7 @@ Built all five trading strategies: Gap-and-Go (premarket high breakout), Micro P
 ## Warrior Trading Bot — Phase 5 Risk Management
 
 Built position sizer (risk % based, equity-capped), risk manager (daily loss limit, consecutive loss halt, R:R enforcement, single position rule, pre-trade breach check, win rate tracking), and state persistence (atomic JSON write with auto-reset on new trading day).
+
+## Warrior Trading Bot — Phase 6 Engine
+
+Built the trading engine: session timer (ET-based phase detection with event emitter), watchlist manager (historical bar seeding, live WebSocket indicator updates, snapshot delivery), and trader orchestrator (pre-market scan → stream → strategy eval → risk check → bracket order execution → position monitoring with time/trailing/VWAP stops → EOD flatten → daily summary).

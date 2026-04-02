@@ -113,9 +113,9 @@ warrior_trading/
 
 ### Phase 6: Engine
 
-- [ ] **6.1** Build `src/engine/session-timer.ts` — track pre-market (7:00–9:29), open (9:30–11:00), midday (11:00+), closed
-- [ ] **6.2** Build `src/engine/watchlist.ts` — hold scanner results, stream live prices, update indicators
-- [ ] **6.3** Build `src/engine/trader.ts` — main loop:
+- [x] **6.1** Build `src/engine/session-timer.ts` — track pre-market (7:00–9:29), open (9:30–11:00), midday (11:00+), closed
+- [x] **6.2** Build `src/engine/watchlist.ts` — hold scanner results, stream live prices, update indicators
+- [x] **6.3** Build `src/engine/trader.ts` — main loop:
   1. Pre-market: run scanner → build watchlist
   2. Market open: stream bars for watchlist stocks → run strategies → execute signals
   3. Monitor open positions → check exit signals (time stop, pattern invalidation, bearish candles, trailing stop)
