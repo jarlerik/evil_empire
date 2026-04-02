@@ -103,13 +103,13 @@ warrior_trading/
 
 ### Phase 5: Risk Management
 
-- [ ] **5.1** Build `src/risk/position-sizer.ts` — calculate shares from risk %, entry price, and stop distance
-- [ ] **5.2** Build `src/risk/risk-manager.ts`:
+- [x] **5.1** Build `src/risk/position-sizer.ts` — calculate shares from risk %, entry price, and stop distance
+- [x] **5.2** Build `src/risk/risk-manager.ts`:
   - Track daily P&L, halt trading at max daily loss (10% of equity)
   - Track consecutive losses, halt at 3 in a row
   - Enforce 2:1 minimum reward/risk ratio on all trades
   - Enforce single-position rule (one trade at a time)
-- [ ] **5.3** Build state persistence for risk manager — write daily P&L, consecutive loss count, and trade log to a local JSON file atomically after each trade close. Restore on restart so circuit breakers survive crashes
+- [x] **5.3** Build state persistence for risk manager — write daily P&L, consecutive loss count, and trade log to a local JSON file atomically after each trade close. Restore on restart so circuit breakers survive crashes
 
 ### Phase 6: Engine
 

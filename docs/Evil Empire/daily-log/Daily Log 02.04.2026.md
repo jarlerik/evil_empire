@@ -52,3 +52,7 @@ Built all technical indicators: EMA (streaming state machine with multi-EMA 9/20
 ## Warrior Trading Bot — Phase 4 Strategies
 
 Built all five trading strategies: Gap-and-Go (premarket high breakout), Micro Pullback (tiny red candle after surge), Bull Flag (3-7 bar consolidation breakout with flagpole projection), Flat Top (resistance touch counting), and MA Pullback (9/20 EMA bounce with candlestick confirmation). All enforce 2:1+ R:R with confidence scoring.
+
+## Warrior Trading Bot — Phase 5 Risk Management
+
+Built position sizer (risk % based, equity-capped), risk manager (daily loss limit, consecutive loss halt, R:R enforcement, single position rule, pre-trade breach check, win rate tracking), and state persistence (atomic JSON write with auto-reset on new trading day).
