@@ -124,9 +124,9 @@ warrior_trading/
 
 ### Phase 7: Entry Point & Polish
 
-- [ ] **7.1** Build `src/index.ts` — boot sequence, graceful shutdown, error handling
-- [ ] **7.2** Add paper trading mode as default (Alpaca paper endpoint)
-- [ ] **7.3** Add daily summary logging (trades taken, P&L, win rate)
+- [x] **7.1** Build `src/index.ts` — boot sequence, graceful shutdown, error handling
+- [x] **7.2** Add paper trading mode as default (Alpaca paper endpoint)
+- [x] **7.3** Add daily summary logging (trades taken, P&L, win rate)
 
 ### Phase 8: Verification
 

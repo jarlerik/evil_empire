@@ -60,3 +60,7 @@ Built position sizer (risk % based, equity-capped), risk manager (daily loss lim
 ## Warrior Trading Bot — Phase 6 Engine
 
 Built the trading engine: session timer (ET-based phase detection with event emitter), watchlist manager (historical bar seeding, live WebSocket indicator updates, snapshot delivery), and trader orchestrator (pre-market scan → stream → strategy eval → risk check → bracket order execution → position monitoring with time/trailing/VWAP stops → EOD flatten → daily summary).
+
+## Warrior Trading Bot — Phase 7 Entry Point & Polish
+
+Replaced stub index.ts with full boot sequence: config load, debug log level, live trading 5-second abort window, Alpaca connectivity check, SIGINT/SIGTERM graceful shutdown. Paper trading is default with explicit warning when live.
