@@ -40,15 +40,15 @@ systemd timer (every 15min)
 
 ## Phase 1 — Monorepo Setup
 
-- [ ] Create `apps/agent` directory in the monorepo
-- [ ] Initialize Bun project:
+- [x] Create `apps/agent` directory in the monorepo
+- [x] Initialize Bun project:
   ```bash
   cd apps/agent && bun init
   ```
-- [ ] Create `package.json` with name `@evil-empire/agent`
-- [ ] Add to `turbo.json` pipeline
-- [ ] Add `apps/agent` to root `pnpm-workspace.yaml`
-- [ ] Create folder structure:
+- [x] Create `package.json` with name `@evil-empire/agent`
+- [x] Add to `turbo.json` pipeline
+- [x] Add `apps/agent` to root `pnpm-workspace.yaml`
+- [x] Create folder structure:
   ```
   apps/agent/
     src/
@@ -70,12 +70,12 @@ systemd timer (every 15min)
     .env.example
     README.md
   ```
-- [ ] Install dependencies:
+- [x] Install dependencies:
   ```bash
   bun add @anthropic-ai/sdk zod
   ```
   No Octokit — use `gh` CLI for all GitHub operations
-- [ ] Create `.env.example`:
+- [x] Create `.env.example`:
   ```
   ANTHROPIC_API_KEY=
   GITHUB_TOKEN=
@@ -87,8 +87,8 @@ systemd timer (every 15min)
   MAX_COST_ALERT_USD=2.00
   MAX_RETRIES=3
   ```
-- [ ] Add `.env` to `.gitignore`
-- [ ] Create `CLAUDE.md` with project conventions:
+- [x] Add `.env` to `.gitignore`
+- [x] Create `CLAUDE.md` with project conventions:
   ```markdown
   # Project Conventions
 
@@ -125,14 +125,14 @@ systemd timer (every 15min)
 
 Build these before anything else — they protect every subsequent phase.
 
-- [ ] Implement `src/utils/lock.ts`:
-  - [ ] `acquireLock()` — write PID to `~/.agent.lock`, fail if already exists
-  - [ ] `releaseLock()` — delete lock file
-  - [ ] `isStale(lock)` — check if PID in lock file is still running, clean up stale locks
-  - [ ] Always release lock in a `finally` block
+- [x] Implement `src/utils/lock.ts`:
+  - [x] `acquireLock()` — write PID to `~/.agent.lock`, fail if already exists
+  - [x] `releaseLock()` — delete lock file
+  - [x] `isStale(lock)` — check if PID in lock file is still running, clean up stale locks
+  - [x] Always release lock in a `finally` block
 
-- [ ] Implement retry logic and SIGTERM handler in `src/index.ts`:
-  - [ ] **SIGTERM/SIGINT handler** in index.ts (not lock.ts — it needs access to poller + logger):
+- [x] Implement retry logic and SIGTERM handler in `src/index.ts`:
+  - [x] **SIGTERM/SIGINT handler** in index.ts (not lock.ts — it needs access to poller + logger):
     ```typescript
     process.on('SIGTERM', async () => {
       logger.info({ phase: 'shutdown', reason: 'SIGTERM' })
@@ -141,11 +141,11 @@ Build these before anything else — they protect every subsequent phase.
       process.exit(0)
     })
     ```
-  - [ ] Wrap the full run in a retry loop (max 3 attempts, configurable via `MAX_RETRIES`)
-  - [ ] Exponential backoff between retries (30s, 60s, 120s)
-  - [ ] Only mark `agent-failed` after all retries exhausted
-  - [ ] Log each retry attempt with reason for failure
-  - [ ] Different retry behaviour per error type:
+  - [x] Wrap the full run in a retry loop (max 3 attempts, configurable via `MAX_RETRIES`)
+  - [x] Exponential backoff between retries (30s, 60s, 120s)
+  - [x] Only mark `agent-failed` after all retries exhausted
+  - [x] Log each retry attempt with reason for failure
+  - [x] Different retry behaviour per error type:
     - API timeout → retry
     - Token budget exceeded → do not retry, mark failed
     - Git conflict → do not retry, mark failed with explanation
@@ -155,23 +155,23 @@ Build these before anything else — they protect every subsequent phase.
 
 ## Phase 3 — GitHub Issue Poller
 
-- [ ] Implement `src/poller.ts` using `gh` CLI only (no Octokit):
+- [x] Implement `src/poller.ts` using `gh` CLI only (no Octokit):
   ```bash
   gh issue list --repo jarlerik/evil_empire \
     --label agent-todo \
     --json number,title,body,labels \
     --limit 1
   ```
-- [ ] Return oldest issue first (FIFO — use `--sort created --order asc`)
-- [ ] Skip issues already labeled `agent-in-progress`
+- [x] Return oldest issue first (FIFO — use `--search "sort:created-asc"`)
+- [x] Skip issues already labeled `agent-in-progress`
 - [ ] Handle `gh` CLI not authenticated gracefully
 
-- [ ] Issue parsing — use Claude to extract intent:
-  - [ ] If issue follows the template, parse sections directly
+- [x] Issue parsing — use Claude to extract intent:
+  - [x] If issue follows the template, parse sections directly
   - [ ] If issue is freeform, send raw body to Claude Haiku with prompt:
     *"Extract: task description, acceptance criteria, files likely involved, constraints"*
   - [ ] Use a separate small token budget for parsing (not deducted from implementation budget)
-  - [ ] Return a structured object regardless of input format:
+  - [x] Return a structured object regardless of input format:
     ```typescript
     interface ParsedIssue {
       task: string
@@ -182,42 +182,42 @@ Build these before anything else — they protect every subsequent phase.
     }
     ```
 
-- [ ] Label management via `gh` CLI:
-  - [ ] `markInProgress(n)` — remove `agent-todo`, add `agent-in-progress`
-  - [ ] `markDone(n)` — remove `agent-in-progress`, add `agent-done`
-  - [ ] `markFailed(n, reason)` — remove `agent-in-progress`, add `agent-failed`, post comment with reason
+- [x] Label management via `gh` CLI:
+  - [x] `markInProgress(n)` — remove `agent-todo`, add `agent-in-progress`
+  - [x] `markDone(n)` — remove `agent-in-progress`, add `agent-done`
+  - [x] `markFailed(n, reason)` — remove `agent-in-progress`, add `agent-failed`, post comment with reason
 
 ---
 
 ## Phase 4 — Git Operations
 
-- [ ] Implement `src/utils/git.ts`:
-  - [ ] `cloneOrPull(repo, workDir)` — clone if not exists, pull if it does
-  - [ ] `checkoutDevelop()` — always start from latest develop
-  - [ ] `createBranch(issueNumber, title)` — `issue-{n}/{slug}` from develop
-  - [ ] `commitAll(message)` — stage all and commit
-  - [ ] `push(branch)` — push to origin
-  - [ ] `cleanup(workDir)` — remove workspace after done
-  - [ ] `getRepoTree(depth)` — generate directory tree snapshot for context injection
+- [x] Implement `src/utils/git.ts`:
+  - [x] `cloneOrPull(repo, workDir)` — clone if not exists, pull if it does
+  - [x] `checkoutDevelop()` — always start from latest develop
+  - [x] `createBranch(issueNumber, title)` — `issue-{n}/{slug}` from develop
+  - [x] `commitAll(message)` — stage all and commit
+  - [x] `push(branch)` — push to origin
+  - [x] `cleanup(workDir)` — remove workspace after done
+  - [x] `getRepoTree(depth)` — generate directory tree snapshot for context injection
 - [ ] Handle dirty workspace from previous failed run
-- [ ] Never allow push to `main` or `develop` — hard check before any push
+- [x] Never allow push to `main` or `develop` — hard check before any push
 
 ---
 
 ## Phase 5 — Tools (with guardrails from day one)
 
 ### files.ts
-- [ ] Implement with path restriction baked in from the start:
-  - [ ] All paths resolved relative to `WORK_DIR`
-  - [ ] Reject any path that resolves outside `WORK_DIR` (path traversal protection)
-  - [ ] `read_file(path)` — read file contents
-  - [ ] `write_file(path, content)` — write/overwrite file
-  - [ ] `list_directory(path)` — list files
-  - [ ] `file_exists(path)` — check existence
-  - [ ] Never allow reading `.env` files or files containing secrets
+- [x] Implement with path restriction baked in from the start:
+  - [x] All paths resolved relative to `WORK_DIR`
+  - [x] Reject any path that resolves outside `WORK_DIR` (path traversal protection)
+  - [x] `read_file(path)` — read file contents
+  - [x] `write_file(path, content)` — write/overwrite file
+  - [x] `list_directory(path)` — list files
+  - [x] `file_exists(path)` — check existence
+  - [x] Never allow reading `.env` files or files containing secrets
 
 ### bash.ts
-- [ ] Use **allowlist** approach, not blocklist:
+- [x] Use **allowlist** approach, not blocklist:
   ```typescript
   const ALLOWED_PREFIXES = [
     'bun ', 'pnpm ', 'npm ', 'npx ',
@@ -231,37 +231,37 @@ Build these before anything else — they protect every subsequent phase.
   - `git push` is NOT in the allowlist — only the agent's own `push()` function can push
   - `sed` removed — agent should use `write_file` instead
   Reject any command that doesn't start with an allowed prefix
-- [ ] **Reject shell injection vectors** before checking prefix:
-  - [ ] Block commands containing `|`, `&&`, `||`, `;`, backticks, `$()`, `>(`, `<(`, `>`, `>>`, `2>`
-  - [ ] Parse the raw command string for these patterns before execution
-  - [ ] Log rejected commands with the reason
-- [ ] Set working directory to `WORK_DIR` always
-- [ ] Timeout: 5 minutes per command
-- [ ] Capture stdout, stderr, exit code
-- [ ] Log every command executed with timestamp
+- [x] **Reject shell injection vectors** before checking prefix:
+  - [x] Block commands containing `|`, `&&`, `||`, `;`, backticks, `$()`, `>(`, `<(`, `>`, `>>`, `2>`
+  - [x] Parse the raw command string for these patterns before execution
+  - [x] Log rejected commands with the reason
+- [x] Set working directory to `WORK_DIR` always
+- [x] Timeout: 5 minutes per command
+- [x] Capture stdout, stderr, exit code
+- [x] Log every command executed with timestamp
 - [ ] Never allow commands that write outside `WORK_DIR`
 
 ### github.ts
-- [ ] All operations via `gh` CLI:
-  - [ ] `create_pr(branch, title, body)` — PR against develop
-  - [ ] `add_issue_comment(n, comment)` — post progress update
-  - [ ] PR body always includes `Closes #N`
-  - [ ] Never create PR against main
+- [x] All operations via `gh` CLI:
+  - [x] `create_pr(branch, title, body)` — PR against develop
+  - [x] `add_issue_comment(n, comment)` — post progress update
+  - [x] PR body always includes `Closes #N`
+  - [x] Never create PR against main
 
 ---
 
 ## Phase 6 — Claude Agent with Token Budget
 
-- [ ] Implement `src/agent.ts`:
-  - [ ] Initialize Anthropic client
-  - [ ] Build system prompt:
+- [x] Implement `src/agent.ts`:
+  - [x] Initialize Anthropic client
+  - [x] Build system prompt:
     ```
     1. Read CLAUDE.md (project conventions)
     2. Read repo tree snapshot (not full repo)
     3. Parsed issue content
     4. Standing rules (never push to main/develop, always write docs entry)
     ```
-  - [ ] Wire token budget directly into the agent loop:
+  - [x] Wire token budget directly into the agent loop:
     ```typescript
     let totalTokensUsed = 0
     const TOKEN_BUDGET = parseInt(process.env.MAX_TOKENS_PER_RUN)
@@ -272,19 +272,19 @@ Build these before anything else — they protect every subsequent phase.
       throw new Error(`Token budget exceeded: ${totalTokensUsed} tokens`)
     }
     ```
-  - [ ] Max iterations as secondary stop (50) — token budget is primary
-  - [ ] Register tools: `read_file`, `write_file`, `list_directory`, `run_command`, `create_pr`, `add_issue_comment`
-  - [ ] Handle tool call responses in the agentic loop
-  - [ ] **Pre-commit secret scan** before any `git commit`:
-    - [ ] Grep staged files for patterns: `sk_`, `pk_`, `ghp_`, `xoxb-`, `AKIA`, `-----BEGIN`, `.env`
-    - [ ] Abort commit and log warning if secrets detected
+  - [x] Max iterations as secondary stop (50) — token budget is primary
+  - [x] Register tools: `read_file`, `write_file`, `list_directory`, `run_command`, `create_pr`, `add_issue_comment`
+  - [x] Handle tool call responses in the agentic loop
+  - [x] **Pre-commit secret scan** before any `git commit`:
+    - [x] Grep staged files for patterns: `sk_`, `pk_`, `ghp_`, `xoxb-`, `AKIA`, `-----BEGIN`, `.env`
+    - [x] Abort commit and log warning if secrets detected
   - [ ] On completion, write `docs/agent-log/YYYY-MM-DD.md` entry
 
-- [ ] Implement `src/utils/cost.ts`:
-  - [ ] Track input/output tokens per run
-  - [ ] Calculate cost (Sonnet: $3/MTok in, $15/MTok out)
-  - [ ] Log cost per run to structured log
-  - [ ] Alert via Telegram if single run exceeds `MAX_COST_ALERT_USD`
+- [x] Implement `src/utils/cost.ts`:
+  - [x] Track input/output tokens per run
+  - [x] Calculate cost (Sonnet: $3/MTok in, $15/MTok out)
+  - [x] Log cost per run to structured log
+  - [x] Alert via Telegram if single run exceeds `MAX_COST_ALERT_USD`
   - [ ] Write weekly cost summary to `docs/agent-log/cost-summary.md`
 
 ---
@@ -360,7 +360,7 @@ Build these before anything else — they protect every subsequent phase.
 
 ## Phase 9 — Observability
 
-- [ ] Structured JSON logging in `src/utils/logger.ts`:
+- [x] Structured JSON logging in `src/utils/logger.ts`:
   ```typescript
   logger.info({ issueNumber, phase: 'start', tokens: 0 })
   logger.info({ issueNumber, phase: 'pr_opened', prUrl, tokens: 1234, costUsd: 0.02 })
@@ -378,7 +378,7 @@ Build these before anything else — they protect every subsequent phase.
   ```
   journald handles rotation automatically via `/etc/systemd/journald.conf`
 
-- [ ] Implement `src/utils/state.ts` — persistent run history at `~/.agent-state.json`:
+- [x] Implement `src/utils/state.ts` — persistent run history at `~/.agent-state.json`:
   ```typescript
   interface RunRecord {
     timestamp: string
@@ -393,11 +393,11 @@ Build these before anything else — they protect every subsequent phase.
     runs: RunRecord[]  // append-only, trim to last 100
   }
   ```
-  - [ ] `appendRun(record)` — read file, push record, write back
-  - [ ] `getState()` — read and return current state
-  - [ ] Create file if it doesn't exist on first run
+  - [x] `appendRun(record)` — read file, push record, write back
+  - [x] `getState()` — read and return current state
+  - [x] Create file if it doesn't exist on first run
 
-- [ ] Add `--status` flag to index.ts (reads from `~/.agent-state.json`):
+- [x] Add `--status` flag to index.ts (reads from `~/.agent-state.json`):
   ```bash
   bun run apps/agent/src/index.ts --status
   ```
@@ -412,11 +412,11 @@ Build these before anything else — they protect every subsequent phase.
   Estimated cost this week: $0.68
   ```
 
-- [ ] Telegram notifications:
-  - [ ] `🤖 Picked up issue #N: {title}`
-  - [ ] `✅ PR #N opened: {url}`
-  - [ ] `❌ Issue #N failed after 3 attempts: {reason}`
-  - [ ] `💰 Cost alert: run exceeded $X`
+- [x] Telegram notifications:
+  - [x] `🤖 Picked up issue #N: {title}`
+  - [x] `✅ PR #N opened: {url}`
+  - [x] `❌ Issue #N failed after 3 attempts: {reason}`
+  - [x] `💰 Cost alert: run exceeded $X`
 
 ---
 
