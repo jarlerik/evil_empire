@@ -5,6 +5,7 @@ import { cloneOrPull, createBranch, commitAll, push, ensureAgentLogEntry } from 
 import { sendTelegram } from './utils/telegram'
 import { appendRun, getState } from './utils/state'
 import { runAgent } from './agent'
+import { findRejectedPrs, getPrReviewComments, createRetryIssue, closePrLabel } from './tools/github'
 
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES ?? '3', 10)
 const BACKOFF_MS = [30_000, 60_000, 120_000]
@@ -54,6 +55,34 @@ if (process.argv.includes('--status')) {
   process.exit(0)
 }
 
+// --- Feedback loop: process rejected PRs ---
+async function processRejectedPrs(): Promise<void> {
+  try {
+    const rejectedPrs = await findRejectedPrs()
+    for (const pr of rejectedPrs) {
+      // Cap retry depth: if title already has [RETRY], don't retry again
+      if (pr.title.includes('[RETRY]')) {
+        logger.info({ phase: 'feedback', action: 'max_depth', prNumber: pr.number, title: pr.title })
+        await closePrLabel(pr.number)
+        continue
+      }
+
+      logger.info({ phase: 'feedback', action: 'processing_rejected', prNumber: pr.number })
+      const feedback = await getPrReviewComments(pr.number)
+      const issueNumber = await createRetryIssue(pr.title, pr.body, feedback)
+      await closePrLabel(pr.number)
+
+      if (issueNumber > 0) {
+        logger.info({ phase: 'feedback', action: 'retry_created', prNumber: pr.number, newIssue: issueNumber })
+        await sendTelegram(`🔄 PR #${pr.number} was rejected. Created retry issue #${issueNumber}`)
+      }
+    }
+  } catch (error) {
+    // Don't let feedback loop errors block the main polling
+    logger.error({ phase: 'feedback', error: String(error) })
+  }
+}
+
 // --- Main run ---
 async function main() {
   if (!acquireLock()) {
@@ -62,6 +91,9 @@ async function main() {
   }
 
   try {
+    // --- Phase 7: Check for rejected PRs and create retry issues ---
+    await processRejectedPrs()
+
     const issue = await pollForIssue()
     if (!issue) {
       logger.info({ phase: 'start', action: 'idle' })

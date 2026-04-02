@@ -179,6 +179,7 @@ ${issue.filesLikely.length > 0 ? issue.filesLikely.map((f) => `- ${f}`).join('\n
 ### Constraints
 ${issue.constraints.length > 0 ? issue.constraints.map((c) => `- ${c}`).join('\n') : 'None specified'}
 
+${issue.rawBody.includes('Previous attempt feedback') ? `### Previous Attempt Feedback\nThis is a RETRY. A previous attempt was rejected. Pay close attention to the feedback below and avoid making the same mistakes.\n${issue.rawBody.split('## Previous attempt feedback')[1] ?? ''}\n` : ''}
 Complete this task. Create a branch, make changes, run tests, and open a PR against develop with "Closes #${issue.number}" in the body.`
 
   const messages: Anthropic.MessageParam[] = [{ role: 'user', content: userPrompt }]

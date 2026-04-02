@@ -291,17 +291,17 @@ Build these before anything else — they protect every subsequent phase.
 
 ## Phase 7 — PR Review Feedback Loop
 
-- [ ] When a PR is closed without merging (rejected):
-  - [ ] Check for closed-unmerged PRs in the same polling loop (no webhooks needed)
-  - [ ] Read PR review comments via `gh pr view --comments`
-  - [ ] Create a new issue automatically with label `agent-todo`:
+- [x] When a PR is closed without merging (rejected):
+  - [x] Check for closed-unmerged PRs in the same polling loop (no webhooks needed)
+  - [x] Read PR review comments via `gh pr view --comments`
+  - [x] Create a new issue automatically with label `agent-todo`:
     - Title: `[RETRY] {original title}`
     - Body: original issue body + section "Previous attempt feedback: {review comments}"
-  - [ ] Agent picks it up on next cron tick with full context of what went wrong
+  - [x] Agent picks it up on next cron tick with full context of what went wrong
 
-- [ ] Agent reads existing PR comments before starting if issue has `agent-retry` label
-- [ ] Add `agent-retry` label to issues that have been attempted before
-- [ ] **Cap retry depth at 2** — if issue title already contains `[RETRY]`, do not create another retry issue; mark as `agent-failed` with comment "Max retry depth reached"
+- [x] Agent reads existing PR comments before starting if issue has `agent-retry` label
+- [x] Add `agent-retry` label to issues that have been attempted before
+- [x] **Cap retry depth at 2** — if issue title already contains `[RETRY]`, do not create another retry issue; mark as `agent-failed` with comment "Max retry depth reached"
 
 ---
 
