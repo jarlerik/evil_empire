@@ -617,3 +617,70 @@ User changes to 100x, clicks [▶]
 [session]          → "BACKTEST — Complete — 47 trades"
                    → all panels show final state
 ```
+
+---
+
+## Task List
+
+### Phase 1 — Event Bus + Server Skeleton
+
+- [ ] **1.1** Create `src/dashboard/types.ts` — define all event interfaces (`BarEvent`, `IndicatorEvent`, `SignalEvent`, `PositionOpenEvent`, `PositionUpdateEvent`, `PositionCloseEvent`, `RiskEvent`, `EquityEvent`, `SessionEvent`, `ScannerEvent`, `InitEvent`, `PlaybackCommand`, `DashboardEvent` union type). Export all types.
+- [ ] **1.2** Create `src/dashboard/event-bus.ts` — `DashboardEventBus` class extending `EventEmitter` with typed `broadcast()`, `onEvent()`, `sendCommand()`, `onCommand()` methods. Export singleton `dashboardBus`.
+- [ ] **1.3** Create `src/dashboard/server.ts` — `startDashboard(initPayload)` function using `Bun.serve()`. Serve `index.html` at `/`, upgrade `/ws` to WebSocket. On connect send `InitEvent`. Forward `dashboard:event` bus events to all WS clients. Parse incoming `PlaybackCommand` messages and forward to bus. Port from `DASHBOARD_PORT` env (default `3939`).
+- [ ] **1.4** Add `DASHBOARD_PORT` and `DASHBOARD_ENABLED` to `src/config.ts` (defaults: `3939`, `true`).
+- [ ] **1.5** Smoke test: start server standalone, open `http://localhost:3939` in browser, verify WS handshake in DevTools Network tab. Send a test event from server, confirm it arrives in browser console.
+
+### Phase 2 — Instrument Live Trader
+
+- [ ] **2.1** In `src/engine/watchlist.ts` — import `dashboardBus`. Inside `handleBar()`, after `processBar()` and before notifying `onBarCallbacks`, emit `bar` event and `indicators` event with full snapshot data.
+- [ ] **2.2** In `src/engine/trader.ts` — import `dashboardBus`. Add emit calls at these locations:
+  - `onPreMarket()` after `runScanner()` returns → emit `scanner` event with watchlist entries
+  - `evaluateStrategies()` when a signal is found (accepted or rejected) → emit `signal` event
+  - `executeSignal()` after order filled → emit `position:open` event
+  - `monitorPosition()` on each bar → emit `position:update` event with current price, unrealized P&L, bars held, trailing stop
+  - `closeOpenPosition()` → emit `position:close` event with exit price, P&L, exit reason
+  - After `riskManager.onTradeCompleted()` → emit `risk` event and `equity` event
+- [ ] **2.3** In `src/engine/trader.ts` — hook `SessionTimer` phase changes to emit `session` event with current phase and `mode: "live"`.
+- [ ] **2.4** In `src/index.ts` — import `startDashboard`. Before `trader.start()`, call `startDashboard()` with `InitEvent` containing mode, config values, and placeholder symbol. Guard with `DASHBOARD_ENABLED` config check.
+- [ ] **2.5** Add `"dashboard"` script to `package.json`: `"dev:dashboard": "bun run src/index.ts"` (or note in existing `dev` script that dashboard starts automatically).
+- [ ] **2.6** Test: run bot in paper mode during market hours, open browser to `http://localhost:3939/ws`, verify bar, indicator, session, and scanner events stream as JSON in DevTools.
+
+### Phase 3 — Frontend Core
+
+- [ ] **3.1** Create `src/dashboard/index.html` — base HTML structure with dark theme CSS grid layout (header banner, main chart area, sidebar, bottom panels, playback bar). Include Lightweight Charts CDN script tag. Establish WebSocket connection to `ws://localhost:3939/ws`. Parse incoming JSON, route by `event.type` to handler functions.
+- [ ] **3.2** Candlestick chart — initialize `createChart()` with dark theme options. Create candlestick series. On `bar` event, call `series.update()` with OHLC data. Handle time conversion (ISO → UTC timestamp for Lightweight Charts). Enable auto-scroll to latest bar.
+- [ ] **3.3** Volume histogram — add histogram series below candlestick chart. Color bars green (close > open) or red (close < open). Update on each `bar` event.
+- [ ] **3.4** EMA overlays — create 3 line series (EMA9 blue `#2196f3`, EMA20 orange `#ff9800`, VWAP purple `#ab47bc` dashed). On `indicators` event, update each line series with new data point.
+- [ ] **3.5** Entry/exit markers — on `position:open` event, add green upward triangle marker on candlestick series at entry bar. On `position:close` event, add red downward triangle marker at exit bar. While position is open, draw horizontal price lines for stop (red dashed) and target (green dashed) using `createPriceLine()`. Remove price lines on `position:close`.
+- [ ] **3.6** Test: run bot with dashboard, verify chart renders candles, EMAs track correctly, volume histogram updates, and markers appear on trade events.
+
+### Phase 4 — Dashboard Panels
+
+- [ ] **4.1** Session banner (top bar) — show mode badge ("LIVE" green / "BACKTEST" blue), current session phase with colored dot (green=open, yellow=pre-market, red=closed/halted), ET clock updated every second. On `init` event set mode. On `session` event update phase and progress. In backtest mode, show progress bar and "Bar X / Y (Z%)".
+- [ ] **4.2** Position card (sidebar) — default state "No position" dimmed. On `position:open`: show symbol, strategy name, entry price, shares, stop, target. On `position:update`: update current price, unrealized P&L (green/red), bars held, trailing stop level. Flash card border green on open. On `position:close`: flash red/green based on P&L, then fade back to "No position" after 2s.
+- [ ] **4.3** Risk status panel (sidebar) — show daily P&L (large font, color-coded), equity, win rate as "X / Y (Z%)", consecutive losses (amber at ≥2, red at max from config), halted badge (red pulsing if true). Update on each `risk` event.
+- [ ] **4.4** Trade log table (bottom panel) — columns: `#`, `Time`, `Symbol`, `Strategy`, `Entry`, `Exit`, `Shares`, `P&L`, `R-Multiple`, `Bars Held`, `Exit Reason`. Add row on each `position:close` event. P&L cell green/red. Newest row on top. Scrollable container with max-height. Footer row with running totals (total P&L, avg R, total trades, win rate).
+- [ ] **4.5** Equity curve (below candlestick chart) — create second Lightweight Charts instance with area series. Green fill above starting equity baseline, red below. Add data point on each `equity` event. Show starting equity as horizontal price line.
+- [ ] **4.6** Scanner results panel (sidebar, below risk) — render card for each candidate on `scanner` event. Show: symbol (bold), gap% badge, price, RVOL multiplier, catalyst indicator (green dot or dash), score. Cards stack vertically. Fade opacity after market open session event.
+- [ ] **4.7** Signal toast notifications — on `signal` event, show brief toast overlay on chart. Green border if accepted, amber if rejected. Show: strategy name, confidence, entry price, rejection reason if applicable. Auto-dismiss after 3s. Stack if multiple arrive quickly.
+- [ ] **4.8** Test: verify all panels update correctly during a live paper trading session or by sending mock events via a test script.
+
+### Phase 5 — Backtest Playback
+
+- [ ] **5.1** In backtest entry point (`src/backtest.ts` or SimTrader), import `dashboardBus` and `startDashboard`. Before bar loop: call `startDashboard()` with `mode: "backtest"`, symbol, config, and `backtest: { startDate, endDate, totalBars }`.
+- [ ] **5.2** Add playback state to SimTrader bar loop — `paused: boolean`, `speed: number` (delay ms), `stepRequested: boolean`. Listen to `dashboardBus.onCommand()`: on `play` set `paused = false`, on `pause` set `paused = true`, on `step` set `stepRequested = true` and resolve pause, on `speed` update delay mapping (`1x=1000ms, 5x=200ms, 25x=40ms, 100x=10ms, max=0ms`).
+- [ ] **5.3** Wrap bar loop body: at top of each iteration, check `if (paused && !stepRequested) await waitForResume()`. After processing bar, `if (stepRequested) { paused = true; stepRequested = false; }`. Apply `await Bun.sleep(delayMs)` if speed !== max.
+- [ ] **5.4** Emit `session` event with `backtestProgress` on every Nth bar (every bar at slow speeds, every 10th at max speed to avoid flooding).
+- [ ] **5.5** Emit same `bar`, `indicators`, `signal`, `position:*`, `risk`, `equity` events from SimTrader loop — identical to live Trader instrumentation from Phase 2.
+- [ ] **5.6** In `index.html` — add playback controls bar (hidden when `mode === "live"`). Buttons: pause `⏸`, play `▶`, step `⏭`. Speed buttons: `1x`, `5x`, `25x`, `100x`, `Max` (highlight active). On click, send `PlaybackCommand` JSON over WebSocket. Update progress bar width from `session.backtestProgress`.
+- [ ] **5.7** Start backtest in paused state so user can see the dashboard load before playback begins. Show "Ready — press Play to start" in session banner.
+- [ ] **5.8** Test: run `bun run src/backtest.ts AAPL 2026-01-02 2026-03-31`, open dashboard, verify playback controls work (pause, play, step, speed changes). Verify chart builds up bar by bar. Verify all panels populate correctly. Verify backtest completes and final stats display.
+
+### Phase 6 — Polish & QoL
+
+- [ ] **6.1** Auto-reconnect WebSocket in browser — on `ws.onclose`, attempt reconnect with exponential backoff (1s, 2s, 4s, max 10s). Show "Disconnected — reconnecting..." banner. On reconnect, clear chart and request fresh `init` event.
+- [ ] **6.2** Keyboard shortcuts — `Space` = toggle pause/play, `→` (right arrow) = step forward, `+`/`=` = increase speed, `-` = decrease speed. Only active when backtest mode. Show shortcut hints in playback bar tooltip.
+- [ ] **6.3** Responsive layout — test at 1200px, 1440px, 1920px widths. Sidebar collapses below chart on narrow screens. Chart maintains minimum height of 400px.
+- [ ] **6.4** Export trade log — add "Export CSV" button in trade log footer. On click, generate CSV from trade log data in memory and trigger browser download.
+- [ ] **6.5** Run existing test suite (`bun test`) to verify no regressions from instrumentation changes in `trader.ts`, `watchlist.ts`, `index.ts`, `config.ts`.
+- [ ] **6.6** Final integration test: run full backtest with dashboard open, verify no console errors in browser, all panels render, playback controls responsive, equity curve complete at end.
