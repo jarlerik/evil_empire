@@ -44,3 +44,35 @@ Reviewed and improved the PLAN.md with: WebSocket reconnection strategy, fill co
 ## Warrior Trading Bot — Phase 2 Scanner
 
 Built the pre-market scanner pipeline: gap scanner (batch snapshots, gap % / price / volume filtering), float filter (direct REST API since SDK lacks shares_outstanding), news filter (catalyst keyword matching against Alpaca news), and integrated pipeline with scoring/ranking to produce a top-3 watchlist.
+
+## Warrior Trading Bot — Phase 3 Indicators
+
+Built all technical indicators: EMA (streaming state machine with multi-EMA 9/20/50/200), VWAP (cumulative with session reset), MACD (12/26/9 with proper priming), ATR (Wilder's smoothing), relative volume (30-day lookback), and 22 candlestick patterns across single/double/triple families.
+
+## Warrior Trading Bot — Phase 4 Strategies
+
+Built all five trading strategies: Gap-and-Go (premarket high breakout), Micro Pullback (tiny red candle after surge), Bull Flag (3-7 bar consolidation breakout with flagpole projection), Flat Top (resistance touch counting), and MA Pullback (9/20 EMA bounce with candlestick confirmation). All enforce 2:1+ R:R with confidence scoring.
+
+## Warrior Trading Bot — Phase 5 Risk Management
+
+Built position sizer (risk % based, equity-capped), risk manager (daily loss limit, consecutive loss halt, R:R enforcement, single position rule, pre-trade breach check, win rate tracking), and state persistence (atomic JSON write with auto-reset on new trading day).
+
+## Warrior Trading Bot — Phase 6 Engine
+
+Built the trading engine: session timer (ET-based phase detection with event emitter), watchlist manager (historical bar seeding, live WebSocket indicator updates, snapshot delivery), and trader orchestrator (pre-market scan → stream → strategy eval → risk check → bracket order execution → position monitoring with time/trailing/VWAP stops → EOD flatten → daily summary).
+
+## Warrior Trading Bot — Phase 7 Entry Point & Polish
+
+Replaced stub index.ts with full boot sequence: config load, debug log level, live trading 5-second abort window, Alpaca connectivity check, SIGINT/SIGTERM graceful shutdown. Paper trading is default with explicit warning when live.
+
+## Warrior Trading Bot — Phase 8 Verification
+
+Built bar replay harness (CLI tool feeding historical bars through all strategies, outputs JSON signals). Verified tsc + bun build pass clean (262KB, 158 modules). Reviewed risk math: 1.5% × 3 losses = 4.5% worst case, well under 10% daily limit, plus pre-trade breach check as second safeguard. Tasks 8.2/8.3 (live paper testing) left for market hours.
+
+## Fix all code review issues (#1-30)
+
+Fixed all 30 issues from pre-production code review: race condition guards, atomic state persistence with runtime validation, wired up relative volume in scanner, config hardening, async session timer, parallel scanner batches, ring buffer, doji tolerance, and dead code removal.
+
+## Add test plan for warrior trading bot
+
+Wrote comprehensive test plan (`TEST-PLAN.md`) with 27 tasks across 5 priority levels, covering risk math, indicators, strategies, engine, scanner, and Alpaca client. Uses `bun:test` framework with coverage targets from 60% (alpaca wrappers) to 100% (risk module).

@@ -85,37 +85,37 @@ warrior_trading/
 
 ### Phase 3: Indicators
 
-- [ ] **3.1** Build `src/indicators/ema.ts` — EMA(9), EMA(20), EMA(50), EMA(200)
-- [ ] **3.2** Build `src/indicators/vwap.ts` — intraday VWAP
-- [ ] **3.3** Build `src/indicators/macd.ts` — MACD line, signal line, histogram
-- [ ] **3.4** Build `src/indicators/atr.ts` — ATR(14) for dynamic stop sizing
-- [ ] **3.5** Build `src/indicators/relative-volume.ts` — current volume vs 30-day average
-- [ ] **3.6** Build `src/indicators/candlestick/` — all 13 bullish/bearish patterns from the reference chart, split into single-candle, double-candle, and triple-candle pattern families
+- [x] **3.1** Build `src/indicators/ema.ts` — EMA(9), EMA(20), EMA(50), EMA(200)
+- [x] **3.2** Build `src/indicators/vwap.ts` — intraday VWAP
+- [x] **3.3** Build `src/indicators/macd.ts` — MACD line, signal line, histogram
+- [x] **3.4** Build `src/indicators/atr.ts` — ATR(14) for dynamic stop sizing
+- [x] **3.5** Build `src/indicators/relative-volume.ts` — current volume vs 30-day average
+- [x] **3.6** Build `src/indicators/candlestick/` — all 13 bullish/bearish patterns from the reference chart, split into single-candle, double-candle, and triple-candle pattern families
 
 ### Phase 4: Strategies
 
-- [ ] **4.1** Define `src/strategies/types.ts` — `StrategySignal` interface (entry price, stop, target, strategy name, confidence)
-- [ ] **4.2** Build `src/strategies/gap-and-go.ts` — breakout above premarket high / bull flag high with volume
-- [ ] **4.3** Build `src/strategies/micro-pullback.ts` — tiny red candle after momentum surge, entry on new high
-- [ ] **4.4** Build `src/strategies/bull-flag.ts` — consolidation with lower highs, breakout on volume
-- [ ] **4.5** Build `src/strategies/flat-top.ts` — multiple touches of resistance, breakout on third attempt
-- [ ] **4.6** Build `src/strategies/ma-pullback.ts` — bounce off 9/20 EMA in uptrend
+- [x] **4.1** Define `src/strategies/types.ts` — `StrategySignal` interface (entry price, stop, target, strategy name, confidence)
+- [x] **4.2** Build `src/strategies/gap-and-go.ts` — breakout above premarket high / bull flag high with volume
+- [x] **4.3** Build `src/strategies/micro-pullback.ts` — tiny red candle after momentum surge, entry on new high
+- [x] **4.4** Build `src/strategies/bull-flag.ts` — consolidation with lower highs, breakout on volume
+- [x] **4.5** Build `src/strategies/flat-top.ts` — multiple touches of resistance, breakout on third attempt
+- [x] **4.6** Build `src/strategies/ma-pullback.ts` — bounce off 9/20 EMA in uptrend
 
 ### Phase 5: Risk Management
 
-- [ ] **5.1** Build `src/risk/position-sizer.ts` — calculate shares from risk %, entry price, and stop distance
-- [ ] **5.2** Build `src/risk/risk-manager.ts`:
+- [x] **5.1** Build `src/risk/position-sizer.ts` — calculate shares from risk %, entry price, and stop distance
+- [x] **5.2** Build `src/risk/risk-manager.ts`:
   - Track daily P&L, halt trading at max daily loss (10% of equity)
   - Track consecutive losses, halt at 3 in a row
   - Enforce 2:1 minimum reward/risk ratio on all trades
   - Enforce single-position rule (one trade at a time)
-- [ ] **5.3** Build state persistence for risk manager — write daily P&L, consecutive loss count, and trade log to a local JSON file atomically after each trade close. Restore on restart so circuit breakers survive crashes
+- [x] **5.3** Build state persistence for risk manager — write daily P&L, consecutive loss count, and trade log to a local JSON file atomically after each trade close. Restore on restart so circuit breakers survive crashes
 
 ### Phase 6: Engine
 
-- [ ] **6.1** Build `src/engine/session-timer.ts` — track pre-market (7:00–9:29), open (9:30–11:00), midday (11:00+), closed
-- [ ] **6.2** Build `src/engine/watchlist.ts` — hold scanner results, stream live prices, update indicators
-- [ ] **6.3** Build `src/engine/trader.ts` — main loop:
+- [x] **6.1** Build `src/engine/session-timer.ts` — track pre-market (7:00–9:29), open (9:30–11:00), midday (11:00+), closed
+- [x] **6.2** Build `src/engine/watchlist.ts` — hold scanner results, stream live prices, update indicators
+- [x] **6.3** Build `src/engine/trader.ts` — main loop:
   1. Pre-market: run scanner → build watchlist
   2. Market open: stream bars for watchlist stocks → run strategies → execute signals
   3. Monitor open positions → check exit signals (time stop, pattern invalidation, bearish candles, trailing stop)
@@ -124,18 +124,18 @@ warrior_trading/
 
 ### Phase 7: Entry Point & Polish
 
-- [ ] **7.1** Build `src/index.ts` — boot sequence, graceful shutdown, error handling
-- [ ] **7.2** Add paper trading mode as default (Alpaca paper endpoint)
-- [ ] **7.3** Add daily summary logging (trades taken, P&L, win rate)
+- [x] **7.1** Build `src/index.ts` — boot sequence, graceful shutdown, error handling
+- [x] **7.2** Add paper trading mode as default (Alpaca paper endpoint)
+- [x] **7.3** Add daily summary logging (trades taken, P&L, win rate)
 
 ### Phase 8: Verification
 
-- [ ] **8.0** Build bar replay harness — feed historical OHLCV data through the strategy pipeline offline and log signals to a file. Validate signal quality before live paper testing
-- [ ] **8.1** Verify all modules import/compile cleanly with `bun build`
+- [x] **8.0** Build bar replay harness — feed historical OHLCV data through the strategy pipeline offline and log signals to a file. Validate signal quality before live paper testing
+- [x] **8.1** Verify all modules import/compile cleanly with `bun build`
 - [ ] **8.2** Test scanner against live Alpaca paper account
 - [ ] **8.3** Run one full simulated session in paper mode
-- [ ] **8.4** Review risk manager edge cases (what happens at exactly 3 losses, at daily max, etc.)
-- [ ] **8.5** Verify RISK_PER_TRADE_PCT math against MAX_DAILY_LOSS_PCT — ensure worst-case drawdown at MAX_CONSEC_LOSSES cannot exceed the daily loss limit
+- [x] **8.4** Review risk manager edge cases (what happens at exactly 3 losses, at daily max, etc.)
+- [x] **8.5** Verify RISK_PER_TRADE_PCT math against MAX_DAILY_LOSS_PCT — ensure worst-case drawdown at MAX_CONSEC_LOSSES cannot exceed the daily loss limit
 
 ---
 

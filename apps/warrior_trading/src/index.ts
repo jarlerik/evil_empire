@@ -1,22 +1,92 @@
 import { loadConfig } from "./config.js";
 import { createAlpacaClient } from "./alpaca/client.js";
-import { createLogger } from "./utils/logger.js";
+import { Trader } from "./engine/trader.js";
+import { createLogger, setLogLevel } from "./utils/logger.js";
 
 const log = createLogger("main");
 
-async function main() {
-  log.info("Warrior Trading Bot starting...");
+let trader: Trader | null = null;
 
+async function shutdown(signal: string): Promise<void> {
+  log.info(`Received ${signal}, shutting down gracefully...`);
+  if (trader) {
+    await trader.stop();
+    trader = null;
+  }
+  process.exit(0);
+}
+
+async function main() {
+  log.info("=== Warrior Trading Bot ===");
+
+  // Load config
   const config = loadConfig();
+
+  // Debug mode
+  if (Bun.env.LOG_LEVEL === "debug") {
+    setLogLevel("debug");
+  }
+
+  // Paper trading safety
+  if (!config.alpaca.paper) {
+    log.warn("⚠️  LIVE TRADING MODE — real money at risk!");
+    log.warn("Set ALPACA_PAPER=true to use paper trading");
+
+    // In non-interactive environments (Docker/systemd/CI), require explicit confirmation
+    if (!process.stdin.isTTY) {
+      if (Bun.env.CONFIRM_LIVE_TRADING !== "yes") {
+        log.error(
+          "Non-interactive environment detected. Set CONFIRM_LIVE_TRADING=yes to confirm live trading."
+        );
+        process.exit(1);
+      }
+      log.warn("Live trading confirmed via CONFIRM_LIVE_TRADING=yes");
+    } else {
+      // 5-second grace period to abort (interactive terminal)
+      log.warn("Starting in 5 seconds... Press Ctrl+C to abort");
+      await Bun.sleep(5000);
+    }
+  } else {
+    log.info("Paper trading mode (safe)");
+  }
+
   log.info("Config loaded", {
     paper: config.alpaca.paper,
-    strategies: config.trading.strategies,
+    strategies: config.trading.strategies.join(", "),
+    riskPerTrade: `${config.risk.riskPerTradePct}%`,
+    maxDailyLoss: `${config.risk.maxDailyLossPct}%`,
+    maxConsecLosses: config.risk.maxConsecLosses,
   });
 
+  // Create Alpaca client
   const client = createAlpacaClient(config);
 
-  // TODO: Phase 2+ — scanner, indicators, strategies, engine
-  log.info("Bot initialized — awaiting Phase 2+ implementation");
+  // Verify connectivity
+  try {
+    const account = await client.getAccount();
+    const rawEquity = (account as Record<string, unknown>).equity;
+    const equity =
+      typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
+    if (!Number.isFinite(equity) || equity <= 0) {
+      throw new Error(`Invalid equity value from Alpaca: ${rawEquity}`);
+    }
+    const status = (account as Record<string, unknown>).status;
+    log.info("Alpaca account connected", {
+      status,
+      equity: `$${equity.toFixed(2)}`,
+    });
+  } catch (err) {
+    log.error("Failed to connect to Alpaca", { error: String(err) });
+    process.exit(1);
+  }
+
+  // Register shutdown handlers
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+  // Start trading
+  trader = new Trader(client, config);
+  await trader.start();
 }
 
 main().catch((err) => {

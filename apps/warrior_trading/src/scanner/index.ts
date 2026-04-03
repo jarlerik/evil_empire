@@ -1,6 +1,7 @@
 import type { AlpacaClient } from "../alpaca/client.js";
 import type { Config } from "../config.js";
 import { createLogger } from "../utils/logger.js";
+import { computeRelativeVolumeBatch } from "../indicators/relative-volume.js";
 import { scanForGaps, getTradeableSymbols } from "./gap-scanner.js";
 import { filterByFloat } from "./float-filter.js";
 import { filterByNews, type NewsCandidate } from "./news-filter.js";
@@ -57,10 +58,28 @@ export async function runScanner(
   // 3. Float filter — remove high-float stocks
   const floatFiltered = await filterByFloat(gapCandidates, config);
 
-  // 4. News filter — check for catalysts
-  const newsCandidates = await filterByNews(client, floatFiltered);
+  // 4. Relative volume — compute and filter below minimum
+  const symbolVolumes = new Map<string, number>();
+  for (const c of floatFiltered) {
+    symbolVolumes.set(c.symbol, c.volume);
+  }
+  const rvolMap = await computeRelativeVolumeBatch(client, symbolVolumes);
+  const rvolFiltered = floatFiltered.filter((c) => {
+    const rvol = rvolMap.get(c.symbol) ?? 0;
+    c.relativeVolume = rvol;
+    return rvol >= config.scanner.minRelVolume;
+  });
 
-  // 5. Score and rank
+  log.info("Relative volume filter complete", {
+    input: floatFiltered.length,
+    output: rvolFiltered.length,
+    minRelVolume: config.scanner.minRelVolume,
+  });
+
+  // 5. News filter — check for catalysts
+  const newsCandidates = await filterByNews(client, rvolFiltered);
+
+  // 6. Score and rank
   const scored: WatchlistEntry[] = newsCandidates.map((c) => ({
     symbol: c.symbol,
     gapPct: c.gapPct,

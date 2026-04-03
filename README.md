@@ -7,9 +7,9 @@ A React Native/Expo workout tracking app built as a Turborepo monorepo. Users ca
 ```
 evil_empire/
 ├── apps/
-│   ├── mobile/         # React Native/Expo mobile app
-│   ├── web/            # Future web app (placeholder)
-│   └── docs/           # Future documentation site (placeholder)
+│   ├── mobile/            # React Native/Expo mobile app
+│   ├── warrior_trading/   # Automated day-trading bot
+│   ├── agent/             # Autonomous coding agent
 ├── packages/
 │   ├── parsers/        # Shared exercise input parser (@evil-empire/parsers)
 │   ├── types/          # Shared TypeScript types (@evil-empire/types)
@@ -57,6 +57,67 @@ pnpm start:mobile
 pnpm start:mobile
 # Then press 'a' in the terminal
 ```
+
+### Git Worktree Workflow
+
+  1. Create worktree with feature branch
+
+```bash
+    git worktree add .claude/worktrees/my-feature -b feature/my-feature develop
+```
+
+  2. Work in the worktree
+
+```bash
+    cd .claude/worktrees/my-feature
+```
+
+  #### make changes, run tests, etc.
+
+```bash
+    git add <files>
+    git commit -m "Add feature"
+```
+
+  3. Push and create PR
+
+```bash
+    git push origin feature/my-feature -u
+    gh pr create --base develop --head feature/my-feature --title "My feature"
+```
+
+  4. Merge (pick one)
+
+  #### Via GitHub
+
+```bash
+    gh pr merge 33 --squash --delete-branch
+```
+
+  #### Or locally
+
+```bash
+    git checkout develop
+    git merge feature/my-feature
+    git push origin develop
+    git push origin --delete feature/my-feature
+```
+
+  5. Once PR accepted and merged clean up worktree
+
+```bash
+    cd /path/to/main/repo
+    git worktree remove .claude/worktrees/my-feature
+```
+
+  #### Useful commands
+
+```bash
+    git worktree list                  # list all worktrees
+    git worktree prune                 # clean up stale entries
+    git branch -d feature/my-feature   # delete local branch after merge
+```
+
 
 ### Testing
 
@@ -128,6 +189,39 @@ Features:
 - Track repetition maximums (RMs)
 - Execute workouts with built-in timer
 - Supabase backend for data persistence
+
+### Warrior Trading Bot (@evil-empire/warrior-trading)
+
+An automated day-trading bot located in `apps/warrior_trading/`. Connects to the Alpaca Markets API and executes intraday strategies on US equities.
+
+- **Runtime**: Bun
+- **Broker**: Alpaca Markets (paper and live trading)
+- **Strategies**: Gap & Go, Bull Flag, Flat Top, MA Pullback, Micro Pullback
+- **Risk management**: Per-trade risk limits, max daily loss, consecutive loss circuit breaker
+- **Features**: Real-time market scanning, session-aware trading (pre-market/open/close), configurable watchlists
+
+```bash
+# From apps/warrior_trading
+bun run dev        # Start in dev mode
+bun run build      # Build for production
+```
+
+### Agent (@evil-empire/agent)
+
+A CI-style autonomous coding agent located in `apps/agent/`. Polls GitHub issues labeled for automation, spins up a Claude-powered agent to implement the fix or feature, and opens a PR.
+
+- **Runtime**: Bun
+- **AI**: Anthropic Claude SDK
+- **Tools**: File read/write, bash execution, GitHub API
+- **Workflow**: Poll issue → clone repo → create branch → run agent → commit → open PR
+- **Features**: Retry with exponential backoff, cost tracking, Telegram notifications, rejected-PR feedback loop (auto-creates retry issues from review comments)
+
+```bash
+# From apps/agent
+bun run dev          # Start in watch mode
+bun run start        # Single run
+bun run start --status  # Show weekly stats
+```
 
 ## Environment Variables
 
