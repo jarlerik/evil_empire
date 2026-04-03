@@ -11,7 +11,7 @@
 
 import { loadConfig } from "./config.js";
 import { createAlpacaClient } from "./alpaca/client.js";
-import { getBars } from "./alpaca/market-data.js";
+import { getBars, initMarketData } from "./alpaca/market-data.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
 import { DEFAULT_BACKTEST_CONFIG, type BacktestConfig } from "./backtest/types.js";
 import type { Bar } from "./utils/bar.js";
@@ -85,6 +85,7 @@ async function fetchBars(
 ): Promise<Bar[]> {
   const config = loadConfig();
   const client = createAlpacaClient(config);
+  initMarketData(config);
 
   console.log(`Fetching bars for ${btConfig.symbol}...`);
 

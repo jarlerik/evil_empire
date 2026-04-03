@@ -13,6 +13,7 @@ import { createMACD, updateMACD, type MACDState, type MACDValues } from "../indi
 import { createATR, updateATR, type ATRState } from "../indicators/atr.js";
 import { getBars } from "../alpaca/market-data.js";
 import { createLogger } from "../utils/logger.js";
+import { dashboardBus } from "../dashboard/event-bus.js";
 import type { WatchlistEntry } from "../scanner/index.js";
 
 const log = createLogger("engine:watchlist");
@@ -183,6 +184,33 @@ export class Watchlist {
 
     // Update premarket high
     state.premarketHigh = Math.max(state.premarketHigh, bar.high);
+
+    // Emit dashboard events
+    dashboardBus.broadcast({
+      type: "bar",
+      symbol,
+      timestamp: bar.timestamp.toISOString(),
+      open: bar.open,
+      high: bar.high,
+      low: bar.low,
+      close: bar.close,
+      volume: bar.volume,
+    });
+    dashboardBus.broadcast({
+      type: "indicators",
+      symbol,
+      timestamp: bar.timestamp.toISOString(),
+      ema9: state.emaValues.ema9,
+      ema20: state.emaValues.ema20,
+      ema50: state.emaValues.ema50,
+      ema200: state.emaValues.ema200,
+      vwap: state.vwapValue,
+      macd: state.macdValues.macd,
+      macdSignal: state.macdValues.signal,
+      macdHistogram: state.macdValues.histogram,
+      atr: state.atrValue,
+      relativeVolume: state.relativeVolume,
+    });
 
     // Notify listeners
     const snapshot = this.getSnapshot(symbol);

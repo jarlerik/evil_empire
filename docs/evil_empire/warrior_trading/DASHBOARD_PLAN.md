@@ -667,11 +667,11 @@ User changes to 100x, clicks [▶]
 
 ### Phase 5 — Backtest Playback
 
-- [x] **5.1** In backtest entry point (`src/backtest.ts` or SimTrader), import `dashboardBus` and `startDashboard`. Before bar loop: call `startDashboard()` with `mode: "backtest"`, symbol, config, and `backtest: { startDate, endDate, totalBars }`.
-- [x] **5.2** Add playback state to SimTrader bar loop — `paused: boolean`, `speed: number` (delay ms), `stepRequested: boolean`. Listen to `dashboardBus.onCommand()`: on `play` set `paused = false`, on `pause` set `paused = true`, on `step` set `stepRequested = true` and resolve pause, on `speed` update delay mapping (`1x=1000ms, 5x=200ms, 25x=40ms, 100x=10ms, max=0ms`).
-- [x] **5.3** Wrap bar loop body: at top of each iteration, check `if (paused && !stepRequested) await waitForResume()`. After processing bar, `if (stepRequested) { paused = true; stepRequested = false; }`. Apply `await Bun.sleep(delayMs)` if speed !== max.
-- [x] **5.4** Emit `session` event with `backtestProgress` on every Nth bar (every bar at slow speeds, every 10th at max speed to avoid flooding).
-- [x] **5.5** Emit same `bar`, `indicators`, `signal`, `position:*`, `risk`, `equity` events from SimTrader loop — identical to live Trader instrumentation from Phase 2.
+- [ ] **5.1** In backtest entry point (`src/backtest.ts` or SimTrader), import `dashboardBus` and `startDashboard`. Before bar loop: call `startDashboard()` with `mode: "backtest"`, symbol, config, and `backtest: { startDate, endDate, totalBars }`.
+- [ ] **5.2** Add playback state to SimTrader bar loop — `paused: boolean`, `speed: number` (delay ms), `stepRequested: boolean`. Listen to `dashboardBus.onCommand()`: on `play` set `paused = false`, on `pause` set `paused = true`, on `step` set `stepRequested = true` and resolve pause, on `speed` update delay mapping (`1x=1000ms, 5x=200ms, 25x=40ms, 100x=10ms, max=0ms`).
+- [ ] **5.3** Wrap bar loop body: at top of each iteration, check `if (paused && !stepRequested) await waitForResume()`. After processing bar, `if (stepRequested) { paused = true; stepRequested = false; }`. Apply `await Bun.sleep(delayMs)` if speed !== max.
+- [ ] **5.4** Emit `session` event with `backtestProgress` on every Nth bar (every bar at slow speeds, every 10th at max speed to avoid flooding).
+- [ ] **5.5** Emit same `bar`, `indicators`, `signal`, `position:*`, `risk`, `equity` events from SimTrader loop — identical to live Trader instrumentation from Phase 2.
 - [x] **5.6** In `index.html` — add playback controls bar (hidden when `mode === "live"`). Buttons: pause `⏸`, play `▶`, step `⏭`. Speed buttons: `1x`, `5x`, `25x`, `100x`, `Max` (highlight active). On click, send `PlaybackCommand` JSON over WebSocket. Update progress bar width from `session.backtestProgress`.
 - [x] **5.7** Start backtest in paused state so user can see the dashboard load before playback begins. Show "Ready — press Play to start" in session banner.
 - [ ] **5.8** Test: run `bun run src/backtest.ts AAPL 2026-01-02 2026-03-31`, open dashboard, verify playback controls work (pause, play, step, speed changes). Verify chart builds up bar by bar. Verify all panels populate correctly. Verify backtest completes and final stats display.
@@ -682,5 +682,5 @@ User changes to 100x, clicks [▶]
 - [x] **6.2** Keyboard shortcuts — `Space` = toggle pause/play, `→` (right arrow) = step forward, `+`/`=` = increase speed, `-` = decrease speed. Only active when backtest mode. Show shortcut hints in playback bar tooltip.
 - [ ] **6.3** Responsive layout — test at 1200px, 1440px, 1920px widths. Sidebar collapses below chart on narrow screens. Chart maintains minimum height of 400px.
 - [x] **6.4** Export trade log — add "Export CSV" button in trade log footer. On click, generate CSV from trade log data in memory and trigger browser download.
-- [x] **6.5** Run existing test suite (`bun test`) to verify no regressions from instrumentation changes in `trader.ts`, `watchlist.ts`, `index.ts`, `config.ts`.
+- [ ] **6.5** Run existing test suite (`bun test`) to verify no regressions from instrumentation changes in `trader.ts`, `watchlist.ts`, `index.ts`, `config.ts`.
 - [ ] **6.6** Final integration test: run full backtest with dashboard open, verify no console errors in browser, all panels render, playback controls responsive, equity curve complete at end.
