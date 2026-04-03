@@ -10,12 +10,18 @@ export type SessionPhase =
   | "after-hours"  // 16:00 – 20:00 ET
   | "closed";      // 20:00 – 7:00 ET
 
+const etFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "numeric",
+  minute: "numeric",
+  hour12: false,
+});
+
 function getETHour(): { hour: number; minute: number } {
-  const now = new Date();
-  const et = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/New_York" })
-  );
-  return { hour: et.getHours(), minute: et.getMinutes() };
+  const parts = etFormatter.formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === "hour")!.value);
+  const minute = Number(parts.find((p) => p.type === "minute")!.value);
+  return { hour, minute };
 }
 
 function etMinutes(hour: number, minute: number): number {
@@ -75,7 +81,7 @@ export function msUntilSession(target: SessionPhase): number {
 
 export class SessionTimer {
   private currentPhase: SessionPhase;
-  private listeners = new Map<SessionPhase, Array<() => void>>();
+  private listeners = new Map<SessionPhase, Array<() => void | Promise<void>>>();
   private interval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -106,17 +112,17 @@ export class SessionTimer {
     log.info("Session timer stopped");
   }
 
-  on(phase: SessionPhase, callback: () => void): void {
+  on(phase: SessionPhase, callback: () => void | Promise<void>): void {
     const list = this.listeners.get(phase) ?? [];
     list.push(callback);
     this.listeners.set(phase, list);
   }
 
-  private emit(phase: SessionPhase): void {
+  private async emit(phase: SessionPhase): Promise<void> {
     const callbacks = this.listeners.get(phase) ?? [];
     for (const cb of callbacks) {
       try {
-        cb();
+        await cb();
       } catch (err) {
         log.error("Session listener error", { phase, error: String(err) });
       }

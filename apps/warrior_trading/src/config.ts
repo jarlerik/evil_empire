@@ -58,18 +58,16 @@ function parseStrategies(raw: string): StrategyName[] {
 }
 
 export function loadConfig() {
-  const isPaper = env("ALPACA_PAPER", "true").toLowerCase() === "true";
+  const raw = env("ALPACA_PAPER", "true").toLowerCase().trim();
+  if (raw !== "true" && raw !== "false") {
+    throw new Error(`ALPACA_PAPER must be "true" or "false", got: "${raw}"`);
+  }
+  const isPaper = raw === "true";
 
   return {
     alpaca: {
       keyId: env("ALPACA_KEY_ID"),
       secretKey: env("ALPACA_SECRET_KEY"),
-      endpoint: env(
-        "ALPACA_ENDPOINT",
-        isPaper
-          ? "https://paper-api.alpaca.markets/v2"
-          : "https://api.alpaca.markets/v2"
-      ),
       paper: isPaper,
     },
 

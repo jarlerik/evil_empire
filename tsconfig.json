@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/parsers" },
     { "path": "packages/types" },
-    { "path": "apps/mobile/PeakTrack" }
+    { "path": "apps/mobile/PeakTrack"},
+    { "path": "apps/warrior_trading"}
   ]
 }

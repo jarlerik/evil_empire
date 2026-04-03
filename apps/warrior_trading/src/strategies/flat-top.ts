@@ -28,7 +28,10 @@ export const flatTop: Strategy = {
     if (lookback.length < 4) return null;
 
     // Find the highest high as potential resistance
-    const resistance = Math.max(...lookback.map((b) => b.high));
+    let resistance = lookback[0].high;
+    for (let i = 1; i < lookback.length; i++) {
+      if (lookback[i].high > resistance) resistance = lookback[i].high;
+    }
     const tolerance = resistance * TOUCH_TOLERANCE_PCT;
 
     // Count touches of resistance
@@ -51,7 +54,10 @@ export const flatTop: Strategy = {
     if (curr.volume < avgVolume * 1.2) return null;
 
     const entryPrice = resistance;
-    const consolidationLow = Math.min(...lookback.map((b) => b.low));
+    let consolidationLow = lookback[0].low;
+    for (let i = 1; i < lookback.length; i++) {
+      if (lookback[i].low < consolidationLow) consolidationLow = lookback[i].low;
+    }
     const stopPrice = Math.max(
       consolidationLow,
       entryPrice - snap.atr * 1.5

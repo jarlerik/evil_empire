@@ -148,25 +148,44 @@ async function replay(
 }
 
 // CLI entry point
-const [symbol, startDate, endDate] = Bun.argv.slice(2);
+if (import.meta.main) {
+  const [symbol, startDate, endDate] = Bun.argv.slice(2);
 
-if (!symbol || !startDate || !endDate) {
-  console.log("Usage: bun run src/replay.ts <SYMBOL> <START_DATE> <END_DATE>");
-  console.log("Example: bun run src/replay.ts AAPL 2026-03-01 2026-03-31");
-  process.exit(1);
-}
-
-replay(symbol, startDate, endDate)
-  .then(async (signals) => {
-    log.info("Replay complete", { totalSignals: signals.length });
-
-    if (signals.length > 0) {
-      const outFile = `replay-${symbol}-${startDate}-${endDate}.json`;
-      await Bun.write(outFile, JSON.stringify(signals, null, 2));
-      log.info(`Signals written to ${outFile}`);
-    }
-  })
-  .catch((err) => {
-    log.error("Replay failed", { error: String(err) });
+  if (!symbol || !startDate || !endDate) {
+    console.log(
+      "Usage: bun run src/replay.ts <SYMBOL> <START_DATE> <END_DATE>"
+    );
+    console.log("Example: bun run src/replay.ts AAPL 2026-03-01 2026-03-31");
     process.exit(1);
-  });
+  }
+
+  // Validate CLI inputs to prevent path traversal / injection
+  if (!/^[A-Z]{1,5}$/.test(symbol)) {
+    console.error(
+      `Invalid symbol "${symbol}": must be 1-5 uppercase letters (e.g. AAPL)`
+    );
+    process.exit(1);
+  }
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(startDate) || !datePattern.test(endDate)) {
+    console.error(
+      `Invalid date format: must be YYYY-MM-DD (got "${startDate}", "${endDate}")`
+    );
+    process.exit(1);
+  }
+
+  replay(symbol, startDate, endDate)
+    .then(async (signals) => {
+      log.info("Replay complete", { totalSignals: signals.length });
+
+      if (signals.length > 0) {
+        const outFile = `replay-${symbol}-${startDate}-${endDate}.json`;
+        await Bun.write(outFile, JSON.stringify(signals, null, 2));
+        log.info(`Signals written to ${outFile}`);
+      }
+    })
+    .catch((err) => {
+      log.error("Replay failed", { error: String(err) });
+      process.exit(1);
+    });
+}

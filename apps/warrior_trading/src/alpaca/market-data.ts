@@ -116,25 +116,3 @@ export async function getSnapshots(
 
   return result;
 }
-
-export async function getLatestBars(
-  client: AlpacaClient,
-  symbols: string[]
-): Promise<Map<string, Bar>> {
-  const result = new Map<string, Bar>();
-
-  const response = await client.getStocksBars({
-    symbols: symbols.join(","),
-    timeframe: "1Min",
-    limit: 1,
-  });
-
-  const bars = response as unknown as Record<string, AlpacaBar[]>;
-  for (const [symbol, rawBars] of Object.entries(bars)) {
-    if (Array.isArray(rawBars) && rawBars.length > 0) {
-      result.set(symbol, toBar(rawBars[0]));
-    }
-  }
-
-  return result;
-}

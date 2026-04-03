@@ -51,6 +51,8 @@ export class Trader {
   private openPosition: OpenPosition | null = null;
   private scanComplete = false;
   private running = false;
+  private executionInProgress = false;
+  private cachedEquity = 0;
 
   constructor(
     private client: AlpacaClient,
@@ -75,6 +77,7 @@ export class Trader {
     const equity = parseFloat((account as unknown as Record<string, string>).equity);
     log.info("Account loaded", { equity: equity.toFixed(2) });
 
+    this.cachedEquity = equity;
     await this.riskManager.initialize(equity);
 
     // Connect WebSocket
@@ -172,10 +175,13 @@ export class Trader {
     if (!isTradingAllowed()) return;
     if (this.riskManager.isHalted) return;
     if (this.openPosition) {
-      // Monitor existing position
-      this.monitorPosition(snapshot);
+      // Monitor existing position only if snapshot matches the position's symbol
+      if (symbol === this.openPosition.symbol) {
+        this.monitorPosition(snapshot);
+      }
       return;
     }
+    if (this.executionInProgress) return;
 
     // Midday: only accept high-confidence signals
     const session = getCurrentSession();
@@ -195,16 +201,15 @@ export class Trader {
     }
 
     if (bestSignal) {
-      this.executeSignal(bestSignal);
+      this.executionInProgress = true;
+      this.executeSignal(bestSignal).finally(() => {
+        this.executionInProgress = false;
+      });
     }
   }
 
   private async executeSignal(signal: StrategySignal): Promise<void> {
-    // Get current equity
-    const account = await this.client.getAccount();
-    const equity = parseFloat((account as unknown as Record<string, string>).equity);
-
-    const approval = this.riskManager.evaluateSignal(signal, equity);
+    const approval = this.riskManager.evaluateSignal(signal, this.cachedEquity);
     if (!approval.approved) {
       log.info("Signal rejected by risk manager", {
         symbol: signal.symbol,
@@ -323,28 +328,48 @@ export class Trader {
       shares: pos.shares,
     };
 
-    this.openPosition = null;
     await this.riskManager.onTradeCompleted(result);
+    this.cachedEquity += pnl;
+    this.openPosition = null;
   }
 
   private async flattenPositions(): Promise<void> {
     if (this.openPosition) {
-      log.info("Flattening position", { symbol: this.openPosition.symbol });
-      await closeAllPositions(this.client);
+      const pos = this.openPosition;
+      log.info("Flattening position", { symbol: pos.symbol });
+      const response = await closeAllPositions(this.client);
 
-      // Use last known price as approximate exit
-      const snapshot = this.watchlist?.getSnapshot(this.openPosition.symbol);
-      const exitPrice = snapshot?.bars[snapshot.bars.length - 1]?.close ?? this.openPosition.entryPrice;
-      const pnl = (exitPrice - this.openPosition.entryPrice) * this.openPosition.shares;
+      // Retrieve actual fill price from the order response; fall back to last bar close
+      let exitPrice: number | null = null;
+      if (Array.isArray(response)) {
+        const orderForSymbol = response.find(
+          (o: Record<string, unknown>) =>
+            (o as { symbol?: string }).symbol === pos.symbol
+        );
+        if (orderForSymbol) {
+          const filled = await waitForFill(this.client, (orderForSymbol as { id: string }).id);
+          if (filled.filledAvgPrice) {
+            exitPrice = parseFloat(filled.filledAvgPrice);
+          }
+        }
+      }
+
+      if (exitPrice === null) {
+        const snapshot = this.watchlist?.getSnapshot(pos.symbol);
+        exitPrice = snapshot?.bars[snapshot.bars.length - 1]?.close ?? pos.entryPrice;
+      }
+
+      const pnl = (exitPrice - pos.entryPrice) * pos.shares;
 
       await this.riskManager.onTradeCompleted({
-        symbol: this.openPosition.symbol,
+        symbol: pos.symbol,
         pnl,
-        entryPrice: this.openPosition.entryPrice,
+        entryPrice: pos.entryPrice,
         exitPrice,
-        shares: this.openPosition.shares,
+        shares: pos.shares,
       });
 
+      this.cachedEquity += pnl;
       this.openPosition = null;
     }
   }

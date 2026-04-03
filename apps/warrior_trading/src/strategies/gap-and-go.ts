@@ -33,10 +33,11 @@ export const gapAndGo: Strategy = {
 
     // Entry at pre-market high breakout
     const entryPrice = snap.premarketHigh;
-    const stopPrice = Math.min(
-      snap.vwap,
-      Math.min(...bars.slice(-3).map((b) => b.low))
-    );
+    let minLow = bars[bars.length - 1].low;
+    for (let i = bars.length - 2; i >= bars.length - 3 && i >= 0; i--) {
+      if (bars[i].low < minLow) minLow = bars[i].low;
+    }
+    const stopPrice = Math.min(snap.vwap, minLow);
     const stopDistance = entryPrice - stopPrice;
     if (stopDistance <= 0) return null;
 
