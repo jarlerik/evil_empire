@@ -20,7 +20,6 @@ import { maPullback } from "../strategies/ma-pullback.js";
 import type { Strategy, StrategySignal, IndicatorSnapshot } from "../strategies/types.js";
 import type { StrategyName } from "../config.js";
 import { createLogger } from "../utils/logger.js";
-import { dashboardBus } from "../dashboard/event-bus.js";
 
 const log = createLogger("engine:trader");
 
@@ -85,22 +84,10 @@ export class Trader {
     this.stream.connect();
 
     // Set up session transitions
-    this.session.on("pre-market", () => {
-      dashboardBus.broadcast({ type: "session", phase: "pre-market", mode: "live" });
-      this.onPreMarket();
-    });
-    this.session.on("open", () => {
-      dashboardBus.broadcast({ type: "session", phase: "open", mode: "live" });
-      this.onMarketOpen();
-    });
-    this.session.on("close", () => {
-      dashboardBus.broadcast({ type: "session", phase: "close", mode: "live" });
-      this.onMarketClose();
-    });
-    this.session.on("closed", () => {
-      dashboardBus.broadcast({ type: "session", phase: "closed", mode: "live" });
-      this.onMarketClosed();
-    });
+    this.session.on("pre-market", () => this.onPreMarket());
+    this.session.on("open", () => this.onMarketOpen());
+    this.session.on("close", () => this.onMarketClose());
+    this.session.on("closed", () => this.onMarketClosed());
     this.session.start();
 
     // Handle current session
@@ -149,19 +136,6 @@ export class Trader {
       log.warn("Scanner found no candidates");
       return;
     }
-
-    dashboardBus.broadcast({
-      type: "scanner",
-      candidates: results.map((r) => ({
-        symbol: r.symbol,
-        gapPct: r.gapPct,
-        price: r.price,
-        relativeVolume: r.relativeVolume,
-        hasCatalyst: r.hasCatalyst,
-        headline: r.headline,
-        score: r.score,
-      })),
-    });
 
     this.watchlist = new Watchlist(this.client, this.stream, this.config);
     await this.watchlist.loadFromScanResults(results);
@@ -241,32 +215,8 @@ export class Trader {
         symbol: signal.symbol,
         reason: approval.reason,
       });
-      dashboardBus.broadcast({
-        type: "signal",
-        symbol: signal.symbol,
-        strategy: signal.strategy,
-        confidence: signal.confidence,
-        entryPrice: signal.entryPrice,
-        stopPrice: signal.stopPrice,
-        targetPrice: signal.targetPrice,
-        reason: signal.reason,
-        accepted: false,
-        rejectionReason: approval.reason,
-      });
       return;
     }
-
-    dashboardBus.broadcast({
-      type: "signal",
-      symbol: signal.symbol,
-      strategy: signal.strategy,
-      confidence: signal.confidence,
-      entryPrice: signal.entryPrice,
-      stopPrice: signal.stopPrice,
-      targetPrice: signal.targetPrice,
-      reason: signal.reason,
-      accepted: true,
-    });
 
     log.info("Executing signal", {
       symbol: signal.symbol,
@@ -304,16 +254,6 @@ export class Trader {
           highSinceEntry: avgPrice,
         };
         this.riskManager.onPositionOpened();
-        dashboardBus.broadcast({
-          type: "position:open",
-          symbol: signal.symbol,
-          strategy: signal.strategy,
-          entryPrice: avgPrice,
-          shares: approval.positionSize.shares,
-          stopPrice: signal.stopPrice,
-          targetPrice: signal.targetPrice,
-          timestamp: new Date().toISOString(),
-        });
         log.info("Position opened", {
           symbol: signal.symbol,
           avgPrice: avgPrice.toFixed(2),
@@ -340,21 +280,11 @@ export class Trader {
     pos.barsHeld++;
     pos.highSinceEntry = Math.max(pos.highSinceEntry, curr.high);
 
-    dashboardBus.broadcast({
-      type: "position:update",
-      symbol: pos.symbol,
-      currentPrice: curr.close,
-      unrealizedPnL: (curr.close - pos.entryPrice) * pos.shares,
-      barsHeld: pos.barsHeld,
-      highSinceEntry: pos.highSinceEntry,
-      trailingStop: pos.highSinceEntry * (1 - this.config.trading.trailingStopPct / 100),
-    });
-
     // Time stop: no progress after N bars
     if (pos.barsHeld >= this.config.trading.timeStopBars) {
       if (curr.close <= pos.entryPrice) {
         log.info("Time stop triggered", { symbol: pos.symbol, barsHeld: pos.barsHeld });
-        this.closeOpenPosition(curr.close, "time-stop");
+        this.closeOpenPosition(curr.close);
         return;
       }
     }
@@ -368,18 +298,18 @@ export class Trader {
         trailingStop: trailingStop.toFixed(2),
         close: curr.close.toFixed(2),
       });
-      this.closeOpenPosition(curr.close, "trailing-stop");
+      this.closeOpenPosition(curr.close);
       return;
     }
 
     // Price below VWAP — bearish signal for momentum plays
     if (curr.close < snapshot.vwap && pos.barsHeld >= 2) {
       log.info("VWAP breakdown exit", { symbol: pos.symbol });
-      this.closeOpenPosition(curr.close, "vwap-breakdown");
+      this.closeOpenPosition(curr.close);
     }
   }
 
-  private async closeOpenPosition(exitPrice: number, exitReason = "manual"): Promise<void> {
+  private async closeOpenPosition(exitPrice: number): Promise<void> {
     if (!this.openPosition) return;
 
     const pos = this.openPosition;
@@ -398,38 +328,8 @@ export class Trader {
       shares: pos.shares,
     };
 
-    dashboardBus.broadcast({
-      type: "position:close",
-      symbol: pos.symbol,
-      exitPrice,
-      pnl,
-      commission: 0,
-      barsHeld: pos.barsHeld,
-      exitReason,
-      timestamp: new Date().toISOString(),
-    });
-
     await this.riskManager.onTradeCompleted(result);
     this.cachedEquity += pnl;
-
-    const tradesWon = Math.round(this.riskManager.winRate * this.riskManager.tradesCompleted);
-    dashboardBus.broadcast({
-      type: "risk",
-      dailyPnL: this.riskManager.dailyPnL,
-      consecutiveLosses: this.riskManager.consecutiveLosses,
-      tradesCompleted: this.riskManager.tradesCompleted,
-      tradesWon,
-      winRate: this.riskManager.winRate,
-      isHalted: this.riskManager.isHalted,
-      equity: this.cachedEquity,
-    });
-
-    dashboardBus.broadcast({
-      type: "equity",
-      timestamp: new Date().toISOString(),
-      equity: this.cachedEquity,
-    });
-
     this.openPosition = null;
   }
 
@@ -459,48 +359,17 @@ export class Trader {
         exitPrice = snapshot?.bars[snapshot.bars.length - 1]?.close ?? pos.entryPrice;
       }
 
-      const finalExitPrice = exitPrice as number;
-      const pnl = (finalExitPrice - pos.entryPrice) * pos.shares;
-
-      dashboardBus.broadcast({
-        type: "position:close",
-        symbol: pos.symbol,
-        exitPrice: finalExitPrice,
-        pnl,
-        commission: 0,
-        barsHeld: pos.barsHeld,
-        exitReason: "flatten",
-        timestamp: new Date().toISOString(),
-      });
+      const pnl = (exitPrice - pos.entryPrice) * pos.shares;
 
       await this.riskManager.onTradeCompleted({
         symbol: pos.symbol,
         pnl,
         entryPrice: pos.entryPrice,
-        exitPrice: finalExitPrice,
+        exitPrice,
         shares: pos.shares,
       });
 
       this.cachedEquity += pnl;
-
-      const tradesWon = Math.round(this.riskManager.winRate * this.riskManager.tradesCompleted);
-      dashboardBus.broadcast({
-        type: "risk",
-        dailyPnL: this.riskManager.dailyPnL,
-        consecutiveLosses: this.riskManager.consecutiveLosses,
-        tradesCompleted: this.riskManager.tradesCompleted,
-        tradesWon,
-        winRate: this.riskManager.winRate,
-        isHalted: this.riskManager.isHalted,
-        equity: this.cachedEquity,
-      });
-
-      dashboardBus.broadcast({
-        type: "equity",
-        timestamp: new Date().toISOString(),
-        equity: this.cachedEquity,
-      });
-
       this.openPosition = null;
     }
   }

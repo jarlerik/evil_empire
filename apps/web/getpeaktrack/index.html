@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeakTrack - Workout Tracking for Serious Lifters</title>
+    <meta name="description" content="Finally, a workout app that speaks your language. Type 4 x 6 @80%, wave loading, compound movements - PeakTrack understands how serious lifters actually program.">
+    <meta name="keywords" content="workout app, powerlifting, weightlifting, strength training, 1RM calculator, percentage based training">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PeakTrack - Workout Tracking for Serious Lifters">
+    <meta property="og:description" content="Type your program exactly how you write it. 4 x 6 @80%. Wave loading. Build to 8RM. PeakTrack understands.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://getpeaktrack.com">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="peaktrack-favicon.svg">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Hero Section -->
+    <header class="hero">
+        <nav class="nav">
+            <div class="nav-logo">
+                <img src="peaktrack-icon.svg" alt="PeakTrack" class="logo-icon" width="36" height="36">
+                <span class="logo-text">PeakTrack</span>
+            </div>
+            <a href="#waitlist" class="nav-cta">Join Beta</a>
+        </nav>
+
+        <div class="hero-content">
+            <h1 class="hero-title">Finally, a Workout App That <span class="highlight">Speaks Your Language</span></h1>
+            <p class="hero-subtitle">Type your program exactly how you write it.<br>
+                <span class="code-inline">4 x 6 @80%</span>.
+                <span class="code-inline">3-2-1-3-2-1</span> waves.
+                <span class="code-inline">Build to 8RM</span>.<br>
+                PeakTrack understands.
+            </p>
+            <a href="#waitlist" class="cta-button">Join the Beta</a>
+            <p class="hero-note">Free for early testers. iOS & Android.</p>
+        </div>
+
+        <!-- Phone Mockup -->
+        <div class="phone-mockup">
+            <div class="phone-frame">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                    <div class="mock-nav">
+                        <span class="mock-back">←</span>
+                        <span class="mock-title">SNATCH<br>WORKOUT</span>
+                        <span class="mock-close">×</span>
+                    </div>
+                    <div class="mock-exercise-card">
+                        <div class="mock-exercise-header">
+                            <span class="mock-exercise-name">Snatch pull + hang power snatch + OHS</span>
+                            <span class="mock-edit">✎</span>
+                        </div>
+                        <div class="mock-exercise-sets">4 x 3 @35-42kg 120s</div>
+                    </div>
+                    <div class="mock-exercise-card">
+                        <div class="mock-exercise-header">
+                            <span class="mock-exercise-name">Power Snatch + Hang Power Snatch + Snatch Balance</span>
+                            <span class="mock-edit">✎</span>
+                        </div>
+                        <div class="mock-exercise-sets typing">
+                            <span class="typed-text">3 x 1 @80-90% 120s</span>
+                            <span class="cursor">|</span>
+                        </div>
+                    </div>
+                    <div class="mock-input-row">
+                        <input type="text" class="mock-add-input" placeholder="Exercise name" disabled>
+                    </div>
+                    <div class="mock-add-btn">Add exercise</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Parser Demo Section -->
+    <section class="parser-section" id="parser">
+        <div class="container">
+            <h2 class="section-title">Write It <span class="highlight">Your Way</span></h2>
+            <p class="section-subtitle">No more dropdown menus. No more rigid templates. Just type like you think.</p>
+
+            <div class="parser-grid">
+                <div class="parser-card">
+                    <div class="parser-format">Standard</div>
+                    <code class="parser-example">4 x 6 @80kg</code>
+                    <p class="parser-desc">Sets x reps @weight</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">Percentage</div>
+                    <code class="parser-example">4 x 6 @80%</code>
+                    <p class="parser-desc">Auto-calculates from your 1RM</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">Compound</div>
+                    <code class="parser-example">4 x 2 + 2 @50kg</code>
+                    <p class="parser-desc">Clean + jerk, snatch complexes</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">Wave Loading</div>
+                    <code class="parser-example">3-2-1-3-2-1 50 55 60kg</code>
+                    <p class="parser-desc">Varying reps and weights per set</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">RM Build</div>
+                    <code class="parser-example">Build to 8RM</code>
+                    <p class="parser-desc">Progressive loading to find your max</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">RIR</div>
+                    <code class="parser-example">4 x 8 2-3RIR</code>
+                    <p class="parser-desc">Reps in reserve notation</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">With Rest</div>
+                    <code class="parser-example">4 x 3 @50kg 120s</code>
+                    <p class="parser-desc">Built-in rest timers</p>
+                </div>
+
+                <div class="parser-card">
+                    <div class="parser-format">Combined</div>
+                    <code class="parser-example">4 x 1 + 2 + 2 @60% 120s</code>
+                    <p class="parser-desc">Multiple formats together</p>
+                </div>
+            </div>
+
+            <!-- Interactive Demo -->
+            <div class="demo-container">
+                <h3 class="demo-title">Try It Now</h3>
+                <div class="demo-input-wrapper">
+                    <input type="text" id="demo-input" class="demo-input" placeholder="Type an exercise... e.g. 4 x 5 @80%" autocomplete="off">
+                </div>
+                <div id="demo-output" class="demo-output">
+                    <p class="demo-placeholder">Start typing to see how PeakTrack parses your input</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <h2 class="section-title">Built for <span class="highlight">Serious Lifters</span></h2>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">RM Tracking</h3>
+                    <p class="feature-desc">Store your 1RM, 3RM, 5RM per exercise. Use percentages in your workouts and the app calculates actual weights automatically.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Integrated Timer</h3>
+                    <p class="feature-desc">Work/rest phases with audio cues and haptic feedback. Auto-advance through sets. Never miss a rest period again.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                            <line x1="4" y1="22" x2="4" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Compound Movements</h3>
+                    <p class="feature-desc">Power clean + push press? Write it as 4 x 1+2 @80%. The app tracks each part of complex lifts natively.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="proof-section">
+        <div class="container">
+            <div class="proof-content">
+                <h2 class="proof-title">Built by a Strength Athlete,<br>for Strength Athletes</h2>
+                <p class="proof-text">I got tired of workout apps that don't understand wave loading, percentage-based programming, or Olympic lifting complexes. So I built one that does.</p>
+                <p class="proof-text">PeakTrack isn't for everyone. It's for lifters who know what <span class="code-inline">3-2-1-3-2-1</span> means. Who program with percentages. Who track their RMs religiously.</p>
+
+                <div class="proof-stats">
+                    <div class="stat">
+                        <span class="stat-number">296</span>
+                        <span class="stat-label">Parser unit tests</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">12+</span>
+                        <span class="stat-label">Input formats supported</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">Dark mode</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Waitlist Section -->
+    <section class="waitlist-section" id="waitlist">
+        <div class="container">
+            <h2 class="section-title">Join the <span class="highlight">Founder's Beta</span></h2>
+            <p class="section-subtitle">We're inviting serious lifters to help shape PeakTrack.</p>
+
+            <div class="waitlist-benefits">
+                <div class="benefit">
+                    <span class="benefit-icon">&#10003;</span>
+                    <span>Lifetime early adopter pricing</span>
+                </div>
+                <div class="benefit">
+                    <span class="benefit-icon">&#10003;</span>
+                    <span>Direct line to the founder</span>
+                </div>
+                <div class="benefit">
+                    <span class="benefit-icon">&#10003;</span>
+                    <span>Your feature requests prioritized</span>
+                </div>
+            </div>
+
+            <form id="waitlist-form" class="waitlist-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="training-type" class="form-label">What do you train?</label>
+                    <select id="training-type" name="training_type" class="form-select">
+                        <option value="">Select...</option>
+                        <option value="powerlifting">Powerlifting</option>
+                        <option value="olympic_weightlifting">Olympic Weightlifting</option>
+                        <option value="general_strength">General Strength</option>
+                        <option value="coaching">Coaching (I write programs for others)</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="form-button">
+                    <span class="button-text">Request Access</span>
+                    <span class="button-loading" style="display: none;">Sending...</span>
+                </button>
+
+                <p id="form-message" class="form-message"></p>
+            </form>
+
+            <p class="waitlist-note">Currently inviting: Powerlifters, Olympic Lifters, Strength Coaches</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="peaktrack-icon.svg" alt="PeakTrack" class="logo-icon" width="36" height="36">
+                    <span class="logo-text">PeakTrack</span>
+                </div>
+                <p class="footer-tagline">Workout tracking for serious lifters.</p>
+                <p class="footer-platforms">Coming to iOS & Android</p>
+            </div>
+            <div class="footer-links">
+                <a href="mailto:jarl-erik.malmstrom@vaikia.com">Contact</a>
+            </div>
+            <p class="footer-copy">&copy; 2025 PeakTrack. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[Unit]
+Description=Coding Agent — GitHub Issue Worker
+After=network.target
+
+[Service]
+Type=oneshot
+User=openclaw
+WorkingDirectory=/home/openclaw/evil_empire/apps/agent
+EnvironmentFile=/home/openclaw/evil_empire/apps/agent/.env
+ExecStart=/home/openclaw/.bun/bin/bun run src/index.ts
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=3600
+TimeoutStopSec=30

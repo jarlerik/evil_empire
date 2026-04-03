@@ -14,7 +14,6 @@ import { createATR, updateATR, type ATRState } from "../indicators/atr.js";
 import { getBars } from "../alpaca/market-data.js";
 import { createLogger } from "../utils/logger.js";
 import type { WatchlistEntry } from "../scanner/index.js";
-import { dashboardBus } from "../dashboard/event-bus.js";
 
 const log = createLogger("engine:watchlist");
 
@@ -184,38 +183,6 @@ export class Watchlist {
 
     // Update premarket high
     state.premarketHigh = Math.max(state.premarketHigh, bar.high);
-
-    // Broadcast bar data to dashboard
-    dashboardBus.broadcast({
-      type: "bar",
-      symbol,
-      timestamp: bar.timestamp.toISOString(),
-      open: bar.open,
-      high: bar.high,
-      low: bar.low,
-      close: bar.close,
-      volume: bar.volume,
-    });
-
-    // Broadcast indicator state to dashboard
-    const snap = this.getSnapshot(symbol);
-    if (snap) {
-      dashboardBus.broadcast({
-        type: "indicators",
-        symbol,
-        timestamp: bar.timestamp.toISOString(),
-        ema9: snap.ema.ema9,
-        ema20: snap.ema.ema20,
-        ema50: snap.ema.ema50,
-        ema200: snap.ema.ema200,
-        vwap: snap.vwap,
-        macd: snap.macd.macd,
-        macdSignal: snap.macd.signal,
-        macdHistogram: snap.macd.histogram,
-        atr: snap.atr,
-        relativeVolume: snap.relativeVolume,
-      });
-    }
 
     // Notify listeners
     const snapshot = this.getSnapshot(symbol);

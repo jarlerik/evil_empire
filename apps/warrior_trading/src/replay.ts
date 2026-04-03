@@ -1,225 +1,191 @@
 /**
- * Backtest / Replay harness for warrior_trading.
+ * Bar Replay Harness (Phase 8.0)
  *
- * Usage:
- *   bun run apps/warrior_trading/src/replay.ts \
- *     --symbol AAPL --startDate 2025-01-01 --endDate 2025-03-31 \
- *     --file bars.json
+ * Feeds historical OHLCV data through the strategy pipeline offline
+ * and logs all signals to stdout + a JSON file.
  *
- * Starts a dashboard server, then replays historical bars with full
- * playback controls (pause / play / step / speed).
+ * Usage: bun run src/replay.ts AAPL 2026-03-01 2026-03-31
  */
 
-import { parseArgs } from "util";
-import { startDashboard } from "./dashboard/server.js";
-import { dashboardBus } from "./dashboard/event-bus.js";
-import type { BarEvent } from "./dashboard/types.js";
+import { loadConfig } from "./config.js";
+import { createAlpacaClient } from "./alpaca/client.js";
+import { getBars } from "./alpaca/market-data.js";
+import {
+  createMultiEMA,
+  updateMultiEMA,
+} from "./indicators/ema.js";
+import { createVWAP, updateVWAP, resetVWAP } from "./indicators/vwap.js";
+import { createMACD, updateMACD } from "./indicators/macd.js";
+import { createATR, updateATR } from "./indicators/atr.js";
+import { gapAndGo } from "./strategies/gap-and-go.js";
+import { microPullback } from "./strategies/micro-pullback.js";
+import { bullFlag } from "./strategies/bull-flag.js";
+import { flatTop } from "./strategies/flat-top.js";
+import { maPullback } from "./strategies/ma-pullback.js";
+import type { Strategy, StrategySignal, IndicatorSnapshot } from "./strategies/types.js";
+import type { Bar } from "./utils/bar.js";
+import { createLogger } from "./utils/logger.js";
 
-// ── CLI args ────────────────────────────────────────────────────────────────
+const log = createLogger("replay");
 
-const { values: args } = parseArgs({
-  args: Bun.argv.slice(2),
-  options: {
-    symbol: { type: "string", default: "UNKNOWN" },
-    startDate: { type: "string", default: "" },
-    endDate: { type: "string", default: "" },
-    file: { type: "string", default: "" },
-  },
-  strict: false,
-});
+const ALL_STRATEGIES: Strategy[] = [
+  gapAndGo,
+  microPullback,
+  bullFlag,
+  flatTop,
+  maPullback,
+];
 
-const symbol = args.symbol as string;
-const startDate = args.startDate as string;
-const endDate = args.endDate as string;
-const barsFile = args.file as string;
-
-if (!barsFile) {
-  console.error("Usage: bun run replay.ts --symbol SYM --startDate YYYY-MM-DD --endDate YYYY-MM-DD --file bars.json");
-  process.exit(1);
-}
-
-// ── Load bars ───────────────────────────────────────────────────────────────
-
-interface Bar {
+interface ReplaySignal {
   timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
+  symbol: string;
+  strategy: string;
+  entryPrice: number;
+  stopPrice: number;
+  targetPrice: number;
+  confidence: number;
+  reason: string;
 }
 
-const raw = await Bun.file(barsFile).text();
-const bars: Bar[] = JSON.parse(raw);
+async function replay(
+  symbol: string,
+  startDate: string,
+  endDate: string
+): Promise<ReplaySignal[]> {
+  const config = loadConfig();
+  const client = createAlpacaClient(config);
 
-if (bars.length === 0) {
-  console.error("No bars loaded from", barsFile);
-  process.exit(1);
-}
+  log.info("Fetching historical bars", { symbol, startDate, endDate });
 
-console.log(`Loaded ${bars.length} bars for ${symbol}`);
-
-// ── Start dashboard ─────────────────────────────────────────────────────────
-
-startDashboard({
-  type: "init",
-  mode: "backtest",
-  symbol,
-  config: {
-    strategies: ["all"],
-    riskPerTradePct: 1.5,
-    rrRatio: 2,
-    trailingStopPct: 1.5,
-    timeStopBars: 5,
-    startingEquity: 25000,
-  },
-  backtest: {
-    startDate,
-    endDate,
-    totalBars: bars.length,
-  },
-});
-
-// ── Playback state ──────────────────────────────────────────────────────────
-
-let paused = true; // Start paused so user can open dashboard first
-let speed = 5; // Default 5x
-let stepRequested = false;
-let resolveResume: (() => void) | null = null;
-
-const speedToDelay: Record<number, number> = {
-  1: 1000,
-  5: 200,
-  25: 40,
-  100: 10,
-  0: 0, // max speed
-};
-
-function waitForResume(): Promise<void> {
-  return new Promise((resolve) => {
-    resolveResume = resolve;
+  const barsMap = await getBars(client, [symbol], "1Min", {
+    start: new Date(startDate).toISOString(),
+    end: new Date(endDate).toISOString(),
+    limit: 10000,
   });
-}
 
-dashboardBus.onCommand((cmd) => {
-  switch (cmd.action) {
-    case "play":
-      paused = false;
-      resolveResume?.();
-      resolveResume = null;
-      break;
-    case "pause":
-      paused = true;
-      break;
-    case "step":
-      stepRequested = true;
-      if (paused) {
-        resolveResume?.();
-        resolveResume = null;
+  const bars = barsMap.get(symbol);
+  if (!bars || bars.length === 0) {
+    log.warn("No bars found", { symbol });
+    return [];
+  }
+
+  log.info("Bars loaded", { count: bars.length });
+
+  // Initialize indicators
+  const ema = createMultiEMA();
+  const vwap = createVWAP();
+  const macd = createMACD();
+  const atr = createATR();
+
+  const signals: ReplaySignal[] = [];
+  const recentBars: Bar[] = [];
+  let currentDay = "";
+  let premarketHigh = 0;
+
+  for (const bar of bars) {
+    const day = bar.timestamp.toISOString().slice(0, 10);
+
+    // Reset VWAP on new day
+    if (day !== currentDay) {
+      resetVWAP(vwap);
+      premarketHigh = bar.high;
+      currentDay = day;
+    }
+
+    // Update indicators
+    const emaValues = updateMultiEMA(ema, bar.close);
+    const vwapValue = updateVWAP(vwap, bar);
+    const macdValues = updateMACD(macd, bar.close);
+    const atrValue = updateATR(atr, bar);
+
+    recentBars.push(bar);
+    if (recentBars.length > 50) recentBars.shift();
+
+    premarketHigh = Math.max(premarketHigh, bar.high);
+
+    // Need at least 10 bars before evaluating
+    if (recentBars.length < 10) continue;
+
+    const snapshot: IndicatorSnapshot = {
+      bars: [...recentBars],
+      ema: { ...emaValues },
+      vwap: vwapValue,
+      macd: { ...macdValues },
+      atr: atrValue,
+      relativeVolume: 5, // assume high RVOL for replay
+      premarketHigh,
+    };
+
+    // Run all strategies
+    for (const strategy of ALL_STRATEGIES) {
+      const signal = strategy.evaluate(symbol, snapshot);
+      if (signal) {
+        const entry: ReplaySignal = {
+          timestamp: bar.timestamp.toISOString(),
+          symbol: signal.symbol,
+          strategy: signal.strategy,
+          entryPrice: signal.entryPrice,
+          stopPrice: signal.stopPrice,
+          targetPrice: signal.targetPrice,
+          confidence: signal.confidence,
+          reason: signal.reason,
+        };
+        signals.push(entry);
+
+        log.info(`SIGNAL: ${signal.strategy}`, {
+          time: bar.timestamp.toISOString(),
+          entry: signal.entryPrice.toFixed(2),
+          stop: signal.stopPrice.toFixed(2),
+          target: signal.targetPrice.toFixed(2),
+          confidence: signal.confidence,
+          reason: signal.reason,
+        });
       }
-      break;
-    case "speed":
-      speed = cmd.speed ?? 5;
-      break;
-  }
-});
-
-// ── Backtest state ──────────────────────────────────────────────────────────
-
-let equity = 25000;
-let dailyPnL = 0;
-let tradesCompleted = 0;
-let tradesWon = 0;
-let consecutiveLosses = 0;
-
-// Progress emission interval: emit roughly 100 session updates over the run
-const progressInterval = Math.max(1, Math.floor(bars.length / 100));
-
-// ── Emit initial session event (pre-market / paused) ────────────────────────
-
-dashboardBus.broadcast({
-  type: "session",
-  phase: "pre-market",
-  mode: "backtest",
-  backtestProgress: 0,
-});
-
-console.log("Replay paused. Open the dashboard and press Play to begin.");
-
-// ── Bar loop ────────────────────────────────────────────────────────────────
-
-for (let i = 0; i < bars.length; i++) {
-  // ── Playback control: wait while paused ──
-  if (paused && !stepRequested) {
-    await waitForResume();
+    }
   }
 
-  const bar = bars[i];
-
-  // ── Emit bar event ──
-  const barEvent: BarEvent = {
-    type: "bar",
-    symbol,
-    timestamp: bar.timestamp,
-    open: bar.open,
-    high: bar.high,
-    low: bar.low,
-    close: bar.close,
-    volume: bar.volume,
-  };
-  dashboardBus.broadcast(barEvent);
-
-  // ── Emit equity snapshot ──
-  dashboardBus.broadcast({
-    type: "equity",
-    timestamp: bar.timestamp,
-    equity,
-  });
-
-  // ── Emit risk state ──
-  dashboardBus.broadcast({
-    type: "risk",
-    dailyPnL,
-    consecutiveLosses,
-    tradesCompleted,
-    tradesWon,
-    winRate: tradesCompleted > 0 ? tradesWon / tradesCompleted : 0,
-    isHalted: false,
-    equity,
-  });
-
-  // ── Emit session progress ──
-  if (i % progressInterval === 0 || i === bars.length - 1) {
-    dashboardBus.broadcast({
-      type: "session",
-      phase: "open",
-      mode: "backtest",
-      backtestProgress: Math.round((i / bars.length) * 100),
-    });
-  }
-
-  // ── Step mode: pause after processing one bar ──
-  if (stepRequested) {
-    paused = true;
-    stepRequested = false;
-  }
-
-  // ── Speed delay ──
-  const delayMs = speedToDelay[speed] ?? 200;
-  if (delayMs > 0) {
-    await Bun.sleep(delayMs);
-  }
+  return signals;
 }
 
-// ── Final session event ─────────────────────────────────────────────────────
+// CLI entry point
+if (import.meta.main) {
+  const [symbol, startDate, endDate] = Bun.argv.slice(2);
 
-dashboardBus.broadcast({
-  type: "session",
-  phase: "closed",
-  mode: "backtest",
-  backtestProgress: 100,
-});
+  if (!symbol || !startDate || !endDate) {
+    console.log(
+      "Usage: bun run src/replay.ts <SYMBOL> <START_DATE> <END_DATE>"
+    );
+    console.log("Example: bun run src/replay.ts AAPL 2026-03-01 2026-03-31");
+    process.exit(1);
+  }
 
-console.log(`\nReplay complete. ${bars.length} bars processed.`);
-console.log(`Final equity: $${equity.toFixed(2)}`);
-console.log("Dashboard still running. Press Ctrl+C to exit.");
+  // Validate CLI inputs to prevent path traversal / injection
+  if (!/^[A-Z]{1,5}$/.test(symbol)) {
+    console.error(
+      `Invalid symbol "${symbol}": must be 1-5 uppercase letters (e.g. AAPL)`
+    );
+    process.exit(1);
+  }
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(startDate) || !datePattern.test(endDate)) {
+    console.error(
+      `Invalid date format: must be YYYY-MM-DD (got "${startDate}", "${endDate}")`
+    );
+    process.exit(1);
+  }
+
+  replay(symbol, startDate, endDate)
+    .then(async (signals) => {
+      log.info("Replay complete", { totalSignals: signals.length });
+
+      if (signals.length > 0) {
+        const outFile = `replay-${symbol}-${startDate}-${endDate}.json`;
+        await Bun.write(outFile, JSON.stringify(signals, null, 2));
+        log.info(`Signals written to ${outFile}`);
+      }
+    })
+    .catch((err) => {
+      log.error("Replay failed", { error: String(err) });
+      process.exit(1);
+    });
+}

@@ -92,11 +92,6 @@ export function loadConfig() {
       trailingStopPct: envFloat("TRAILING_STOP_PCT", 1.5),
       strategies: parseStrategies(env("STRATEGIES", "all")),
     },
-
-    dashboard: {
-      port: envInt("DASHBOARD_PORT", 3939),
-      enabled: env("DASHBOARD_ENABLED", "true").toLowerCase().trim() === "true",
-    },
   } as const;
 }
 
