@@ -4,6 +4,7 @@ import type { BacktestConfig, BacktestResult } from "./types.js";
 import { SimTrader } from "./sim-trader.js";
 import { computeStats, formatStats, tradesToCSV, tradesToJSON } from "./stats.js";
 import { createLogger } from "../utils/logger.js";
+import { mkdir } from "fs/promises";
 
 const log = createLogger("backtest:engine");
 
@@ -55,10 +56,12 @@ export class BacktestEngine {
     csvFile: string;
   }> {
     const { config, trades, equity } = result;
-    const prefix = `backtest-${config.symbol}-${config.startDate}-${config.endDate}`;
+    const dir = "results";
+    await mkdir(dir, { recursive: true });
+    const prefix = `${dir}/backtest-${config.symbol}-${config.startDate}-${config.endDate}`;
 
     const jsonFile = `${prefix}.json`;
-    const csvFile = `equity-${config.symbol}-${config.startDate}-${config.endDate}.csv`;
+    const csvFile = `${dir}/equity-${config.symbol}-${config.startDate}-${config.endDate}.csv`;
 
     await Bun.write(jsonFile, tradesToJSON(trades));
     await Bun.write(csvFile, tradesToCSV(equity));
