@@ -66,7 +66,7 @@ function generateDayBars(
 }
 
 describe("SimTrader", () => {
-  test("produces deterministic results with same input", () => {
+  test("produces deterministic results with same input", async () => {
     setTestEnv();
     const { loadConfig } = require("../config.js");
     const { SimTrader } = require("../backtest/sim-trader.js");
@@ -103,10 +103,10 @@ describe("SimTrader", () => {
     }
 
     const trader1 = new SimTrader(config, btConfig);
-    const result1 = trader1.run(bars);
+    const result1 = await trader1.run(bars);
 
     const trader2 = new SimTrader(config, btConfig);
-    const result2 = trader2.run(bars);
+    const result2 = await trader2.run(bars);
 
     expect(result1.trades.length).toBe(result2.trades.length);
     expect(result1.equity.length).toBe(result2.equity.length);
@@ -122,7 +122,7 @@ describe("SimTrader", () => {
     }
   });
 
-  test("resets state on new trading day", () => {
+  test("resets state on new trading day", async () => {
     setTestEnv();
     const { loadConfig } = require("../config.js");
     const { SimTrader } = require("../backtest/sim-trader.js");
@@ -161,7 +161,7 @@ describe("SimTrader", () => {
     }
 
     const trader = new SimTrader(config, btConfig);
-    const result = trader.run(bars);
+    const result = await trader.run(bars);
 
     // Should produce equity points for both days
     const days = new Set(
@@ -170,7 +170,7 @@ describe("SimTrader", () => {
     expect(days.size).toBe(2);
   });
 
-  test("starts with correct equity and produces equity curve", () => {
+  test("starts with correct equity and produces equity curve", async () => {
     setTestEnv();
     const { loadConfig } = require("../config.js");
     const { SimTrader } = require("../backtest/sim-trader.js");
@@ -206,7 +206,7 @@ describe("SimTrader", () => {
     }
 
     const trader = new SimTrader(config, btConfig);
-    const result = trader.run(bars);
+    const result = await trader.run(bars);
 
     expect(result.equity.length).toBe(bars.length);
     // First equity point should be starting equity (possibly adjusted by a trade)

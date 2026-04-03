@@ -14,7 +14,7 @@ export class BacktestEngine {
     private btConfig: BacktestConfig
   ) {}
 
-  run(bars: Bar[]): BacktestResult {
+  async run(bars: Bar[], dashboardEnabled = false): Promise<BacktestResult> {
     log.info("Backtest starting", {
       symbol: this.btConfig.symbol,
       bars: bars.length,
@@ -23,8 +23,8 @@ export class BacktestEngine {
       equity: this.btConfig.startingEquity,
     });
 
-    const trader = new SimTrader(this.config, this.btConfig);
-    const { trades, equity } = trader.run(bars);
+    const trader = new SimTrader(this.config, this.btConfig, dashboardEnabled);
+    const { trades, equity } = await trader.run(bars);
 
     const stats = computeStats(trades, equity);
 
