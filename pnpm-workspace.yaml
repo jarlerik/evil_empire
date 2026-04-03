@@ -1,0 +1,6 @@
+packages:
+  - "apps/mobile/*"
+  - "apps/serverless/**"
+  - "apps/agent"
+  - "apps/warrior_trading"
+  - "packages/*"

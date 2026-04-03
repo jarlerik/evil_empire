@@ -1,0 +1,22 @@
+{
+  "name": "@evil-empire/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "test": "echo \"No tests yet\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.7.0"
+  }
+}
