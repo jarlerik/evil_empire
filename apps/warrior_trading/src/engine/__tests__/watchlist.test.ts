@@ -153,7 +153,7 @@ describe("Watchlist", () => {
   test("onBar callback fires with snapshot when handleBar is called", async () => {
     const watchlist = await createWatchlistWithSymbol("TEST");
 
-    let receivedSymbol: string | null = null;
+    let receivedSymbol = "";
     let receivedSnapshot: any = null;
 
     watchlist.onBar((symbol, snapshot) => {
