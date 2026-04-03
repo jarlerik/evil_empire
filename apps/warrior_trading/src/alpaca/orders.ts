@@ -86,7 +86,7 @@ export async function placeOrder(
     ...(req.stopPrice && { stop_price: req.stopPrice }),
   });
 
-  return normalizeOrder(order);
+  return normalizeOrder(order as unknown as AlpacaRawOrder);
 }
 
 export async function placeBracketOrder(
@@ -120,7 +120,7 @@ export async function placeBracketOrder(
     },
   });
 
-  return normalizeOrder(order);
+  return normalizeOrder(order as unknown as AlpacaRawOrder);
 }
 
 export async function cancelOrder(
@@ -136,7 +136,7 @@ export async function getOrder(
   orderId: string
 ): Promise<OrderResult> {
   const order = await client.getOrder({ order_id: orderId });
-  return normalizeOrder(order);
+  return normalizeOrder(order as unknown as AlpacaRawOrder);
 }
 
 // Poll until order reaches a terminal state or timeout
@@ -192,7 +192,7 @@ export async function closePosition(
 ): Promise<OrderResult> {
   log.info("Closing position", { symbol });
   const order = await client.closePosition({ symbol_or_asset_id: symbol });
-  return normalizeOrder(order);
+  return normalizeOrder(order as unknown as AlpacaRawOrder);
 }
 
 /**
@@ -208,6 +208,8 @@ export async function closeAllPositions(
   await client.closePositions();
 }
 
+// The Alpaca SDK uses loose types (Nullable<object>, UnstableNumber) for
+// several fields. We cast to this shape at call sites via `as unknown as`.
 interface AlpacaRawOrder {
   id: string;
   client_order_id: string;
@@ -217,9 +219,9 @@ interface AlpacaRawOrder {
   type: string;
   status: string;
   filled_qty: string;
-  filled_avg_price: string | null;
+  filled_avg_price: string | number | null;
   created_at: string;
-  legs?: AlpacaRawOrder[];
+  legs?: AlpacaRawOrder[] | null;
 }
 
 function normalizeOrder(raw: AlpacaRawOrder): OrderResult {
@@ -232,8 +234,8 @@ function normalizeOrder(raw: AlpacaRawOrder): OrderResult {
     type: raw.type,
     status: raw.status,
     filledQty: raw.filled_qty,
-    filledAvgPrice: raw.filled_avg_price,
+    filledAvgPrice: raw.filled_avg_price != null ? String(raw.filled_avg_price) : null,
     createdAt: raw.created_at,
-    legs: raw.legs?.map(normalizeOrder),
+    legs: (raw.legs ?? undefined)?.map(normalizeOrder),
   };
 }
