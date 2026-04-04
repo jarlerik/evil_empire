@@ -217,9 +217,7 @@ export class Trader {
     }
     if (this.executionInProgress) return;
 
-    // Midday: only accept high-confidence signals
-    const session = getCurrentSession();
-    const minConfidence = session === "midday" ? 75 : 50;
+    const minConfidence = 50;
 
     // Run all enabled strategies
     let bestSignal: StrategySignal | null = null;

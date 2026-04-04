@@ -13,3 +13,7 @@ Wired dashboardBus.broadcast() into trader.ts, watchlist.ts, and index.ts for al
 ## Backtest results output directory
 
 Moved backtest output files (JSON + equity CSV) into a `results/` subdirectory instead of the project root. Added `results/` to `.gitignore`.
+
+## Backtest dashboard playback (Phase 5)
+
+Implemented backtest replay in the dashboard UI. SimTrader now emits all dashboard events (bar, indicators, signal, position lifecycle, risk, equity, session progress) and supports playback controls (pause/play/step/speed) via the event bus. Backtest starts paused so the user can open the dashboard before playback begins. Use `--dashboard` flag: `bun run src/backtest.ts MRVL 2026-02-01 2026-03-31 --dashboard`.
