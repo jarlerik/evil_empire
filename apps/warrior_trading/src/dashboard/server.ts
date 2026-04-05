@@ -9,7 +9,7 @@ export function startDashboard(initPayload: InitEvent): void {
 
   Bun.serve({
     port: PORT,
-    fetch(req, server) {
+    async fetch(req, server) {
       const url = new URL(req.url);
 
       if (url.pathname === "/ws") {
@@ -17,9 +17,22 @@ export function startDashboard(initPayload: InitEvent): void {
         return;  // Bun requires returning undefined for upgrades
       }
 
-      if (url.pathname === "/") {
-        return new Response(Bun.file(new URL("./index.html", import.meta.url).pathname), {
-          headers: { "Content-Type": "text/html" },
+      // Serve built dashboard assets from dist/dashboard
+      const distDir = new URL("../../dist/dashboard", import.meta.url).pathname;
+      const filePath = url.pathname === "/" ? "/index.html" : url.pathname;
+      const file = Bun.file(distDir + filePath);
+      if (await file.exists()) {
+        const ext = filePath.split(".").pop();
+        const mimeTypes: Record<string, string> = {
+          html: "text/html",
+          js: "application/javascript",
+          css: "text/css",
+          json: "application/json",
+          png: "image/png",
+          svg: "image/svg+xml",
+        };
+        return new Response(file, {
+          headers: { "Content-Type": mimeTypes[ext ?? ""] ?? "application/octet-stream" },
         });
       }
 
