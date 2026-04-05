@@ -90,7 +90,11 @@ export function loadConfig() {
     trading: {
       timeStopBars: envInt("TIME_STOP_BARS", 10),
       trailingStopPct: envFloat("TRAILING_STOP_PCT", 3),
+      trailingStopAtrMult: envFloat("TRAILING_STOP_ATR_MULT", 0), // 0 = use fixed %, >0 = use N*ATR
       cooldownBars: envInt("COOLDOWN_BARS", 15),
+      maxHoldBars: envInt("MAX_HOLD_BARS", 0), // 0 = disabled, >0 = force exit after N bars
+      firstHourOnly: env("FIRST_HOUR_ONLY", "false").toLowerCase() === "true",
+      minConfidence: envInt("MIN_CONFIDENCE", 0), // 0 = use session-based defaults (50/75)
       strategies: parseStrategies(env("STRATEGIES", "all")),
     },
 

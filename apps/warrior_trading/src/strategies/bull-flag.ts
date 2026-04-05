@@ -48,16 +48,19 @@ export const bullFlag: Strategy = {
         flagLow = Math.min(flagLow, flagBars[i].low);
       }
 
-      // Flag should be tight (less than 50% of flagpole range)
+      // Flag should be tight relative to flagpole.
+      // 75% threshold accommodates 1-min bar noise on small-cap stocks
+      // (the original 50% was too strict and produced zero trades).
       const flagRange = flagHigh - flagLow;
-      if (flagRange > poleRange * 0.5) continue;
+      if (flagRange > poleRange * 0.75) continue;
 
-      // Most flag bars should be slightly bearish or doji
+      // Some flag bars should be slightly bearish or doji (consolidation)
+      // 30% threshold is more forgiving for 1-min data
       let bearishCount = 0;
       for (let i = 0; i < flagBars.length; i++) {
         if (isBearish(flagBars[i])) bearishCount++;
       }
-      if (bearishCount < flagBars.length * 0.4) continue;
+      if (bearishCount < flagBars.length * 0.3) continue;
 
       // Current bar must break above the flag high
       if (curr.high <= flagHigh) continue;

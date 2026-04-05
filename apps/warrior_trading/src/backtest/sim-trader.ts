@@ -237,7 +237,7 @@ export class SimTrader {
 
       this.currentDay = day;
       resetVWAP(this.vwap);
-      this.premarketHigh = bar.high;
+      this.premarketHigh = bar.open; // Use open (gap settle price) not high
       this.premarketLow = bar.low;
       this.todayVolume = 0;
       this.todayBarCount = 0;
@@ -256,8 +256,13 @@ export class SimTrader {
 
     this.recentBars.push(bar);
     if (this.recentBars.length > 50) this.recentBars.shift();
-    this.premarketHigh = Math.max(this.premarketHigh, bar.high);
-    this.premarketLow = Math.min(this.premarketLow, bar.low);
+    // Only update premarket high/low during pre-market session.
+    // After market open, freeze these values so gap-and-go can detect
+    // breakouts above the premarket high.
+    if (session === "pre-market") {
+      this.premarketHigh = Math.max(this.premarketHigh, bar.high);
+      this.premarketLow = Math.min(this.premarketLow, bar.low);
+    }
     this.todayVolume += bar.volume;
     this.todayBarCount++;
 
@@ -313,7 +318,7 @@ export class SimTrader {
 
       // Trader-level exit checks (trailing stop, time stop, VWAP breakdown)
       if (this.broker.hasPosition && event.type !== "exited") {
-        const traderExit = this.checkTraderExits(bar, vwapValue);
+        const traderExit = this.checkTraderExits(bar, vwapValue, atrValue);
         if (traderExit) {
           this.forceClosePosition(bar, traderExit);
         }
@@ -326,7 +331,9 @@ export class SimTrader {
     }
 
     // --- Evaluate strategies for new entry ---
-    const tradingAllowed = session === "open" || session === "midday";
+    const tradingAllowed = this.config.trading.firstHourOnly
+      ? session === "open"
+      : session === "open" || session === "midday";
     if (
       tradingAllowed &&
       !this.broker.hasPosition &&
@@ -345,7 +352,10 @@ export class SimTrader {
         premarketLow: this.premarketLow === Infinity ? bar.low : this.premarketLow,
       };
 
-      const minConfidence = session === "midday" ? 75 : 50;
+      const defaultMin = session === "midday" ? 75 : 50;
+      const minConfidence = this.config.trading.minConfidence > 0
+        ? this.config.trading.minConfidence
+        : defaultMin;
       let bestSignal: StrategySignal | null = null;
 
       for (const strategy of this.strategies) {
@@ -475,9 +485,15 @@ export class SimTrader {
     return this.todayVolume / scaledAvg;
   }
 
-  private checkTraderExits(bar: Bar, vwapValue: number): ExitReason | null {
+  private checkTraderExits(bar: Bar, vwapValue: number, atrValue: number): ExitReason | null {
     const pos = this.broker.currentPosition;
     if (!pos) return null;
+
+    // Max hold bars: force exit regardless of P&L
+    const maxHold = this.config.trading.maxHoldBars;
+    if (maxHold > 0 && pos.barsHeld >= maxHold) {
+      return "time-stop";
+    }
 
     // Time stop: no progress after N bars
     if (pos.barsHeld >= this.config.trading.timeStopBars) {
@@ -486,8 +502,13 @@ export class SimTrader {
       }
     }
 
-    // Trailing stop
-    const trailingStop = this.highSinceEntry * (1 - this.config.trading.trailingStopPct / 100);
+    // Trailing stop: ATR-based or fixed %
+    let trailingStop: number;
+    if (this.config.trading.trailingStopAtrMult > 0 && atrValue > 0) {
+      trailingStop = this.highSinceEntry - this.config.trading.trailingStopAtrMult * atrValue;
+    } else {
+      trailingStop = this.highSinceEntry * (1 - this.config.trading.trailingStopPct / 100);
+    }
     if (this.highSinceEntry > 0 && bar.close < trailingStop) {
       return "trailing-stop";
     }
