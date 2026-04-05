@@ -101,6 +101,9 @@ describe("loadConfig", () => {
       "flat-top",
       "ma-pullback",
       "micro-pullback",
+      "vwap-reclaim",
+      "vwap-bounce",
+      "orb",
     ]);
 
     // ALPACA_PAPER defaults to "true"
