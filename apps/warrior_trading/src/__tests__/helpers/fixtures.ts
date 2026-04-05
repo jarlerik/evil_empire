@@ -27,6 +27,7 @@ export function makeSnapshot(
     atr: 0.5,
     relativeVolume: 3,
     premarketHigh: 10.8,
+    premarketLow: 9.2,
     ...overrides,
   };
 }

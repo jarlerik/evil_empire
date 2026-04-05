@@ -12,6 +12,8 @@ export interface GapCandidate {
   volume: number;
   prevClose: number;
   relativeVolume: number;
+  premarketHigh: number;
+  premarketLow: number;
 }
 
 // Alpaca limits snapshot requests to ~200 symbols at a time
@@ -44,12 +46,15 @@ export async function scanForGaps(
         const prevClose = snap.prevDailyBar.close;
         if (prevClose === 0) continue;
 
+        // Use today's open for gap calculation (consistent with historical scanner)
+        // currentPrice is used for price filters and candidate reporting
+        const openPrice = snap.latestBar.open;
         const currentPrice = snap.latestBar.close || snap.minuteBar.close;
-        if (currentPrice === 0) continue;
+        if (openPrice === 0 || currentPrice === 0) continue;
 
-        const gapPct = ((currentPrice - prevClose) / prevClose) * 100;
+        const gapPct = ((openPrice - prevClose) / prevClose) * 100;
 
-        // Filter: minimum gap %, price range
+        // Filter: minimum gap %, price range (use current price for filters)
         if (gapPct < config.scanner.minGapPct) continue;
         if (currentPrice < config.scanner.minPrice) continue;
         if (currentPrice > config.scanner.maxPrice) continue;
@@ -64,6 +69,8 @@ export async function scanForGaps(
           volume,
           prevClose,
           relativeVolume: 0, // enriched by computeRelativeVolumeBatch in runScanner
+          premarketHigh: snap.latestBar.high,
+          premarketLow: snap.latestBar.low,
         });
       }
     }
@@ -80,15 +87,19 @@ export async function scanForGaps(
   return candidates;
 }
 
+let _cachedSymbols: string[] | null = null;
+
 export async function getTradeableSymbols(
   client: AlpacaClient
 ): Promise<string[]> {
+  if (_cachedSymbols) return _cachedSymbols;
+
   const assets = await client.getAssets({
     status: "active",
     asset_class: "us_equity",
   });
 
-  return assets
+  _cachedSymbols = assets
     .filter(
       (a) =>
         a.tradable &&
@@ -96,4 +107,6 @@ export async function getTradeableSymbols(
         !a.symbol.includes(".")
     )
     .map((a) => a.symbol);
+
+  return _cachedSymbols;
 }

@@ -2,24 +2,30 @@
  * Backtest CLI Entry Point
  *
  * Usage:
- *   bun run src/backtest.ts <SYMBOL> <START> <END> [--equity 25000] [--slippage 1] [--commission 0.005]
+ *   bun run src/backtest.ts <SYMBOL> <START> <END> [--equity 25000] [--slippage 1] [--commission 0.005] [--dashboard]
  *
  * Example:
  *   bun run src/backtest.ts AAPL 2026-01-02 2026-03-31
- *   bun run src/backtest.ts TSLA 2025-06-01 2025-12-31 --equity 50000
+ *   bun run src/backtest.ts TSLA 2025-06-01 2025-12-31 --equity 50000 --dashboard
  */
 
 import { loadConfig } from "./config.js";
 import { createAlpacaClient } from "./alpaca/client.js";
-import { getBars } from "./alpaca/market-data.js";
+import { getBars, initMarketData } from "./alpaca/market-data.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
+import { startDashboard } from "./dashboard/server.js";
 import { DEFAULT_BACKTEST_CONFIG, type BacktestConfig } from "./backtest/types.js";
 import type { Bar } from "./utils/bar.js";
 import { createLogger } from "./utils/logger.js";
 
 const log = createLogger("backtest");
 
-function parseArgs(): BacktestConfig {
+interface ParsedArgs {
+  btConfig: BacktestConfig;
+  dashboard: boolean;
+}
+
+function parseArgs(): ParsedArgs {
   const args = Bun.argv.slice(2);
 
   if (args.length < 3) {
@@ -29,10 +35,11 @@ function parseArgs(): BacktestConfig {
     console.log("  --equity <number>      Starting equity (default: 25000)");
     console.log("  --slippage <number>    Slippage ticks (default: 1)");
     console.log("  --commission <number>  Commission per share (default: 0.005)");
+    console.log("  --dashboard            Open dashboard for visual replay");
     console.log("");
     console.log("Example:");
     console.log("  bun run src/backtest.ts AAPL 2026-01-02 2026-03-31");
-    console.log("  bun run src/backtest.ts TSLA 2025-06-01 2025-12-31 --equity 50000");
+    console.log("  bun run src/backtest.ts TSLA 2025-06-01 2025-12-31 --equity 50000 --dashboard");
     process.exit(1);
   }
 
@@ -55,6 +62,7 @@ function parseArgs(): BacktestConfig {
   let equity = DEFAULT_BACKTEST_CONFIG.startingEquity;
   let slippage = DEFAULT_BACKTEST_CONFIG.slippageTicks;
   let commission = DEFAULT_BACKTEST_CONFIG.commissionPerShare;
+  let dashboard = false;
 
   for (let i = 3; i < args.length; i++) {
     if (args[i] === "--equity" && args[i + 1]) {
@@ -63,20 +71,25 @@ function parseArgs(): BacktestConfig {
       slippage = parseFloat(args[++i]);
     } else if (args[i] === "--commission" && args[i + 1]) {
       commission = parseFloat(args[++i]);
+    } else if (args[i] === "--dashboard") {
+      dashboard = true;
     }
   }
 
   return {
-    symbol,
-    startDate,
-    endDate,
-    startingEquity: equity,
-    commissionPerShare: commission,
-    slippageTicks: slippage,
-    marketOpenHour: DEFAULT_BACKTEST_CONFIG.marketOpenHour,
-    marketOpenMinute: DEFAULT_BACKTEST_CONFIG.marketOpenMinute,
-    marketCloseHour: DEFAULT_BACKTEST_CONFIG.marketCloseHour,
-    marketCloseMinute: DEFAULT_BACKTEST_CONFIG.marketCloseMinute,
+    btConfig: {
+      symbol,
+      startDate,
+      endDate,
+      startingEquity: equity,
+      commissionPerShare: commission,
+      slippageTicks: slippage,
+      marketOpenHour: DEFAULT_BACKTEST_CONFIG.marketOpenHour,
+      marketOpenMinute: DEFAULT_BACKTEST_CONFIG.marketOpenMinute,
+      marketCloseHour: DEFAULT_BACKTEST_CONFIG.marketCloseHour,
+      marketCloseMinute: DEFAULT_BACKTEST_CONFIG.marketCloseMinute,
+    },
+    dashboard,
   };
 }
 
@@ -85,6 +98,7 @@ async function fetchBars(
 ): Promise<Bar[]> {
   const config = loadConfig();
   const client = createAlpacaClient(config);
+  initMarketData(config);
 
   console.log(`Fetching bars for ${btConfig.symbol}...`);
 
@@ -117,11 +131,11 @@ async function fetchBars(
 }
 
 if (import.meta.main) {
-  const btConfig = parseArgs();
+  const { btConfig, dashboard } = parseArgs();
   const config = loadConfig();
 
   fetchBars(btConfig)
-    .then((bars) => {
+    .then(async (bars) => {
       console.log(`${bars.length.toLocaleString()} bars loaded`);
 
       if (bars.length === 0) {
@@ -129,19 +143,45 @@ if (import.meta.main) {
         process.exit(1);
       }
 
-      console.log("Running backtest...\n");
+      // Start dashboard if requested
+      if (dashboard) {
+        startDashboard({
+          type: "init",
+          mode: "backtest",
+          symbol: btConfig.symbol,
+          config: {
+            strategies: [...config.trading.strategies],
+            riskPerTradePct: config.risk.riskPerTradePct,
+            rrRatio: config.risk.rrRatio,
+            trailingStopPct: config.trading.trailingStopPct,
+            timeStopBars: config.trading.timeStopBars,
+            startingEquity: btConfig.startingEquity,
+          },
+          backtest: {
+            startDate: btConfig.startDate,
+            endDate: btConfig.endDate,
+            totalBars: bars.length,
+          },
+        });
+        console.log("Waiting for play command from dashboard...\n");
+      } else {
+        console.log("Running backtest...\n");
+      }
 
       const engine = new BacktestEngine(config, btConfig);
-      const result = engine.run(bars);
+      const result = await engine.run(bars, dashboard);
 
       BacktestEngine.printSummary(result);
 
-      return BacktestEngine.writeResults(result);
-    })
-    .then(({ jsonFile, csvFile }) => {
+      const { jsonFile, csvFile } = await BacktestEngine.writeResults(result);
       console.log("Results written to:");
       console.log(`  ${jsonFile}`);
       console.log(`  ${csvFile}`);
+
+      // If dashboard is running, keep process alive
+      if (!dashboard) {
+        process.exit(0);
+      }
     })
     .catch((err) => {
       log.error("Backtest failed", { error: String(err) });

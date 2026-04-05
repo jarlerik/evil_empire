@@ -1,6 +1,8 @@
 import { loadConfig } from "./config.js";
 import { createAlpacaClient } from "./alpaca/client.js";
+import { initMarketData } from "./alpaca/market-data.js";
 import { Trader } from "./engine/trader.js";
+import { startDashboard } from "./dashboard/server.js";
 import { createLogger, setLogLevel } from "./utils/logger.js";
 
 const log = createLogger("main");
@@ -60,13 +62,14 @@ async function main() {
 
   // Create Alpaca client
   const client = createAlpacaClient(config);
+  initMarketData(config);
 
   // Verify connectivity
+  let equity = 0;
   try {
     const account = await client.getAccount();
     const rawEquity = (account as Record<string, unknown>).equity;
-    const equity =
-      typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
+    equity = typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
     if (!Number.isFinite(equity) || equity <= 0) {
       throw new Error(`Invalid equity value from Alpaca: ${rawEquity}`);
     }
@@ -83,6 +86,23 @@ async function main() {
   // Register shutdown handlers
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+  // Start dashboard
+  if (config.dashboard.enabled) {
+    startDashboard({
+      type: "init",
+      mode: "live",
+      symbol: "—",
+      config: {
+        strategies: [...config.trading.strategies],
+        riskPerTradePct: config.risk.riskPerTradePct,
+        rrRatio: config.risk.rrRatio,
+        trailingStopPct: config.trading.trailingStopPct,
+        timeStopBars: config.trading.timeStopBars,
+        startingEquity: equity,
+      },
+    });
+  }
 
   // Start trading
   trader = new Trader(client, config);

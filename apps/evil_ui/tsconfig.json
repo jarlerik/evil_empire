@@ -1,0 +1,10 @@
+{
+  "extends": "@evil-empire/typescript-config/node.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "__tests__"]
+}

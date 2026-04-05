@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Evil UI Demo",
+    "slug": "evil-ui-demo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "evil-ui-demo",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "com.evilempire.uidemo"
+    },
+    "android": {
+      "package": "com.evilempire.uidemo"
+    }
+  }
+}

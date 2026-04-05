@@ -1,7 +1,7 @@
 import type { AlpacaClient } from "../alpaca/client.js";
 import type { Config } from "../config.js";
 import { createLogger } from "../utils/logger.js";
-import { computeRelativeVolumeBatch } from "../indicators/relative-volume.js";
+import { computeRelativeVolumeBatch, computeDayFraction } from "../indicators/relative-volume.js";
 import { scanForGaps, getTradeableSymbols } from "./gap-scanner.js";
 import { filterByFloat } from "./float-filter.js";
 import { filterByNews, type NewsCandidate } from "./news-filter.js";
@@ -17,6 +17,8 @@ export interface WatchlistEntry {
   volume: number;
   prevClose: number;
   relativeVolume: number;
+  premarketHigh: number;
+  premarketLow: number;
   hasCatalyst: boolean;
   headline: string | null;
   score: number;
@@ -63,7 +65,8 @@ export async function runScanner(
   for (const c of floatFiltered) {
     symbolVolumes.set(c.symbol, c.volume);
   }
-  const rvolMap = await computeRelativeVolumeBatch(client, symbolVolumes);
+  const dayFraction = computeDayFraction();
+  const rvolMap = await computeRelativeVolumeBatch(client, symbolVolumes, dayFraction);
   const rvolFiltered = floatFiltered.filter((c) => {
     const rvol = rvolMap.get(c.symbol) ?? 0;
     c.relativeVolume = rvol;
@@ -87,6 +90,8 @@ export async function runScanner(
     volume: c.volume,
     prevClose: c.prevClose,
     relativeVolume: c.relativeVolume,
+    premarketHigh: c.premarketHigh,
+    premarketLow: c.premarketLow,
     hasCatalyst: c.hasCatalyst,
     headline: c.headline,
     score: scoreCandidate(c, config),

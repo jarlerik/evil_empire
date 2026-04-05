@@ -1,5 +1,6 @@
 import type { AlpacaClient } from "../alpaca/client.js";
 import { createLogger } from "../utils/logger.js";
+import { getNews } from "../alpaca/market-data.js";
 import type { GapCandidate } from "./gap-scanner.js";
 
 const log = createLogger("scanner:news");
@@ -41,7 +42,7 @@ function isCatalystHeadline(headline: string): boolean {
 }
 
 export async function filterByNews(
-  client: AlpacaClient,
+  _client: AlpacaClient,
   candidates: GapCandidate[]
 ): Promise<NewsCandidate[]> {
   if (candidates.length === 0) return [];
@@ -61,7 +62,7 @@ export async function filterByNews(
     const batch = symbols.slice(i, i + BATCH_SIZE);
 
     try {
-      const response = await client.getNews({
+      const response = await getNews({
         symbols: batch.join(","),
         start: yesterday.toISOString(),
         end: now.toISOString(),

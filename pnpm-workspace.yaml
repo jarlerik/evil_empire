@@ -3,4 +3,6 @@ packages:
   - "apps/serverless/**"
   - "apps/agent"
   - "apps/warrior_trading"
+  - "apps/evil_ui"
+  - "apps/evil_ui/expo-demo"
   - "packages/*"

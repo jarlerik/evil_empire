@@ -46,8 +46,7 @@ export function isMarketOpen(): boolean {
 }
 
 export function isTradingAllowed(): boolean {
-  const session = getCurrentSession();
-  return session === "open" || session === "midday";
+  return getCurrentSession() === "open";
 }
 
 export function shouldFlattenPositions(): boolean {
