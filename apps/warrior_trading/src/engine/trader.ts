@@ -17,6 +17,9 @@ import { microPullback } from "../strategies/micro-pullback.js";
 import { bullFlag } from "../strategies/bull-flag.js";
 import { flatTop } from "../strategies/flat-top.js";
 import { maPullback } from "../strategies/ma-pullback.js";
+import { vwapReclaim } from "../strategies/vwap-reclaim.js";
+import { vwapBounce } from "../strategies/vwap-bounce.js";
+import { orb } from "../strategies/orb.js";
 import type { Strategy, StrategySignal, IndicatorSnapshot } from "../strategies/types.js";
 import type { StrategyName } from "../config.js";
 import { dashboardBus } from "../dashboard/event-bus.js";
@@ -30,6 +33,9 @@ const STRATEGY_MAP: Record<StrategyName, Strategy> = {
   "bull-flag": bullFlag,
   "flat-top": flatTop,
   "ma-pullback": maPullback,
+  "vwap-reclaim": vwapReclaim,
+  "vwap-bounce": vwapBounce,
+  "orb": orb,
 };
 
 interface OpenPosition {

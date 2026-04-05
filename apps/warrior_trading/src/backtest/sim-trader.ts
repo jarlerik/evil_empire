@@ -10,6 +10,9 @@ import { microPullback } from "../strategies/micro-pullback.js";
 import { bullFlag } from "../strategies/bull-flag.js";
 import { flatTop } from "../strategies/flat-top.js";
 import { maPullback } from "../strategies/ma-pullback.js";
+import { vwapReclaim } from "../strategies/vwap-reclaim.js";
+import { vwapBounce } from "../strategies/vwap-bounce.js";
+import { orb } from "../strategies/orb.js";
 import { SimBroker, type ExitResult, type FilledPosition } from "./sim-broker.js";
 import { BacktestRiskManager } from "./backtest-risk-manager.js";
 import type { BacktestConfig, TradeRecord, EquityPoint, ExitReason } from "./types.js";
@@ -25,6 +28,9 @@ const STRATEGY_MAP: Record<StrategyName, Strategy> = {
   "bull-flag": bullFlag,
   "flat-top": flatTop,
   "ma-pullback": maPullback,
+  "vwap-reclaim": vwapReclaim,
+  "vwap-bounce": vwapBounce,
+  "orb": orb,
 };
 
 type SessionPhase = "pre-market" | "open" | "midday" | "close" | "after-hours" | "closed";
@@ -87,6 +93,7 @@ export class SimTrader {
   private premarketHigh = 0;
   private premarketLow = Infinity;
   private currentDay = "";
+  private barsSinceOpen = 0;
 
   // Relative volume tracking
   private todayVolume = 0;
@@ -241,6 +248,7 @@ export class SimTrader {
       this.premarketLow = bar.low;
       this.todayVolume = 0;
       this.todayBarCount = 0;
+      this.barsSinceOpen = 0;
       this.riskManager.resetDaily(this.equity, day);
       this.activeSignal = null;
       this.highSinceEntry = 0;
@@ -265,6 +273,9 @@ export class SimTrader {
     }
     this.todayVolume += bar.volume;
     this.todayBarCount++;
+    if (session === "open" || session === "midday") {
+      this.barsSinceOpen++;
+    }
 
     const rvol = this.computeRvol();
 
@@ -334,8 +345,11 @@ export class SimTrader {
     const tradingAllowed = this.config.trading.firstHourOnly
       ? session === "open"
       : session === "open" || session === "midday";
+    const pastEntryDelay = this.config.trading.entryDelayBars <= 0 ||
+      this.barsSinceOpen > this.config.trading.entryDelayBars;
     if (
       tradingAllowed &&
+      pastEntryDelay &&
       !this.broker.hasPosition &&
       !this.broker.hasPendingOrder &&
       !this.riskManager.isHalted &&

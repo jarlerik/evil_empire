@@ -1,18 +1,16 @@
 /**
- * Multi-Config Simulation Runner
+ * Round 7 Simulation Runner — Cooldown Fine-Tuning
  *
- * Preloads the API cache into memory ONCE, then runs multiple strategy
- * configurations against the same data. Much faster than spawning
- * separate processes that each do their own disk I/O.
+ * R6 found cooldown 20 bars was the single biggest improvement (+79% more profit).
+ * This round fine-tunes around that finding and cross-validates with other params.
  *
- * Usage:
- *   bun run src/multi-sim.ts
+ * Run: bun run src/round6-sim.ts
  */
 
 import { preloadCache, getCacheStats, resetCacheStats } from "./alpaca/cache.js";
 import { createAlpacaClient } from "./alpaca/client.js";
 import { getBars, initMarketData } from "./alpaca/market-data.js";
-import { runHistoricalScanner, prefetchAllDailyBars } from "./scanner/historical-scanner.js";
+import { runHistoricalScanner } from "./scanner/historical-scanner.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
 import { DEFAULT_BACKTEST_CONFIG, type BacktestConfig, type BacktestResult } from "./backtest/types.js";
 import type { Bar } from "./utils/bar.js";
@@ -20,30 +18,18 @@ import type { WatchlistEntry } from "./scanner/index.js";
 import { createLogger } from "./utils/logger.js";
 import type { StrategyName } from "./config.js";
 
-const log = createLogger("multi-sim");
+const log = createLogger("round6-sim");
 
 interface SimConfig {
   name: string;
   env: Record<string, string>;
 }
 
-// ── Cross-validation: best configs on original Oct 2025 - Mar 2026 range ──
+// ── Round 7: Cooldown fine-tuning ──
 const SIM_CONFIGS: SimConfig[] = [
-  // R4 original best
+  // Reference: R6 best
   {
-    name: "R4-BEST: risk1% trail6% time15 cool10",
-    env: {
-      STRATEGIES: "ma-pullback",
-      FIRST_HOUR_ONLY: "true",
-      RISK_PER_TRADE_PCT: "1.0",
-      TRAILING_STOP_PCT: "6",
-      TIME_STOP_BARS: "15",
-      COOLDOWN_BARS: "10",
-    },
-  },
-  // R6 best: cooldown 20
-  {
-    name: "R6-BEST: risk1% trail6% time15 cool20",
+    name: "REF-R6: cooldown 20",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
@@ -53,41 +39,134 @@ const SIM_CONFIGS: SimConfig[] = [
       COOLDOWN_BARS: "20",
     },
   },
-  // Default risk 1.5%
+  // Cooldown fine-tuning
   {
-    name: "DEFAULT: risk1.5% first hour",
+    name: "COOL15: cooldown 15",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "15",
     },
   },
-  // Cooldown 20 + time stop 15 only (no trail override)
   {
-    name: "SIMPLE: time15 + cool20 (default risk 1.5%)",
+    name: "COOL18: cooldown 18",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
       TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "18",
+    },
+  },
+  {
+    name: "COOL22: cooldown 22",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "22",
+    },
+  },
+  {
+    name: "COOL25: cooldown 25",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "25",
+    },
+  },
+  {
+    name: "COOL30: cooldown 30",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "30",
+    },
+  },
+  // Cooldown 20 + time stop variations
+  {
+    name: "COOL20+TIME10: cool 20 + time 10",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "10",
       COOLDOWN_BARS: "20",
     },
   },
-  // R5A best
   {
-    name: "R5A-BEST: risk0.75% time15",
+    name: "COOL20+TIME20: cool 20 + time 20",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "20",
+      COOLDOWN_BARS: "20",
+    },
+  },
+  // Cooldown 20 + risk variations
+  {
+    name: "COOL20+RISK0.75: cool 20 + risk 0.75%",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
       RISK_PER_TRADE_PCT: "0.75",
+      TRAILING_STOP_PCT: "6",
       TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "20",
+    },
+  },
+  {
+    name: "COOL20+RISK1.5: cool 20 + risk 1.5%",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.5",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "20",
+    },
+  },
+  // R5A best (time stop 15 without cooldown change) for comparison
+  {
+    name: "R5A-BEST: time stop 15 + default cooldown",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "0.75",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+    },
+  },
+  // Cooldown 20 + 2 max consecutive losses (tighter risk)
+  {
+    name: "COOL20+2CONSEC: cool 20 + max 2 losses",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+      RISK_PER_TRADE_PCT: "1.0",
+      TRAILING_STOP_PCT: "6",
+      TIME_STOP_BARS: "15",
+      COOLDOWN_BARS: "20",
+      MAX_CONSEC_LOSSES: "2",
     },
   },
 ];
 
-function shiftDateByDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 function getConsecutiveTradingDays(from: string, count: number): string[] {
   const days: string[] = [];
   const current = new Date(from + "T12:00:00Z");
@@ -102,18 +181,15 @@ function getConsecutiveTradingDays(from: string, count: number): string[] {
 }
 
 function loadConfigWithOverrides(overrides: Record<string, string>) {
-  // Set env vars temporarily
   const originals: Record<string, string | undefined> = {};
   for (const [key, val] of Object.entries(overrides)) {
     originals[key] = Bun.env[key];
     Bun.env[key] = val;
   }
 
-  // Import and call loadConfig fresh
   const { loadConfig } = require("./config.js");
   const config = loadConfig();
 
-  // Restore env vars
   for (const [key] of Object.entries(overrides)) {
     if (originals[key] === undefined) {
       delete Bun.env[key];
@@ -243,42 +319,26 @@ async function runSimWithConfig(
 if (import.meta.main) {
   const startTime = Date.now();
   const equity = 25_000;
-  const dates = getConsecutiveTradingDays("2025-10-01", 125);
+  const dates = getConsecutiveTradingDays("2026-01-02", 65);
 
   console.log("╔══════════════════════════════════════════════════════════╗");
-  console.log("║   CROSS-VALIDATION: Oct 2025 - Mar 2026                ║");
+  console.log("║       ROUND 7: COOLDOWN FINE-TUNING                    ║");
   console.log("╚══════════════════════════════════════════════════════════╝");
   console.log(`  Date range: ${dates[0]} to ${dates[dates.length - 1]}`);
   console.log(`  Trading days: ${dates.length}`);
   console.log(`  Configs to test: ${SIM_CONFIGS.length}`);
   console.log(`  Equity: $${equity.toLocaleString()}`);
 
-  // Step 1: Preload cache
   console.log("\n[1/3] Preloading API cache into memory...");
   const cacheCount = await preloadCache();
   console.log(`  ${cacheCount.toLocaleString()} cached responses loaded`);
   resetCacheStats();
 
-  // Step 2: Fetch all data once using default config
   console.log("\n[2/3] Fetching all day data (scanner + bars)...");
   const { loadConfig } = await import("./config.js");
   const defaultConfig = loadConfig();
   const client = createAlpacaClient(defaultConfig);
   initMarketData(defaultConfig);
-
-  // Pre-fetch all daily bars for the full date range in ~40 API calls
-  // instead of ~5,000 per-day sliding-window calls.
-  // Buffer: 35 days before earliest date covers RVOL 30-day lookback + weekends.
-  const prefetchStart = shiftDateByDays(dates[0], -35);
-  const prefetchEnd = dates[dates.length - 1];
-  console.log(`  Pre-fetching daily bars: ${prefetchStart} → ${prefetchEnd}`);
-  const allDailyBars = await prefetchAllDailyBars(
-    client,
-    defaultConfig,
-    prefetchStart,
-    prefetchEnd,
-  );
-  console.log(`  ${allDailyBars.size.toLocaleString()} symbols loaded`);
 
   const preloadedData = new Map<string, DayData>();
 
@@ -287,7 +347,7 @@ if (import.meta.main) {
     process.stdout.write(`\r  Day ${i + 1}/${dates.length}: ${date}`);
 
     try {
-      const candidates = await runHistoricalScanner(client, defaultConfig, date, allDailyBars);
+      const candidates = await runHistoricalScanner(client, defaultConfig, date);
       const barsBySymbol = new Map<string, Bar[]>();
 
       for (const candidate of candidates) {
@@ -309,7 +369,6 @@ if (import.meta.main) {
   ).length;
   console.log(`\n  Data loaded: ${daysWithCandidates} days with candidates`);
 
-  // Step 3: Run all configs against preloaded data
   console.log("\n[3/3] Running simulations...\n");
 
   const results: SimResult[] = [];
@@ -330,9 +389,8 @@ if (import.meta.main) {
     );
   }
 
-  // Print summary table
   console.log(`\n${"═".repeat(100)}`);
-  console.log("  RESULTS COMPARISON");
+  console.log("  ROUND 7 RESULTS");
   console.log(`${"═".repeat(100)}`);
   console.log(
     `  ${"Config".padEnd(55)} ${"Trades".padStart(6)} ${"Win%".padStart(5)} ` +
