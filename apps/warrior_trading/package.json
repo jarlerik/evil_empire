@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "dev:dashboard": "vite",
-    "dev:all": "bun run src/index.ts & vite & wait",
+    "dev:autotrader": "bun run src/index.ts & vite & wait",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "build:dashboard": "vite build",
     "backtest": "bun run src/backtest.ts",
