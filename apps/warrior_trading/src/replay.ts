@@ -81,14 +81,34 @@ async function replay(
   const recentBars: Bar[] = [];
   let currentDay = "";
   let premarketHigh = 0;
+  let premarketLow = Infinity;
+
+  // Relative volume tracking
+  let todayVolume = 0;
+  let todayBarCount = 0;
+  const priorDayVolumes: number[] = [];
+  const priorDayBarCounts: number[] = [];
 
   for (const bar of bars) {
     const day = bar.timestamp.toISOString().slice(0, 10);
 
     // Reset VWAP on new day
     if (day !== currentDay) {
+      // Save completed day's volume
+      if (currentDay !== "" && todayVolume > 0) {
+        priorDayVolumes.push(todayVolume);
+        priorDayBarCounts.push(todayBarCount);
+        if (priorDayVolumes.length > 30) {
+          priorDayVolumes.shift();
+          priorDayBarCounts.shift();
+        }
+      }
+
       resetVWAP(vwap);
       premarketHigh = bar.high;
+      premarketLow = bar.low;
+      todayVolume = 0;
+      todayBarCount = 0;
       currentDay = day;
     }
 
@@ -102,9 +122,22 @@ async function replay(
     if (recentBars.length > 50) recentBars.shift();
 
     premarketHigh = Math.max(premarketHigh, bar.high);
+    premarketLow = Math.min(premarketLow, bar.low);
+    todayVolume += bar.volume;
+    todayBarCount++;
 
     // Need at least 10 bars before evaluating
     if (recentBars.length < 10) continue;
+
+    // Compute relative volume from tracked daily volumes
+    let rvol = 1;
+    if (priorDayVolumes.length > 0 && todayBarCount > 0) {
+      const avgDayVol = priorDayVolumes.reduce((s, v) => s + v, 0) / priorDayVolumes.length;
+      const avgDayBars = priorDayBarCounts.reduce((s, c) => s + c, 0) / priorDayBarCounts.length;
+      const dayFrac = avgDayBars > 0 ? todayBarCount / avgDayBars : 1;
+      const scaledAvg = avgDayVol * Math.max(dayFrac, 0.01);
+      if (scaledAvg > 0) rvol = todayVolume / scaledAvg;
+    }
 
     const snapshot: IndicatorSnapshot = {
       bars: [...recentBars],
@@ -112,8 +145,9 @@ async function replay(
       vwap: vwapValue,
       macd: { ...macdValues },
       atr: atrValue,
-      relativeVolume: 5, // assume high RVOL for replay
+      relativeVolume: rvol,
       premarketHigh,
+      premarketLow: premarketLow === Infinity ? bar.low : premarketLow,
     };
 
     // Run all strategies

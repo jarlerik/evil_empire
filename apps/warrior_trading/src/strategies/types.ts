@@ -23,6 +23,7 @@ export interface IndicatorSnapshot {
   atr: number;
   relativeVolume: number;
   premarketHigh: number;
+  premarketLow: number;
 }
 
 export interface Strategy {

@@ -27,6 +27,8 @@ function makeCandidate(symbol: string): GapCandidate {
     volume: 500_000,
     prevClose: 7.27,
     relativeVolume: 0,
+    premarketHigh: 8.5,
+    premarketLow: 7.5,
   };
 }
 

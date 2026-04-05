@@ -90,6 +90,7 @@ function makeSnapshot(overrides: Partial<IndicatorSnapshot> = {}): IndicatorSnap
     atr: 0.5,
     relativeVolume: 8,
     premarketHigh: 11,
+    premarketLow: 9.0,
     ...overrides,
   };
 }

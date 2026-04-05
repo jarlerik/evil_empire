@@ -62,7 +62,7 @@ async function createWatchlistWithSymbol(symbol = "TEST") {
   const watchlist = new Watchlist(mockClient, mockStream, mockConfig);
 
   await watchlist.loadFromScanResults([
-    { symbol, gapPct: 15, price: 10, volume: 100_000, prevClose: 8.7, relativeVolume: 8, hasCatalyst: false, headline: null, score: 50 },
+    { symbol, gapPct: 15, price: 10, volume: 100_000, prevClose: 8.7, relativeVolume: 8, premarketHigh: 11, premarketLow: 9, hasCatalyst: false, headline: null, score: 50 },
   ]);
 
   return watchlist;

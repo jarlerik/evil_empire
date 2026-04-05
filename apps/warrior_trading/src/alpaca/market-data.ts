@@ -2,6 +2,7 @@ import type { AlpacaClient } from "./client.js";
 import type { Config } from "../config.js";
 import type { Bar, Snapshot, Quote } from "../utils/bar.js";
 import { createLogger } from "../utils/logger.js";
+import { getCached, setCached } from "./cache.js";
 
 const log = createLogger("alpaca:market-data");
 
@@ -26,6 +27,9 @@ function dataHeaders(): Record<string, string> {
   };
 }
 
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000;
+
 async function dataGet<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(path, DATA_BASE_URL);
   // Default to IEX feed (free tier); SIP requires a paid subscription
@@ -35,11 +39,36 @@ async function dataGet<T>(path: string, params?: Record<string, string>): Promis
       if (v !== undefined) url.searchParams.set(k, v);
     }
   }
-  const response = await fetch(url, { headers: dataHeaders() });
-  if (!response.ok) {
-    throw new Error(`Data API ${path}: ${response.status} ${await response.text()}`);
+
+  const cacheUrl = url.toString();
+  const cached = await getCached<T>(cacheUrl);
+  if (cached !== null) return cached;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, { headers: dataHeaders() });
+
+    if (response.status === 429) {
+      if (attempt === MAX_RETRIES) {
+        throw new Error(`Data API ${path}: 429 rate limited after ${MAX_RETRIES} retries`);
+      }
+      const retryAfter = response.headers.get("retry-after");
+      const delay = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : BASE_DELAY_MS * Math.pow(2, attempt);
+      log.warn("Rate limited, retrying", { path, attempt: attempt + 1, delayMs: delay });
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Data API ${path}: ${response.status} ${await response.text()}`);
+    }
+    const data = await response.json() as T;
+    await setCached(cacheUrl, data);
+    return data;
   }
-  return response.json() as Promise<T>;
+
+  throw new Error(`Data API ${path}: exhausted retries`);
 }
 
 interface AlpacaBar {

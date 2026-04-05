@@ -67,6 +67,7 @@ interface SymbolState {
   atrValue: number;
   relativeVolume: number;
   premarketHigh: number;
+  premarketLow: number;
 }
 
 function wsBarToBar(raw: RawWSBar): Bar {
@@ -107,7 +108,8 @@ export class Watchlist {
         atr: createATR(),
         atrValue: 0,
         relativeVolume: entry.relativeVolume,
-        premarketHigh: entry.price, // current price as premarket high initially
+        premarketHigh: entry.premarketHigh || entry.price,
+        premarketLow: entry.premarketLow || entry.price,
       };
 
       this.symbols.set(entry.symbol, state);
@@ -136,11 +138,15 @@ export class Watchlist {
           this.processBar(symbol, state, bar);
         }
 
-        // Set premarket high from historical bars
+        // Set premarket high/low from historical bars
         if (bars.length > 0) {
           state.premarketHigh = Math.max(
             state.premarketHigh,
             Math.max(...bars.map((b) => b.high))
+          );
+          state.premarketLow = Math.min(
+            state.premarketLow,
+            Math.min(...bars.map((b) => b.low))
           );
         }
 
@@ -182,8 +188,9 @@ export class Watchlist {
     const bar = wsBarToBar(rawBar);
     this.processBar(symbol, state, bar);
 
-    // Update premarket high
+    // Update premarket high/low
     state.premarketHigh = Math.max(state.premarketHigh, bar.high);
+    state.premarketLow = Math.min(state.premarketLow, bar.low);
 
     // Emit dashboard events
     dashboardBus.broadcast({
@@ -242,6 +249,7 @@ export class Watchlist {
       atr: state.atrValue,
       relativeVolume: state.relativeVolume,
       premarketHigh: state.premarketHigh,
+      premarketLow: state.premarketLow,
     };
   }
 

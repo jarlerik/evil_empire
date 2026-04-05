@@ -85,7 +85,14 @@ export class SimTrader {
   private atr = createATR();
   private recentBars: Bar[] = [];
   private premarketHigh = 0;
+  private premarketLow = Infinity;
   private currentDay = "";
+
+  // Relative volume tracking
+  private todayVolume = 0;
+  private todayBarCount = 0;
+  private priorDayVolumes: number[] = [];
+  private priorDayBarCounts: number[] = [];
 
   // Position tracking for trader-level exits
   private activeSignal: ActiveSignal | null = null;
@@ -205,6 +212,7 @@ export class SimTrader {
   }
 
   private processBar(bar: Bar): void {
+    this.riskManager.tick();
     const day = bar.timestamp.toISOString().slice(0, 10);
     const session = getSessionFromBar(bar, this.btConfig);
 
@@ -216,9 +224,23 @@ export class SimTrader {
       }
       this.broker.cancelPending();
 
+      // Save completed day's volume for rvol calculation
+      if (this.currentDay !== "" && this.todayVolume > 0) {
+        this.priorDayVolumes.push(this.todayVolume);
+        this.priorDayBarCounts.push(this.todayBarCount);
+        // Keep last 30 days
+        if (this.priorDayVolumes.length > 30) {
+          this.priorDayVolumes.shift();
+          this.priorDayBarCounts.shift();
+        }
+      }
+
       this.currentDay = day;
       resetVWAP(this.vwap);
       this.premarketHigh = bar.high;
+      this.premarketLow = bar.low;
+      this.todayVolume = 0;
+      this.todayBarCount = 0;
       this.riskManager.resetDaily(this.equity, day);
       this.activeSignal = null;
       this.highSinceEntry = 0;
@@ -235,6 +257,11 @@ export class SimTrader {
     this.recentBars.push(bar);
     if (this.recentBars.length > 50) this.recentBars.shift();
     this.premarketHigh = Math.max(this.premarketHigh, bar.high);
+    this.premarketLow = Math.min(this.premarketLow, bar.low);
+    this.todayVolume += bar.volume;
+    this.todayBarCount++;
+
+    const rvol = this.computeRvol();
 
     // --- Emit bar + indicator events ---
     if (this.dashboardEnabled) {
@@ -262,7 +289,7 @@ export class SimTrader {
         macdSignal: macdValues.signal,
         macdHistogram: macdValues.histogram,
         atr: atrValue,
-        relativeVolume: 5,
+        relativeVolume: rvol,
       });
     }
 
@@ -313,8 +340,9 @@ export class SimTrader {
         vwap: vwapValue,
         macd: { ...macdValues },
         atr: atrValue,
-        relativeVolume: 5,
+        relativeVolume: rvol,
         premarketHigh: this.premarketHigh,
+        premarketLow: this.premarketLow === Infinity ? bar.low : this.premarketLow,
       };
 
       const minConfidence = session === "midday" ? 75 : 50;
@@ -426,6 +454,27 @@ export class SimTrader {
     });
   }
 
+  /**
+   * Compute relative volume from tracked daily volumes.
+   * Compares today's cumulative volume (scaled to full day) against prior-day averages.
+   */
+  private computeRvol(): number {
+    if (this.priorDayVolumes.length === 0 || this.todayBarCount === 0) return 1;
+
+    const avgDayVolume =
+      this.priorDayVolumes.reduce((s, v) => s + v, 0) / this.priorDayVolumes.length;
+    if (avgDayVolume === 0) return 1;
+
+    // Scale today's volume to comparable full-day estimate using bar counts
+    const avgDayBars =
+      this.priorDayBarCounts.reduce((s, c) => s + c, 0) / this.priorDayBarCounts.length;
+    const dayFraction = avgDayBars > 0 ? this.todayBarCount / avgDayBars : 1;
+    const clampedFraction = Math.max(dayFraction, 0.01);
+    const scaledAvg = avgDayVolume * clampedFraction;
+
+    return this.todayVolume / scaledAvg;
+  }
+
   private checkTraderExits(bar: Bar, vwapValue: number): ExitReason | null {
     const pos = this.broker.currentPosition;
     if (!pos) return null;
@@ -443,8 +492,8 @@ export class SimTrader {
       return "trailing-stop";
     }
 
-    // VWAP breakdown after 2+ bars
-    if (bar.close < vwapValue && pos.barsHeld >= 2) {
+    // VWAP breakdown after 5+ bars
+    if (bar.close < vwapValue && pos.barsHeld >= 5) {
       return "vwap-breakdown";
     }
 

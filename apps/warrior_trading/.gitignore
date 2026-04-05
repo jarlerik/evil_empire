@@ -1,3 +1,4 @@
 risk-state.json
 dist/
 results/
+.cache/

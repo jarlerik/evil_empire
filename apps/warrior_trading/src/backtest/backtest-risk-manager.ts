@@ -14,9 +14,16 @@ const log = createLogger("backtest:risk");
 export class BacktestRiskManager {
   private state: PersistedRiskState;
   private hasOpenPosition = false;
+  private cooldownUntilBar = 0;
+  private barIndex = 0;
 
   constructor(private config: Config, startingEquity: number) {
     this.state = this.freshState(startingEquity);
+  }
+
+  /** Call once per bar tick so the cooldown counter advances. */
+  tick(): void {
+    this.barIndex++;
   }
 
   resetDaily(equity: number, date: string): void {
@@ -29,6 +36,8 @@ export class BacktestRiskManager {
       startingEquity: equity,
     };
     this.hasOpenPosition = false;
+    this.cooldownUntilBar = 0;
+    this.barIndex = 0;
     log.debug("Daily state reset", { date, equity: equity.toFixed(2) });
   }
 
@@ -37,6 +46,10 @@ export class BacktestRiskManager {
 
     if (this.hasOpenPosition) {
       return { approved: false, reason: "Already have an open position", positionSize: zero };
+    }
+
+    if (this.barIndex < this.cooldownUntilBar) {
+      return { approved: false, reason: `Cooldown: ${this.cooldownUntilBar - this.barIndex} bars remaining`, positionSize: zero };
     }
 
     const maxDailyLoss = this.state.startingEquity * (this.config.risk.maxDailyLossPct / 100);
@@ -85,6 +98,7 @@ export class BacktestRiskManager {
       this.state.consecutiveLosses = 0;
     } else {
       this.state.consecutiveLosses++;
+      this.cooldownUntilBar = this.barIndex + this.config.trading.cooldownBars;
     }
   }
 

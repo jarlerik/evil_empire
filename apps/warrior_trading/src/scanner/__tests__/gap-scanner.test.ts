@@ -31,7 +31,7 @@ function makeSnapshot(
     symbol,
     latestBar: {
       timestamp: now,
-      open: currentPrice * 0.99,
+      open: currentPrice, // gap is computed from open (prevClose → open)
       high: currentPrice * 1.02,
       low: currentPrice * 0.98,
       close: currentPrice,

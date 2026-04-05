@@ -72,12 +72,12 @@ export function loadConfig() {
     },
 
     scanner: {
-      minGapPct: envFloat("MIN_GAP_PCT", 5),
+      minGapPct: envFloat("MIN_GAP_PCT", 3),
       prefGapPct: envFloat("PREF_GAP_PCT", 20),
       minPrice: envFloat("MIN_PRICE", 1.0),
-      maxPrice: envFloat("MAX_PRICE", 20.0),
+      maxPrice: envFloat("MAX_PRICE", 30.0),
       maxFloat: envInt("MAX_FLOAT", 20_000_000),
-      minRelVolume: envFloat("MIN_REL_VOLUME", 5),
+      minRelVolume: envFloat("MIN_REL_VOLUME", 1.5),
     },
 
     risk: {
@@ -88,8 +88,9 @@ export function loadConfig() {
     },
 
     trading: {
-      timeStopBars: envInt("TIME_STOP_BARS", 5),
-      trailingStopPct: envFloat("TRAILING_STOP_PCT", 1.5),
+      timeStopBars: envInt("TIME_STOP_BARS", 10),
+      trailingStopPct: envFloat("TRAILING_STOP_PCT", 3),
+      cooldownBars: envInt("COOLDOWN_BARS", 15),
       strategies: parseStrategies(env("STRATEGIES", "all")),
     },
 

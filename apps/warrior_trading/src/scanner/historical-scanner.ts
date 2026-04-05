@@ -107,6 +107,8 @@ export async function runHistoricalScanner(
         volume: targetBar.volume,
         prevClose,
         relativeVolume: 0,
+        premarketHigh: targetBar.high,
+        premarketLow: targetBar.low,
       });
     }
 
@@ -258,6 +260,8 @@ export async function runHistoricalScanner(
     volume: c.volume,
     prevClose: c.prevClose,
     relativeVolume: c.relativeVolume,
+    premarketHigh: c.premarketHigh,
+    premarketLow: c.premarketLow,
     hasCatalyst: c.hasCatalyst,
     headline: c.headline,
     score: scoreCandidate(c, config),
