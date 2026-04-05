@@ -48,6 +48,8 @@ mock.module("../session-timer.js", () => ({
 mock.module("../../alpaca/market-data.js", () => ({
   getBars: mock(() => Promise.resolve(new Map())),
   getSnapshots: mock(() => Promise.resolve(new Map())),
+  getNews: mock(() => Promise.resolve({ news: [] })),
+  initMarketData: mock(() => {}),
 }));
 
 // Mock risk state persistence

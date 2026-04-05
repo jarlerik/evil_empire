@@ -1,5 +1,6 @@
 import type { Config } from "../config.js";
 import { createLogger } from "../utils/logger.js";
+import { getCached, setCached } from "../alpaca/cache.js";
 import type { GapCandidate } from "./gap-scanner.js";
 
 const log = createLogger("scanner:float");
@@ -11,6 +12,7 @@ interface AssetDetails {
 
 // The SDK Asset type doesn't include shares_outstanding,
 // so we hit the REST API directly for the full asset detail.
+// Now cached via the same file-based cache as market data.
 async function fetchAssetDetails(
   symbol: string,
   config: Config
@@ -19,8 +21,14 @@ async function fetchAssetDetails(
     ? "https://paper-api.alpaca.markets"
     : "https://api.alpaca.markets";
 
+  const url = `${baseUrl}/v2/assets/${symbol}`;
+
+  // Check cache first
+  const cached = await getCached<AssetDetails>(url);
+  if (cached !== null) return cached;
+
   try {
-    const response = await fetch(`${baseUrl}/v2/assets/${symbol}`, {
+    const response = await fetch(url, {
       headers: {
         "APCA-API-KEY-ID": config.alpaca.keyId,
         "APCA-API-SECRET-KEY": config.alpaca.secretKey,
@@ -30,10 +38,14 @@ async function fetchAssetDetails(
     if (!response.ok) return null;
 
     const data = (await response.json()) as Record<string, unknown>;
-    return {
+    const result: AssetDetails = {
       symbol: data.symbol as string,
       shares_outstanding: data.shares_outstanding as number | undefined,
     };
+
+    // Cache the result for future runs
+    await setCached(url, result);
+    return result;
   } catch {
     log.warn("Failed to fetch asset details", { symbol });
     return null;
