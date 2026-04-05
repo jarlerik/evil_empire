@@ -100,6 +100,11 @@ export async function runHistoricalScanner(
       if (openPrice < config.scanner.minPrice) continue;
       if (openPrice > config.scanner.maxPrice) continue;
 
+      // Use the open price as premarketHigh approximation.
+      // The daily bar's high is the day's absolute high — using it makes
+      // gap-and-go's "break above premarket high" condition impossible to meet.
+      // The open price is where premarket trading settled, making it the best
+      // proxy we have from daily bars on IEX (no actual premarket data).
       gapCandidates.push({
         symbol,
         gapPct,
@@ -107,8 +112,8 @@ export async function runHistoricalScanner(
         volume: targetBar.volume,
         prevClose,
         relativeVolume: 0,
-        premarketHigh: targetBar.high,
-        premarketLow: targetBar.low,
+        premarketHigh: targetBar.open,
+        premarketLow: Math.min(targetBar.open, targetBar.low),
       });
     }
 
