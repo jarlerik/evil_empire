@@ -17,6 +17,9 @@ import { microPullback } from "../strategies/micro-pullback.js";
 import { bullFlag } from "../strategies/bull-flag.js";
 import { flatTop } from "../strategies/flat-top.js";
 import { maPullback } from "../strategies/ma-pullback.js";
+import { vwapReclaim } from "../strategies/vwap-reclaim.js";
+import { vwapBounce } from "../strategies/vwap-bounce.js";
+import { orb } from "../strategies/orb.js";
 import type { Strategy, StrategySignal, IndicatorSnapshot } from "../strategies/types.js";
 import type { StrategyName } from "../config.js";
 import { dashboardBus } from "../dashboard/event-bus.js";
@@ -30,6 +33,9 @@ const STRATEGY_MAP: Record<StrategyName, Strategy> = {
   "bull-flag": bullFlag,
   "flat-top": flatTop,
   "ma-pullback": maPullback,
+  "vwap-reclaim": vwapReclaim,
+  "vwap-bounce": vwapBounce,
+  "orb": orb,
 };
 
 interface OpenPosition {
@@ -75,7 +81,11 @@ export class Trader {
 
     // Get account equity
     const account = await this.client.getAccount();
-    const equity = parseFloat((account as unknown as Record<string, string>).equity);
+    const rawEquity = (account as Record<string, unknown>).equity;
+    const equity = typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
+    if (!Number.isFinite(equity) || equity <= 0) {
+      throw new Error(`Invalid equity value from Alpaca: ${rawEquity}`);
+    }
     log.info("Account loaded", { equity: equity.toFixed(2) });
 
     this.cachedEquity = equity;

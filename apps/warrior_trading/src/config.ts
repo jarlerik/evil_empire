@@ -4,6 +4,9 @@ const VALID_STRATEGIES = [
   "flat-top",
   "ma-pullback",
   "micro-pullback",
+  "vwap-reclaim",
+  "vwap-bounce",
+  "orb",
 ] as const;
 
 export type StrategyName = (typeof VALID_STRATEGIES)[number];
@@ -94,6 +97,7 @@ export function loadConfig() {
       cooldownBars: envInt("COOLDOWN_BARS", 15),
       maxHoldBars: envInt("MAX_HOLD_BARS", 0), // 0 = disabled, >0 = force exit after N bars
       firstHourOnly: env("FIRST_HOUR_ONLY", "false").toLowerCase() === "true",
+      entryDelayBars: envInt("ENTRY_DELAY_BARS", 0), // skip first N bars after open before entries
       minConfidence: envInt("MIN_CONFIDENCE", 0), // 0 = use session-based defaults (50/75)
       strategies: parseStrategies(env("STRATEGIES", "all")),
     },

@@ -60,3 +60,4 @@ samconfig.toml
 .mcp.json
 
 docs/.obsidian/workspace.json
+.cache/

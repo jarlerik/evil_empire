@@ -12,6 +12,8 @@ mock.module("../../alpaca/market-data.js", () => ({
     return result;
   }),
   getBars: mock(async () => new Map()),
+  getNews: mock(async () => ({ news: [] })),
+  initMarketData: mock(() => {}),
 }));
 
 import { scanForGaps } from "../gap-scanner.js";
