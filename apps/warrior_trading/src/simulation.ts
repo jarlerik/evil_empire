@@ -18,6 +18,7 @@
 import { loadConfig } from "./config.js";
 import { createAlpacaClient } from "./alpaca/client.js";
 import { getBars, initMarketData } from "./alpaca/market-data.js";
+import { preloadCache, getCacheStats, resetCacheStats } from "./alpaca/cache.js";
 import { runHistoricalScanner } from "./scanner/historical-scanner.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
 import { startDashboard } from "./dashboard/server.js";
@@ -424,6 +425,11 @@ if (import.meta.main) {
   console.log(`  Strategies: ${config.trading.strategies.join(", ")}`);
 
   (async () => {
+    // Preload cache into memory for fast lookups
+    const cacheCount = await preloadCache();
+    console.log(`  Cache preloaded: ${cacheCount.toLocaleString()} entries`);
+    resetCacheStats();
+
     const dayResults: DayResult[] = [];
 
     for (const date of dates) {
@@ -444,6 +450,15 @@ if (import.meta.main) {
 
     // Aggregate results
     printAggregateResults(dayResults, simArgs.equity);
+
+    // Print cache stats
+    const stats = getCacheStats();
+    console.log(`  Cache stats: ${stats.hits} hits, ${stats.misses} misses`);
+    if (stats.misses > 0) {
+      console.log(`  ⚠ ${stats.misses} API calls made (should be 0 on repeat runs)`);
+    } else {
+      console.log(`  ✓ Zero API calls — fully cached!`);
+    }
 
     // Write results
     const filename = await writeSimulationResults(dayResults);

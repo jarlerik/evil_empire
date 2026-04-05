@@ -9,7 +9,7 @@
  *   bun run src/multi-sim.ts
  */
 
-import { preloadCache } from "./alpaca/cache.js";
+import { preloadCache, getCacheStats, resetCacheStats } from "./alpaca/cache.js";
 import { createAlpacaClient } from "./alpaca/client.js";
 import { getBars, initMarketData } from "./alpaca/market-data.js";
 import { runHistoricalScanner } from "./scanner/historical-scanner.js";
@@ -378,6 +378,7 @@ if (import.meta.main) {
   console.log("\n[1/3] Preloading API cache into memory...");
   const cacheCount = await preloadCache();
   console.log(`  ${cacheCount.toLocaleString()} cached responses loaded`);
+  resetCacheStats();
 
   // Step 2: Fetch all data once using default config
   console.log("\n[2/3] Fetching all day data (scanner + bars)...");
@@ -468,7 +469,14 @@ if (import.meta.main) {
   }
 
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+  const cacheStats = getCacheStats();
   console.log(`\n  Total time: ${totalElapsed}s`);
+  console.log(`  Cache stats: ${cacheStats.hits} hits, ${cacheStats.misses} misses`);
+  if (cacheStats.misses > 0) {
+    console.log(`  ⚠ ${cacheStats.misses} API calls made (should be 0 on repeat runs)`);
+  } else {
+    console.log(`  ✓ Zero API calls — fully cached!`);
+  }
   console.log("");
 
   process.exit(0);

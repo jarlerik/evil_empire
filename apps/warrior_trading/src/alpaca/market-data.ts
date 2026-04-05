@@ -30,10 +30,16 @@ function dataHeaders(): Record<string, string> {
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 
+// Endpoints that don't support the feed parameter
+const NO_FEED_PATHS = new Set(["/v1beta1/news"]);
+
 async function dataGet<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(path, DATA_BASE_URL);
   // Default to IEX feed (free tier); SIP requires a paid subscription
-  if (!params?.feed) url.searchParams.set("feed", "iex");
+  // News API doesn't support the feed parameter — skip it
+  if (!params?.feed && !NO_FEED_PATHS.has(path)) {
+    url.searchParams.set("feed", "iex");
+  }
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined) url.searchParams.set(k, v);
