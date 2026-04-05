@@ -314,8 +314,8 @@ Despite ~58K cached API responses, simulations still take 37+ minutes due to:
 2. **Float filter was completely uncached** (FIXED) — `float-filter.ts` called the trading API directly via `fetch()`, bypassing the cache entirely. Now routed through `getCached`/`setCached`.
 3. **RVOL 30-day lookback** — Same sliding window issue. A 35-day window shifts daily, creating overlapping-but-unique URLs.
 
-### Recommendation (Not Yet Implemented)
-Pre-fetch the full contiguous date range `[2025-09-26, 2026-03-24]` in one request per symbol batch instead of 125 per-day requests. This would reduce API calls from ~5,000 to ~40 — a 99% reduction.
+### Recommendation (IMPLEMENTED)
+Pre-fetch the full contiguous date range in one request per symbol batch instead of 125 per-day requests. `prefetchAllDailyBars()` in `historical-scanner.ts` fetches all daily bars once; `runHistoricalScanner()` accepts an optional `prefetchedDailyBars` parameter to skip per-date API calls for both gap scanning and RVOL lookback. Reduces API calls from ~5,000 to ~40 — a 99% reduction.
 
 ---
 

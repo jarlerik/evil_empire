@@ -12,7 +12,7 @@
 import { preloadCache, getCacheStats, resetCacheStats } from "./alpaca/cache.js";
 import { createAlpacaClient } from "./alpaca/client.js";
 import { getBars, initMarketData } from "./alpaca/market-data.js";
-import { runHistoricalScanner } from "./scanner/historical-scanner.js";
+import { runHistoricalScanner, prefetchAllDailyBars } from "./scanner/historical-scanner.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
 import { DEFAULT_BACKTEST_CONFIG, type BacktestConfig, type BacktestResult } from "./backtest/types.js";
 import type { Bar } from "./utils/bar.js";
@@ -209,6 +209,12 @@ const SIM_CONFIGS: SimConfig[] = [
   },
 ];
 
+function shiftDateByDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function getConsecutiveTradingDays(from: string, count: number): string[] {
   const days: string[] = [];
   const current = new Date(from + "T12:00:00Z");
@@ -387,6 +393,20 @@ if (import.meta.main) {
   const client = createAlpacaClient(defaultConfig);
   initMarketData(defaultConfig);
 
+  // Pre-fetch all daily bars for the full date range in ~40 API calls
+  // instead of ~5,000 per-day sliding-window calls.
+  // Buffer: 35 days before earliest date covers RVOL 30-day lookback + weekends.
+  const prefetchStart = shiftDateByDays(dates[0], -35);
+  const prefetchEnd = dates[dates.length - 1];
+  console.log(`  Pre-fetching daily bars: ${prefetchStart} → ${prefetchEnd}`);
+  const allDailyBars = await prefetchAllDailyBars(
+    client,
+    defaultConfig,
+    prefetchStart,
+    prefetchEnd,
+  );
+  console.log(`  ${allDailyBars.size.toLocaleString()} symbols loaded`);
+
   const preloadedData = new Map<string, DayData>();
 
   for (let i = 0; i < dates.length; i++) {
@@ -394,7 +414,7 @@ if (import.meta.main) {
     process.stdout.write(`\r  Day ${i + 1}/${dates.length}: ${date}`);
 
     try {
-      const candidates = await runHistoricalScanner(client, defaultConfig, date);
+      const candidates = await runHistoricalScanner(client, defaultConfig, date, allDailyBars);
       const barsBySymbol = new Map<string, Bar[]>();
 
       for (const candidate of candidates) {
