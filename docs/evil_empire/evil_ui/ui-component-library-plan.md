@@ -10,7 +10,7 @@ Build a shared, cross-platform (React Native + React Web) component library insi
 
 ### 2.1 Color Tokens
 
-Extracted from the dashboard screenshot cross-referenced with PeakTrack's existing `styles/common.ts`:
+Extracted from the dashboard screenshot(./evil_ui/tactical.png)cross-referenced with PeakTrack's existing `styles/common.ts`:
 
 ```
 Token Name             Hex         Usage
