@@ -17,6 +17,11 @@ const etFormatter = new Intl.DateTimeFormat("en-US", {
   hour12: false,
 });
 
+const etDayFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "short",
+});
+
 function getETHour(): { hour: number; minute: number } {
   const parts = etFormatter.formatToParts(new Date());
   const hour = Number(parts.find((p) => p.type === "hour")!.value);
@@ -24,11 +29,18 @@ function getETHour(): { hour: number; minute: number } {
   return { hour, minute };
 }
 
+function isWeekend(): boolean {
+  const day = etDayFormatter.format(new Date());
+  return day === "Sat" || day === "Sun";
+}
+
 function etMinutes(hour: number, minute: number): number {
   return hour * 60 + minute;
 }
 
 export function getCurrentSession(): SessionPhase {
+  if (isWeekend()) return "closed";
+
   const { hour, minute } = getETHour();
   const mins = etMinutes(hour, minute);
 
