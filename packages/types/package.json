@@ -1,0 +1,31 @@
+{
+  "name": "@evil-empire/types",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@evil-empire/parsers": "workspace:*"
+  },
+  "devDependencies": {
+    "@evil-empire/eslint-config": "workspace:*",
+    "@evil-empire/typescript-config": "workspace:*",
+    "eslint": "^9.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "~5.9.2"
+  }
+}

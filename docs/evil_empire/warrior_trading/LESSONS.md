@@ -314,8 +314,8 @@ Despite ~58K cached API responses, simulations still take 37+ minutes due to:
 2. **Float filter was completely uncached** (FIXED) — `float-filter.ts` called the trading API directly via `fetch()`, bypassing the cache entirely. Now routed through `getCached`/`setCached`.
 3. **RVOL 30-day lookback** — Same sliding window issue. A 35-day window shifts daily, creating overlapping-but-unique URLs.
 
-### Recommendation (Not Yet Implemented)
-Pre-fetch the full contiguous date range `[2025-09-26, 2026-03-24]` in one request per symbol batch instead of 125 per-day requests. This would reduce API calls from ~5,000 to ~40 — a 99% reduction.
+### Recommendation (IMPLEMENTED)
+Pre-fetch the full contiguous date range in one request per symbol batch instead of 125 per-day requests. `prefetchAllDailyBars()` in `historical-scanner.ts` fetches all daily bars once; `runHistoricalScanner()` accepts an optional `prefetchedDailyBars` parameter to skip per-date API calls for both gap scanning and RVOL lookback. Reduces API calls from ~5,000 to ~40 — a 99% reduction.
 
 ---
 
@@ -773,7 +773,7 @@ Re-ran 5 best configs on the original Oct 2025 - Mar 2026 range (125 trading day
 | SIMPLE (time 15, cool 20, risk 1.5%) | -$1,023 | +$1,030 | 4th | 2nd (tied) |
 | DEFAULT (risk 1.5%) | -$1,075 | +$961 | 5th | 5th |
 
-### CRITICAL: All configs NEGATIVE on Oct-Mar — contradicts Round 4's +$2,721
+### CRITICAL: All configs NEGATIVE on Oct-Mar -- contradicts Round 4's +$2,721
 
 The same `R4-BEST` config that produced +$2,721 in the original Round 4 now produces -$981. Possible causes:
 
@@ -799,3 +799,48 @@ Rationale:
 4. **Caution:** The strategy is overall marginal. The Oct-Mar rerun shows net negative results across all configs. The edge (if any) is thin and highly dependent on scanner candidate selection. Start with paper trading or very small size.
 
 ---
+
+## 22. Cache Reliability Audit (April 5, 2026)
+
+Ran repeated simulations of the same week (Mar 30 - Apr 3, 2026) with multiple parallel agents to identify and fix all remaining cache leaks. The goal: on repeat runs, **zero** Alpaca API calls.
+
+### Bugs Found and Fixed
+
+#### Bug 1: `getTradeableSymbols()` bypassed file cache entirely
+- **File:** `src/scanner/gap-scanner.ts`
+- **Problem:** Used `client.getAssets()` via the Alpaca SDK directly. Had only an in-memory `_cachedSymbols` variable -- every new process hit the API for the full ~12K symbol list.
+- **Fix:** Added `getCached`/`setCached` wrapper with a stable cache key (`alpaca://v2/assets/tradeable-symbols`). The symbol list now persists to disk and loads from cache on subsequent runs.
+
+#### Bug 2: `simulation.ts` never called `preloadCache()`
+- **File:** `src/simulation.ts`
+- **Problem:** Only `multi-sim.ts` preloaded the cache into memory. The standalone simulation entry point skipped this step, causing every cache lookup to fall through to individual disk I/O (73K+ `existsSync` calls per run).
+- **Fix:** Added `preloadCache()` call at startup, matching the pattern in `multi-sim.ts`.
+
+#### Bug 3: News API received invalid `feed=iex` parameter
+- **File:** `src/alpaca/market-data.ts`
+- **Problem:** `dataGet()` appended `feed=iex` to ALL endpoints, including `/v1beta1/news` which doesn't support it. This caused a 400 error on every news request. Since `dataGet()` throws on non-200 responses **without caching the failure**, the same broken request was retried on every run -- an infinite loop of uncacheable failures.
+- **Fix:** Added `NO_FEED_PATHS` set to skip the `feed` parameter for news endpoints. News requests now succeed and get cached normally.
+
+#### Improvement: Cache hit/miss tracking
+- **File:** `src/alpaca/cache.ts`
+- **Problem:** No visibility into whether the cache was working. Impossible to tell if a simulation was hitting the API or reading from disk.
+- **Fix:** Added `getCacheStats()` / `resetCacheStats()` counters. Both `simulation.ts` and `multi-sim.ts` now report cache stats at the end of each run.
+
+### Results
+
+| Run | Cache Hits | API Calls (Misses) | Notes |
+|-----|-----------|-------------------|-------|
+| 1st (cold, all 3 fixes applied) | 16 | 311 | Expected -- warming the cache |
+| 2nd | 325 | 2 | News URLs changed (no `feed=iex`), new cache keys |
+| 3rd | 327 | 0 | Fully cached |
+| 5 parallel agents x 3 rounds | 327 each | **0 each** | Confirmed: shared file cache works across processes |
+| 10 parallel agents | 327 each | **0 each** | Stress test passed |
+
+### Key Insight: Uncached Errors Are Silent Cache Leaks
+
+The news API bug highlights a subtle cache anti-pattern: when an API call fails (non-200), `dataGet()` throws without caching. This means:
+- The same broken URL is retried on every run
+- No cache entry is ever written
+- The cache stats (before this fix) wouldn't even count it as a miss since the code threw before reaching the miss counter
+
+Any endpoint that consistently returns an error becomes a permanent cache leak. Consider caching negative results (with a TTL) to prevent this class of bug in the future.

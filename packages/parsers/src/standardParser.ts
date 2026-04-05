@@ -1,0 +1,314 @@
+import { ParserResult, invalidResult, validResult } from './types';
+
+/**
+ * Pattern 1: Simple format "sets x reps @weightkg"
+ * Example: "4 x 3 @50kg"
+ */
+export function parseStandard(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	// Skip if input contains "rir" (handled by RIR parser)
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	// First check if there are multiple numbers after @ - if so, it's likely multiple weights
+	const atIndex = cleanInput.indexOf('@');
+	if (atIndex === -1) {
+		return { matched: false };
+	}
+
+	const afterAtCheck = cleanInput.substring(atIndex + 1).trim();
+	const numbersAfterAt = afterAtCheck.match(/\d+(?:\.\d+)?/g);
+	const hasMultipleNumbers = numbersAfterAt && numbersAfterAt.length > 1;
+	const hasKgInMiddle = /(kg|lbs)\s+\d/i.test(afterAtCheck);
+	const hasKgAtEnd = /\d+\s*(kg|lbs)\s*$/i.test(afterAtCheck);
+
+	// Only skip simple pattern if there are multiple numbers AND no "kg" (which indicates multiple weights)
+	// Cases like "4 x 3 @50kg" should still match simple pattern
+	if (hasMultipleNumbers && !hasKgInMiddle && !hasKgAtEnd) {
+		return { matched: false };
+	}
+
+	// Standard simple pattern - requires "kg" unit
+	const simpleMatch = cleanInput.match(/^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*(kg|lbs)/i);
+
+	if (simpleMatch) {
+		const sets = parseInt(simpleMatch[1]);
+		const reps = parseInt(simpleMatch[2]);
+		const weight = parseFloat(simpleMatch[3]);
+
+		// Check if there's any trailing content that wasn't parsed as rest time
+		// If there is, it's invalid (rest time requires unit)
+		const unitMatch = simpleMatch[4];
+		const unitIndex = cleanInput.toLowerCase().indexOf(unitMatch.toLowerCase());
+		const afterKg = cleanInput.substring(unitIndex + unitMatch.length).trim();
+		if (afterKg && restTimeSeconds === undefined) {
+			// There's trailing content but no valid rest time parsed
+			return {
+				matched: true,
+				data: invalidResult('Invalid format. Rest time requires a unit (s, m, sec, min, etc.). Use "4 x 3 @50kg 120s" or "4 x 3 @50kg 2m"'),
+			};
+		}
+
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	}
+
+	return { matched: false };
+}
+
+/**
+ * Pattern 1a: Absolute weight range format "sets x reps@85-89kg"
+ * Example: "4 x 3 @85-89kg"
+ */
+export function parseWeightRange(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	const weightRangePattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|lbs)$/i;
+	const match = cleanInput.match(weightRangePattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const reps = parseInt(match[2]);
+	const minWeight = parseFloat(match[3]);
+	const maxWeight = parseFloat(match[4]);
+
+	// Validate weights are positive
+	if (minWeight <= 0 || maxWeight <= 0) {
+		return {
+			matched: true,
+			data: invalidResult('Weight must be positive'),
+		};
+	}
+
+	// Validate min <= max
+	if (minWeight > maxWeight) {
+		return {
+			matched: true,
+			data: invalidResult('Minimum weight must be less than or equal to maximum weight'),
+		};
+	}
+
+	return {
+		matched: true,
+		data: validResult({
+			sets,
+			reps,
+			weight: minWeight, // Use min for backward compatibility
+			weightMin: minWeight,
+			weightMax: maxWeight,
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
+	};
+}
+
+/**
+ * Pattern 1b2: Multiple weights with trailing range "sets x reps @w1 w2 wMin-wMax kg/%" or comma-separated
+ * Example: "3 x 1 @80, 85, 85-90%" or "3 x 1 @50 60 65-70kg"
+ */
+export function parseMultipleWeightsWithRange(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	// Match: sets x reps @values... min-max unit
+	// Supports comma or space separated values before the range
+	const pattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?[\s,]+)+)(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|lbs|%)\s*$/i;
+	const match = cleanInput.match(pattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const reps = parseInt(match[2]);
+	const fixedStr = match[3];
+	const rangeMin = parseFloat(match[4]);
+	const rangeMax = parseFloat(match[5]);
+	const unit = match[6]?.toLowerCase() || '';
+
+	const fixedValues = fixedStr
+		.split(/[\s,]+/)
+		.filter(s => s.trim() !== '')
+		.map(s => parseFloat(s));
+
+	if (fixedValues.some(v => isNaN(v))) {
+		return { matched: false };
+	}
+
+	const allWeights = [...fixedValues, rangeMin];
+
+	if (allWeights.length > sets) {
+		return {
+			matched: true,
+			data: invalidResult(`Too many weights: got ${allWeights.length} for ${sets} sets`),
+		};
+	}
+
+	while (allWeights.length < sets) {
+		allWeights.push(rangeMin);
+	}
+
+	if (rangeMin > rangeMax) {
+		return {
+			matched: true,
+			data: invalidResult(unit === '%'
+				? 'Minimum percentage must be less than or equal to maximum percentage'
+				: 'Minimum weight must be less than or equal to maximum weight'),
+		};
+	}
+
+	if (unit === 'kg' || unit === 'lbs') {
+		if (allWeights.some(w => w <= 0) || rangeMax <= 0) {
+			return {
+				matched: true,
+				data: invalidResult('Weight must be positive'),
+			};
+		}
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: fixedValues[0],
+				weights: allWeights,
+				weightMin: rangeMin,
+				weightMax: rangeMax,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	} else if (unit === '%') {
+		if (allWeights.some(p => p <= 0 || p > 200) || rangeMax <= 0 || rangeMax > 200) {
+			return {
+				matched: true,
+				data: invalidResult('Percentage must be between 0 and 200'),
+			};
+		}
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: 0,
+				weights: allWeights,
+				weightPercentage: fixedValues[0],
+				weightMinPercentage: rangeMin,
+				weightMaxPercentage: rangeMax,
+				needsRmLookup: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	}
+
+	return { matched: false };
+}
+
+/**
+ * Pattern 1b: Multiple weights format "sets x reps @weight1 weight2 weight3...kg" or "...%"
+ * Example: "3 x 1 @50 60 70kg"
+ */
+export function parseMultipleWeights(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	// Skip if input contains "rir" (handled by RIR parser)
+	if (cleanInput.includes('rir')) {
+		return { matched: false };
+	}
+
+	const multipleWeightsPattern = /^([1-9]\d*)\s*x\s*([1-9]\d*)\s*@\s*((?:\d+(?:\.\d+)?\s+)+)(?:\d+(?:\.\d+)?)\s*(kg|lbs|%)\s*$/i;
+	const match = cleanInput.match(multipleWeightsPattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const reps = parseInt(match[2]);
+	const unit = match[4]?.toLowerCase() || '';
+
+	// Extract all numbers after @ (before unit)
+	const atIndex = cleanInput.indexOf('@');
+	const afterAt = cleanInput.substring(atIndex + 1).trim();
+	const beforeUnit = afterAt.replace(/\s*(kg|lbs|%)\s*$/i, '').trim();
+
+	// Split by whitespace and parse
+	const weightStrings = beforeUnit.split(/\s+/);
+	const weights = weightStrings.map(w => parseFloat(w));
+
+	// Check for empty or invalid values
+	const hasInvalidValues = weightStrings.some(w => w.trim() === '' || isNaN(parseFloat(w)));
+	if (hasInvalidValues) {
+		return {
+			matched: true,
+			data: invalidResult('Invalid weight values. Please use numbers only.'),
+		};
+	}
+
+	// Check all values are positive
+	if (weights.some(w => w <= 0)) {
+		return {
+			matched: true,
+			data: invalidResult('Invalid weight values. Please use numbers only.'),
+		};
+	}
+
+	// Only process as multiple weights if there are actually multiple weights
+	if (weights.length <= 1) {
+		return { matched: false };
+	}
+
+	// Validate that number of weights doesn't exceed sets
+	if (weights.length > sets) {
+		return {
+			matched: true,
+			data: invalidResult(`Too many weights: got ${weights.length} for ${sets} sets`),
+		};
+	}
+
+	// Pad with the last value if fewer weights than sets
+	const validWeights = [...weights];
+	while (validWeights.length < sets) {
+		validWeights.push(validWeights[validWeights.length - 1]);
+	}
+
+	if (unit === 'kg' || unit === 'lbs') {
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: validWeights[0], // Keep for backward compatibility
+				weights: validWeights,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	} else if (unit === '%') {
+		// Validate percentages are between 0 and 100
+		if (validWeights.some(w => w <= 0 || w > 200)) {
+			return {
+				matched: true,
+				data: invalidResult('Percentage must be between 0 and 200'),
+			};
+		}
+		// For percentage multiple weights, use the first one as weightPercentage
+		return {
+			matched: true,
+			data: validResult({
+				sets,
+				reps,
+				weight: 0, // Will be calculated after RM lookup
+				weights: validWeights, // Store all percentages
+				weightPercentage: validWeights[0], // Use first for backward compatibility
+				needsRmLookup: true,
+				...(restTimeSeconds !== undefined && { restTimeSeconds }),
+			}),
+		};
+	}
+
+	return { matched: false };
+}

@@ -14,6 +14,7 @@ import type { NewsCandidate } from "./news-filter.js";
 import type { WatchlistEntry } from "./index.js";
 import { getTradeableSymbols } from "./gap-scanner.js";
 import { createLogger } from "../utils/logger.js";
+import type { Bar } from "../utils/bar.js";
 
 const log = createLogger("scanner:historical");
 
@@ -48,36 +49,21 @@ function isCatalystHeadline(headline: string): boolean {
 export async function runHistoricalScanner(
   client: AlpacaClient,
   config: Config,
-  targetDate: string // YYYY-MM-DD
+  targetDate: string, // YYYY-MM-DD
+  prefetchedDailyBars?: Map<string, Bar[]>,
 ): Promise<WatchlistEntry[]> {
   log.info("Starting historical scan", { date: targetDate });
 
-  // 1. Get all tradeable symbols
-  const allSymbols = await getTradeableSymbols(client);
-  log.info("Tradeable symbols loaded", { count: allSymbols.length });
-
-  // 2. Fetch daily bars covering the target date and the day before.
-  //    We request a small window (5 calendar days back) to account for weekends/holidays.
-  const windowStart = shiftDate(targetDate, -5);
-  const windowEnd = targetDate + "T23:59:59Z";
-
-  // Process symbols in batches to stay within API limits
-  const SYMBOL_BATCH = 200;
+  // 1. Build gap candidates from daily bars.
+  //    When prefetchedDailyBars is provided, we skip per-date API calls entirely
+  //    and filter the pre-fetched data in memory.
   const gapCandidates: GapCandidate[] = [];
 
-  for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH) {
-    const batch = allSymbols.slice(i, i + SYMBOL_BATCH);
-
-    const barsMap = await getBars(client, batch, "1Day", {
-      start: new Date(windowStart).toISOString(),
-      end: new Date(windowEnd).toISOString(),
-      limit: 10,
-    });
-
-    for (const [symbol, bars] of barsMap) {
+  if (prefetchedDailyBars) {
+    // Fast path: scan pre-fetched bars in memory
+    for (const [symbol, bars] of prefetchedDailyBars) {
       if (bars.length < 2) continue;
 
-      // Find the bar for targetDate and the one just before it
       const targetBar = bars.find(
         (b) => b.timestamp.toISOString().slice(0, 10) === targetDate
       );
@@ -95,16 +81,10 @@ export async function runHistoricalScanner(
 
       const gapPct = ((openPrice - prevClose) / prevClose) * 100;
 
-      // Apply gap & price filters
       if (gapPct < config.scanner.minGapPct) continue;
       if (openPrice < config.scanner.minPrice) continue;
       if (openPrice > config.scanner.maxPrice) continue;
 
-      // Use the open price as premarketHigh approximation.
-      // The daily bar's high is the day's absolute high — using it makes
-      // gap-and-go's "break above premarket high" condition impossible to meet.
-      // The open price is where premarket trading settled, making it the best
-      // proxy we have from daily bars on IEX (no actual premarket data).
       gapCandidates.push({
         symbol,
         gapPct,
@@ -117,13 +97,74 @@ export async function runHistoricalScanner(
       });
     }
 
-    // Progress logging every 1000 symbols
-    if ((i + SYMBOL_BATCH) % 1000 === 0 || i + SYMBOL_BATCH >= allSymbols.length) {
-      log.info("Gap scan progress", {
-        processed: Math.min(i + SYMBOL_BATCH, allSymbols.length),
-        total: allSymbols.length,
-        candidates: gapCandidates.length,
+    log.info("Gap scan from prefetched data", { candidates: gapCandidates.length });
+  } else {
+    // Original path: fetch per-date with sliding window
+    const allSymbols = await getTradeableSymbols(client);
+    log.info("Tradeable symbols loaded", { count: allSymbols.length });
+
+    const windowStart = shiftDate(targetDate, -5);
+    const windowEnd = targetDate + "T23:59:59Z";
+
+    const SYMBOL_BATCH = 200;
+
+    for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH) {
+      const batch = allSymbols.slice(i, i + SYMBOL_BATCH);
+
+      const barsMap = await getBars(client, batch, "1Day", {
+        start: new Date(windowStart).toISOString(),
+        end: new Date(windowEnd).toISOString(),
+        limit: 10,
       });
+
+      for (const [symbol, bars] of barsMap) {
+        if (bars.length < 2) continue;
+
+        const targetBar = bars.find(
+          (b) => b.timestamp.toISOString().slice(0, 10) === targetDate
+        );
+        if (!targetBar) continue;
+
+        const targetIdx = bars.indexOf(targetBar);
+        if (targetIdx < 1) continue;
+        const prevBar = bars[targetIdx - 1];
+
+        const prevClose = prevBar.close;
+        if (prevClose === 0) continue;
+
+        const openPrice = targetBar.open;
+        if (openPrice === 0) continue;
+
+        const gapPct = ((openPrice - prevClose) / prevClose) * 100;
+
+        if (gapPct < config.scanner.minGapPct) continue;
+        if (openPrice < config.scanner.minPrice) continue;
+        if (openPrice > config.scanner.maxPrice) continue;
+
+        // Use the open price as premarketHigh approximation.
+        // The daily bar's high is the day's absolute high — using it makes
+        // gap-and-go's "break above premarket high" condition impossible to meet.
+        // The open price is where premarket trading settled, making it the best
+        // proxy we have from daily bars on IEX (no actual premarket data).
+        gapCandidates.push({
+          symbol,
+          gapPct,
+          price: openPrice,
+          volume: targetBar.volume,
+          prevClose,
+          relativeVolume: 0,
+          premarketHigh: targetBar.open,
+          premarketLow: Math.min(targetBar.open, targetBar.low),
+        });
+      }
+
+      if ((i + SYMBOL_BATCH) % 1000 === 0 || i + SYMBOL_BATCH >= allSymbols.length) {
+        log.info("Gap scan progress", {
+          processed: Math.min(i + SYMBOL_BATCH, allSymbols.length),
+          total: allSymbols.length,
+          candidates: gapCandidates.length,
+        });
+      }
     }
   }
 
@@ -156,15 +197,35 @@ export async function runHistoricalScanner(
 
   // 4. Historical relative volume
   //    Compare target date volume to 30-day average volume ending the day before
-  const rvolStart = shiftDate(targetDate, -(RVOL_LOOKBACK_DAYS + 5));
-  const rvolEnd = shiftDate(targetDate, -1) + "T23:59:59Z";
+  let rvolBarsMap: Map<string, Bar[]>;
 
-  const rvolSymbols = floatFiltered.map((c) => c.symbol);
-  const rvolBarsMap = await getBars(client, rvolSymbols, "1Day", {
-    start: new Date(rvolStart).toISOString(),
-    end: new Date(rvolEnd).toISOString(),
-    limit: RVOL_LOOKBACK_DAYS,
-  });
+  if (prefetchedDailyBars) {
+    // Fast path: extract RVOL lookback window from pre-fetched bars
+    rvolBarsMap = new Map();
+    const rvolEndDate = shiftDate(targetDate, -1);
+    for (const candidate of floatFiltered) {
+      const allBars = prefetchedDailyBars.get(candidate.symbol);
+      if (!allBars) continue;
+      // Filter to bars before targetDate, take last RVOL_LOOKBACK_DAYS
+      const beforeTarget = allBars.filter(
+        (b) => b.timestamp.toISOString().slice(0, 10) <= rvolEndDate
+      );
+      rvolBarsMap.set(
+        candidate.symbol,
+        beforeTarget.slice(-RVOL_LOOKBACK_DAYS)
+      );
+    }
+  } else {
+    // Original path: fetch RVOL bars per-date
+    const rvolStart = shiftDate(targetDate, -(RVOL_LOOKBACK_DAYS + 5));
+    const rvolEnd = shiftDate(targetDate, -1) + "T23:59:59Z";
+    const rvolSymbols = floatFiltered.map((c) => c.symbol);
+    rvolBarsMap = await getBars(client, rvolSymbols, "1Day", {
+      start: new Date(rvolStart).toISOString(),
+      end: new Date(rvolEnd).toISOString(),
+      limit: RVOL_LOOKBACK_DAYS,
+    });
+  }
 
   const rvolFiltered: GapCandidate[] = [];
   for (const candidate of floatFiltered) {
@@ -321,4 +382,58 @@ function shiftDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Pre-fetch all daily bars for the full date range in one pass.
+ *
+ * Instead of 125 per-day requests (each with a sliding 5-day window),
+ * this fetches the entire contiguous range in ~40 symbol-batch requests.
+ * The caller should include enough buffer for RVOL lookback (35 days before
+ * the earliest target date).
+ */
+export async function prefetchAllDailyBars(
+  client: AlpacaClient,
+  config: Config,
+  startDate: string, // YYYY-MM-DD, should include RVOL buffer
+  endDate: string,   // YYYY-MM-DD
+): Promise<Map<string, Bar[]>> {
+  const allSymbols = await getTradeableSymbols(client);
+  log.info("Prefetching daily bars", {
+    symbols: allSymbols.length,
+    range: `${startDate} → ${endDate}`,
+  });
+
+  const result = new Map<string, Bar[]>();
+  const SYMBOL_BATCH = 200;
+  // 200 trading days is generous for ~6 months + 35-day buffer
+  const LIMIT = 300;
+
+  const start = new Date(startDate + "T00:00:00Z").toISOString();
+  const end = new Date(endDate + "T23:59:59Z").toISOString();
+
+  for (let i = 0; i < allSymbols.length; i += SYMBOL_BATCH) {
+    const batch = allSymbols.slice(i, i + SYMBOL_BATCH);
+
+    const barsMap = await getBars(client, batch, "1Day", {
+      start,
+      end,
+      limit: LIMIT,
+    });
+
+    for (const [symbol, bars] of barsMap) {
+      result.set(symbol, bars);
+    }
+
+    if ((i + SYMBOL_BATCH) % 1000 === 0 || i + SYMBOL_BATCH >= allSymbols.length) {
+      log.info("Prefetch progress", {
+        processed: Math.min(i + SYMBOL_BATCH, allSymbols.length),
+        total: allSymbols.length,
+        symbolsWithBars: result.size,
+      });
+    }
+  }
+
+  log.info("Prefetch complete", { symbolsWithBars: result.size });
+  return result;
 }

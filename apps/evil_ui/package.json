@@ -1,0 +1,50 @@
+{
+  "name": "@evil-empire/ui",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./tailwind-preset": "./src/theme/tailwind-preset.js",
+    "./tokens": {
+      "types": "./dist/theme/tokens.d.ts",
+      "import": "./dist/theme/tokens.mjs",
+      "require": "./dist/theme/tokens.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "demo:ios": "cd expo-demo && expo start --ios",
+    "showcase": "vite",
+    "showcase:build": "vite build"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.72",
+    "nativewind": ">=4"
+  },
+  "devDependencies": {
+    "@evil-empire/eslint-config": "workspace:*",
+    "@evil-empire/typescript-config": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "~5.9.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-native": "^0.81.0",
+    "react-native-web": "^0.19.0",
+    "vite": "^6.0.0"
+  }
+}
