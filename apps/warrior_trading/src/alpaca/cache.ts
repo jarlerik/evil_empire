@@ -13,6 +13,19 @@ let memoryCache: Map<string, unknown> | null = null;
 // Track hash->url mapping for in-memory lookups
 const hashToData = new Map<string, unknown>();
 
+// API call tracking — use getCacheStats() to inspect
+let _cacheHits = 0;
+let _cacheMisses = 0;
+
+export function getCacheStats(): { hits: number; misses: number } {
+  return { hits: _cacheHits, misses: _cacheMisses };
+}
+
+export function resetCacheStats(): void {
+  _cacheHits = 0;
+  _cacheMisses = 0;
+}
+
 async function ensureCacheDir(): Promise<void> {
   if (cacheReady) return;
   await mkdir(CACHE_DIR, { recursive: true });
@@ -69,21 +82,28 @@ export async function getCached<T>(url: string): Promise<T | null> {
 
   // Check in-memory cache first
   if (hashToData.has(hash)) {
+    _cacheHits++;
     return hashToData.get(hash) as T;
   }
 
   // Fall back to disk
   const path = `${CACHE_DIR}/${hash}.json`;
-  if (!existsSync(path)) return null;
+  if (!existsSync(path)) {
+    _cacheMisses++;
+    log.debug("Cache miss", { url: url.slice(0, 100) });
+    return null;
+  }
 
   try {
     const data = await Bun.file(path).text();
     const parsed = JSON.parse(data) as T;
     // Store in memory for next access
     hashToData.set(hash, parsed);
+    _cacheHits++;
     log.debug("Cache hit (disk)", { url: url.slice(0, 80) });
     return parsed;
   } catch {
+    _cacheMisses++;
     return null;
   }
 }

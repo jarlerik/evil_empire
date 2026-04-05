@@ -1,6 +1,7 @@
 import type { AlpacaClient } from "../alpaca/client.js";
 import type { Config } from "../config.js";
 import { getSnapshots } from "../alpaca/market-data.js";
+import { getCached, setCached } from "../alpaca/cache.js";
 import { createLogger } from "../utils/logger.js";
 
 const log = createLogger("scanner:gap");
@@ -89,11 +90,23 @@ export async function scanForGaps(
 
 let _cachedSymbols: string[] | null = null;
 
+// Stable cache key for tradeable symbols (doesn't change within a day)
+const TRADEABLE_SYMBOLS_CACHE_KEY = "alpaca://v2/assets/tradeable-symbols";
+
 export async function getTradeableSymbols(
   client: AlpacaClient
 ): Promise<string[]> {
   if (_cachedSymbols) return _cachedSymbols;
 
+  // Check file cache first — symbols list rarely changes
+  const fileCached = await getCached<string[]>(TRADEABLE_SYMBOLS_CACHE_KEY);
+  if (fileCached !== null) {
+    log.info("Tradeable symbols loaded from file cache", { count: fileCached.length });
+    _cachedSymbols = fileCached;
+    return _cachedSymbols;
+  }
+
+  log.info("Fetching tradeable symbols from Alpaca API...");
   const assets = await client.getAssets({
     status: "active",
     asset_class: "us_equity",
@@ -107,6 +120,10 @@ export async function getTradeableSymbols(
         !a.symbol.includes(".")
     )
     .map((a) => a.symbol);
+
+  // Persist to file cache for future runs
+  await setCached(TRADEABLE_SYMBOLS_CACHE_KEY, _cachedSymbols);
+  log.info("Tradeable symbols cached", { count: _cachedSymbols.length });
 
   return _cachedSymbols;
 }
