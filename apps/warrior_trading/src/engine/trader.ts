@@ -81,7 +81,11 @@ export class Trader {
 
     // Get account equity
     const account = await this.client.getAccount();
-    const equity = parseFloat((account as unknown as Record<string, string>).equity);
+    const rawEquity = (account as Record<string, unknown>).equity;
+    const equity = typeof rawEquity === "string" ? parseFloat(rawEquity) : NaN;
+    if (!Number.isFinite(equity) || equity <= 0) {
+      throw new Error(`Invalid equity value from Alpaca: ${rawEquity}`);
+    }
     log.info("Account loaded", { equity: equity.toFixed(2) });
 
     this.cachedEquity = equity;
