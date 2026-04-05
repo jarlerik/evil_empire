@@ -7,6 +7,8 @@ const mockGetBars = mock(() => Promise.resolve(new Map<string, Bar[]>()));
 mock.module("../../alpaca/market-data.js", () => ({
   getBars: mockGetBars,
   getSnapshots: mock(() => Promise.resolve(new Map())),
+  getNews: mock(() => Promise.resolve({ news: [] })),
+  initMarketData: mock(() => {}),
 }));
 
 // Import after mocking

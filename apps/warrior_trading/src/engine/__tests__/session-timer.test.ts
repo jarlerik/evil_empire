@@ -28,9 +28,9 @@ describe("SessionTimer", () => {
   test("isTradingAllowed returns a boolean", () => {
     const result = isTradingAllowed();
     expect(typeof result).toBe("boolean");
-    // isTradingAllowed should be true only during "open" or "midday"
+    // isTradingAllowed should be true only during "open"
     const session = getCurrentSession();
-    if (session === "open" || session === "midday") {
+    if (session === "open") {
       expect(result).toBe(true);
     } else {
       expect(result).toBe(false);

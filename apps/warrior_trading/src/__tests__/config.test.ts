@@ -78,12 +78,12 @@ describe("loadConfig", () => {
     const config = loadConfig();
 
     // Scanner defaults
-    expect(config.scanner.minGapPct).toBe(5);
+    expect(config.scanner.minGapPct).toBe(3);
     expect(config.scanner.prefGapPct).toBe(20);
     expect(config.scanner.minPrice).toBe(1.0);
-    expect(config.scanner.maxPrice).toBe(20.0);
+    expect(config.scanner.maxPrice).toBe(30.0);
     expect(config.scanner.maxFloat).toBe(20_000_000);
-    expect(config.scanner.minRelVolume).toBe(5);
+    expect(config.scanner.minRelVolume).toBe(1.5);
 
     // Risk defaults
     expect(config.risk.rrRatio).toBe(2);
@@ -92,8 +92,8 @@ describe("loadConfig", () => {
     expect(config.risk.maxConsecLosses).toBe(3);
 
     // Trading defaults
-    expect(config.trading.timeStopBars).toBe(5);
-    expect(config.trading.trailingStopPct).toBe(1.5);
+    expect(config.trading.timeStopBars).toBe(10);
+    expect(config.trading.trailingStopPct).toBe(3);
     // "all" default → all strategies
     expect(config.trading.strategies).toEqual([
       "gap-and-go",
