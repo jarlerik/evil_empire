@@ -57,6 +57,8 @@ export class Trader {
   private strategies: Strategy[];
   private openPosition: OpenPosition | null = null;
   private scanComplete = false;
+  private scanInterval: ReturnType<typeof setInterval> | null = null;
+  private lastScanTime = 0;
   private running = false;
   private executionInProgress = false;
   private cachedEquity = 0;
@@ -145,6 +147,7 @@ export class Trader {
   async stop(): Promise<void> {
     this.running = false;
     this.session.stop();
+    this.stopScanInterval();
     this.watchlist?.stopStreaming();
     this.stream.disconnect();
 
@@ -157,13 +160,55 @@ export class Trader {
   }
 
   private async onPreMarket(): Promise<void> {
-    if (this.scanComplete) return;
+    // Run initial scan
+    await this.runScan();
 
-    log.info("Pre-market: running scanner...");
+    // Set up periodic re-scanning if configured
+    const intervalMin = this.config.scanner.intervalMin;
+    if (intervalMin > 0 && !this.scanInterval) {
+      const intervalMs = intervalMin * 60 * 1000;
+      log.info("Periodic scanner enabled", { intervalMin });
+      this.scanInterval = setInterval(async () => {
+        // Only re-scan during pre-market; stop once market opens
+        if (!isScanningTime()) {
+          this.stopScanInterval();
+          return;
+        }
+        log.info("Periodic re-scan triggered");
+        await this.runScan();
+      }, intervalMs);
+    }
+  }
+
+  private stopScanInterval(): void {
+    if (this.scanInterval) {
+      clearInterval(this.scanInterval);
+      this.scanInterval = null;
+      log.info("Periodic scanner stopped");
+    }
+  }
+
+  private async runScan(): Promise<void> {
+    const now = Date.now();
+    // Debounce: skip if last scan was less than 60s ago
+    if (now - this.lastScanTime < 60_000) {
+      log.debug("Scan skipped — too soon since last scan");
+      return;
+    }
+    this.lastScanTime = now;
+
+    const isRescan = this.scanComplete;
+    log.info(isRescan ? "Re-scanning for updated candidates..." : "Pre-market: running scanner...");
+
     const results = await runScanner(this.client, this.config);
 
     if (results.length === 0) {
       log.warn("Scanner found no candidates");
+      // Keep existing watchlist on re-scan if new scan is empty
+      if (isRescan) {
+        log.info("Keeping previous watchlist (re-scan returned no candidates)");
+        return;
+      }
       return;
     }
 
@@ -181,19 +226,39 @@ export class Trader {
       })),
     });
 
-    this.watchlist = new Watchlist(this.client, this.stream, this.config);
-    await this.watchlist.loadFromScanResults(results);
+    if (isRescan && this.watchlist) {
+      // Re-scan: unsubscribe old symbols, reload with new candidates
+      const oldSymbols = this.watchlist.activeSymbols;
+      const newSymbols = results.map((r) => r.symbol);
+      log.info("Watchlist refresh", {
+        old: oldSymbols,
+        new: newSymbols,
+      });
+      this.watchlist.stopStreaming();
+      await this.watchlist.loadFromScanResults(results);
+      // Re-start streaming if market is already open
+      if (isTradingAllowed()) {
+        this.watchlist.startStreaming();
+      }
+    } else {
+      // First scan: create watchlist
+      this.watchlist = new Watchlist(this.client, this.stream, this.config);
+      await this.watchlist.loadFromScanResults(results);
 
-    // Set up bar handler for strategy evaluation
-    this.watchlist.onBar((symbol, snapshot) => {
-      this.evaluateStrategies(symbol, snapshot);
-    });
+      // Set up bar handler for strategy evaluation
+      this.watchlist.onBar((symbol, snapshot) => {
+        this.evaluateStrategies(symbol, snapshot);
+      });
+    }
 
     this.scanComplete = true;
-    log.info("Pre-market scan complete, watchlist ready");
+    log.info(isRescan ? "Watchlist refreshed" : "Pre-market scan complete, watchlist ready");
   }
 
   private async onMarketOpen(): Promise<void> {
+    // Stop periodic scanning — watchlist is locked for the session
+    this.stopScanInterval();
+
     if (!this.watchlist) {
       log.warn("No watchlist — scanner may not have run");
       return;

@@ -81,6 +81,7 @@ export function loadConfig() {
       maxPrice: envFloat("MAX_PRICE", 30.0),
       maxFloat: envInt("MAX_FLOAT", 20_000_000),
       minRelVolume: envFloat("MIN_REL_VOLUME", 1.5),
+      intervalMin: envInt("SCAN_INTERVAL_MIN", 15), // 0 = scan once, >0 = re-scan every N minutes
     },
 
     risk: {
