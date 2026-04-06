@@ -52,7 +52,7 @@ app-example
 .vscode/
 
 # Supabase CLI
-supabase/.temp/
+**/.temp/
 
 # AWS SAM
 .aws-sam/
