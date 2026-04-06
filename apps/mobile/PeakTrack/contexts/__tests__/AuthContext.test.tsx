@@ -105,7 +105,7 @@ describe('AuthContext', () => {
 				email: 'test@example.com',
 				password: 'password123',
 				options: {
-					emailRedirectTo: 'evil-empire://sign-in',
+					emailRedirectTo: 'peaktrack://sign-in',
 				},
 			});
 		});
@@ -302,7 +302,7 @@ describe('AuthContext', () => {
 				type: 'signup',
 				email: 'test@example.com',
 				options: {
-					emailRedirectTo: 'evil-empire://sign-in',
+					emailRedirectTo: 'peaktrack://sign-in',
 				},
 			});
 		});

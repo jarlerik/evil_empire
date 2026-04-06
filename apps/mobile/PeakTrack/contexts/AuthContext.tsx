@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           password,
           options: {
-            emailRedirectTo: 'evil-empire://sign-in',
+            emailRedirectTo: 'peaktrack://sign-in',
           },
         });
         console.log('Sign up response:', { data, error });
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           type: 'signup',
           email,
           options: {
-            emailRedirectTo: 'evil-empire://sign-in',
+            emailRedirectTo: 'peaktrack://sign-in',
           },
         });
         if (error) {throw handleAuthError(error);}
