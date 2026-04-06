@@ -3,6 +3,7 @@ import { createAlpacaClient } from "./alpaca/client.js";
 import { initMarketData } from "./alpaca/market-data.js";
 import { Trader } from "./engine/trader.js";
 import { startDashboard } from "./dashboard/server.js";
+import { getCurrentSession } from "./engine/session-timer.js";
 import { createLogger, setLogLevel } from "./utils/logger.js";
 
 const log = createLogger("main");
@@ -92,6 +93,7 @@ async function main() {
     startDashboard({
       type: "init",
       mode: "live",
+      phase: getCurrentSession(),
       symbol: "—",
       config: {
         strategies: [...config.trading.strategies],

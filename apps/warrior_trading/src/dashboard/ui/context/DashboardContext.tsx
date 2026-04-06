@@ -164,14 +164,18 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     case 'WS_DISCONNECTED':
       return { ...state, connected: false };
 
-    case 'INIT':
+    case 'INIT': {
+      const startEq = action.payload.config?.startingEquity ?? 0;
       return {
         ...initialState,
         connected: true,
         mode: action.payload.mode || 'backtest',
+        phase: action.payload.phase ?? initialState.phase,
         symbol: action.payload.symbol || '',
-        startingEquity: action.payload.config?.startingEquity ?? null,
+        startingEquity: startEq || null,
+        equity: startEq,
       };
+    }
 
     case 'BAR':
       return { ...state, latestBar: action.payload };

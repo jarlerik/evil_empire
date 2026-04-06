@@ -127,6 +127,7 @@ export interface PlaybackCommand {
 export interface InitEvent {
   type: "init";
   mode: "live" | "backtest";
+  phase?: SessionPhase;
   symbol: string;
   config: {
     strategies: string[];
