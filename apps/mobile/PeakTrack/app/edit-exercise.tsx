@@ -205,7 +205,7 @@ export default function EditExercise() {
 						<Pressable onPress={handleBackPress} style={commonStyles.backButton}>
 							<Text style={commonStyles.backButtonText}>←</Text>
 						</Pressable>
-						<Text style={commonStyles.titleFlex}>{exerciseName}</Text>
+						<Text style={[commonStyles.titleFlex, styles.title]}>{exerciseName}</Text>
 						<Pressable
 							onPress={() => handleDeleteExercise()}
 							style={styles.deleteExerciseButton}
@@ -320,6 +320,10 @@ export default function EditExercise() {
 const styles = StyleSheet.create({
 	headerRow: {
 		marginBottom: 40,
+	},
+	title: {
+		fontSize: 22,
+		textTransform: 'none',
 	},
 	setInput: {
 		backgroundColor: '#222',
