@@ -23,9 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!supabase) {return;}
 
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check active sessions and verify the user still exists server-side
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Initial session check:', session);
+      if (session) {
+        // Verify the session is still valid (e.g. user wasn't deleted from DB)
+        const { data: { user: verifiedUser }, error } = await supabase!.auth.getUser();
+        if (error || !verifiedUser) {
+          console.log('Session invalid (user may have been deleted), signing out');
+          await supabase?.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
