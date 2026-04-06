@@ -10,6 +10,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
   const router = useRouter();
   const { signUp } = useAuth();
   const passwordInputRef = useRef<TextInput>(null);
@@ -36,7 +37,7 @@ export default function SignUp() {
     setIsLoading(true);
     try {
       await signUp(email, password);
-      router.replace('/sign-in');
+      setSignUpSuccess(true);
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : '';
 
@@ -62,6 +63,18 @@ export default function SignUp() {
         <View style={commonStyles.headerRow}>
           <Text style={commonStyles.title}>Sign Up</Text>
         </View>
+        {signUpSuccess ? (
+          <View style={styles.form}>
+            <Text style={styles.successTitle}>Check Your Email</Text>
+            <Text style={styles.successText}>
+              We've sent a verification link to {email}. Please confirm your email before signing in.
+            </Text>
+            <Button
+              title="Go to Sign In"
+              onPress={() => router.replace('/sign-in')}
+            />
+          </View>
+        ) : (
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -107,6 +120,7 @@ export default function SignUp() {
             <Text style={styles.link}>Already have an account? Sign In</Text>
           </TouchableOpacity>
         </View>
+        )}
       </View>
     </Pressable>
   );
@@ -135,5 +149,17 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
     marginTop: 16,
+  },
+  successTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  successText: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

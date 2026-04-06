@@ -17,6 +17,7 @@
     <link rel="icon" type="image/svg+xml" href="peaktrack-favicon.svg">
 
     <link rel="stylesheet" href="styles.css">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
     <!-- Hero Section -->
@@ -116,17 +117,6 @@
                     <p class="parser-desc">Multiple formats together</p>
                 </div>
             </div>
-
-            <!-- Interactive Demo -->
-            <div class="demo-container">
-                <h3 class="demo-title">Try It Now</h3>
-                <div class="demo-input-wrapper">
-                    <input type="text" id="demo-input" class="demo-input" placeholder="Type an exercise... e.g. 4 x 5 @80%" autocomplete="off">
-                </div>
-                <div id="demo-output" class="demo-output">
-                    <p class="demo-placeholder">Start typing to see how PeakTrack parses your input</p>
-                </div>
-            </div>
         </div>
     </section>
 
@@ -220,6 +210,8 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
+
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAAC1Vhs0t87X6nTTh" data-theme="dark"></div>
 
                 <button type="submit" class="form-button">
                     <span class="button-text">Request Access</span>
