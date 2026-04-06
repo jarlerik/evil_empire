@@ -17,6 +17,7 @@
     <link rel="icon" type="image/svg+xml" href="peaktrack-favicon.svg">
 
     <link rel="stylesheet" href="styles.css">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
     <!-- Hero Section -->
@@ -209,6 +210,8 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
+
+                <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-theme="dark"></div>
 
                 <button type="submit" class="form-button">
                     <span class="button-text">Request Access</span>

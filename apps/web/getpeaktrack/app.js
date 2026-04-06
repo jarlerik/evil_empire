@@ -38,44 +38,49 @@ if (waitlistForm) {
             return;
         }
 
+        // Get Turnstile token
+        const turnstileToken = typeof turnstile !== 'undefined' ? turnstile.getResponse() : null;
+        if (!turnstileToken) {
+            showMessage('Please complete the verification check.', 'error');
+            return;
+        }
+
         // Show loading state
         submitButton.disabled = true;
         buttonText.style.display = 'none';
         buttonLoading.style.display = 'inline';
 
         try {
-            // Submit to Supabase
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+            // Submit via edge function (verifies Turnstile server-side)
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/join-waitlist`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Prefer': 'return=minimal',
                 },
                 body: JSON.stringify({
                     email: email,
                     training_type: trainingType || null,
+                    turnstile_token: turnstileToken,
                 }),
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                showMessage("You're on the list! We'll be in touch soon.", 'success');
+                showMessage(data.message || "You're on the list! We'll be in touch soon.", 'success');
                 waitlistForm.reset();
+                if (typeof turnstile !== 'undefined') turnstile.reset();
             } else if (response.status === 409) {
-                // Duplicate email
-                showMessage("You're already on the waitlist!", 'success');
+                showMessage(data.message || "You're already on the waitlist!", 'success');
+                if (typeof turnstile !== 'undefined') turnstile.reset();
             } else {
-                const error = await response.json();
-                if (error.message && error.message.includes('duplicate')) {
-                    showMessage("You're already on the waitlist!", 'success');
-                } else {
-                    throw new Error(error.message || 'Failed to join waitlist');
-                }
+                throw new Error(data.error || 'Failed to join waitlist');
             }
         } catch (error) {
             console.error('Waitlist submission error:', error);
             showMessage('Something went wrong. Please try again or email us directly.', 'error');
+            if (typeof turnstile !== 'undefined') turnstile.reset();
         } finally {
             // Reset button state
             submitButton.disabled = false;
