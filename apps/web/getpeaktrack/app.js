@@ -4,118 +4,11 @@
  * - Waitlist form with Supabase integration
  */
 
-import { parseSetInput } from '@evil-empire/parsers';
-
 // Supabase configuration
 // The anon key is safe to expose - security comes from RLS policies, not key secrecy
 // Set these in a .env file: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// ===== Interactive Parser Demo =====
-
-const demoInput = document.getElementById('demo-input');
-const demoOutput = document.getElementById('demo-output');
-
-if (demoInput && demoOutput) {
-    demoInput.addEventListener('input', (e) => {
-        const input = e.target.value.trim();
-
-        if (!input) {
-            demoOutput.innerHTML = '<p class="demo-placeholder">Start typing to see how PeakTrack parses your input</p>';
-            return;
-        }
-
-        const result = parseSetInput(input);
-
-        if (!result.isValid) {
-            demoOutput.innerHTML = `<p class="demo-error">${result.errorMessage || 'Could not parse input'}</p>`;
-            return;
-        }
-
-        // Build the result display based on what was parsed
-        let resultHtml = '<div class="demo-result">';
-
-        // Handle different exercise types
-        if (result.exerciseType === 'rm_build' && result.targetRm) {
-            resultHtml += createResultItem('Type', 'RM Build');
-            resultHtml += createResultItem('Target', `${result.targetRm}RM`);
-        } else if (result.exerciseType === 'circuit' && result.circuitExercises) {
-            resultHtml += createResultItem('Type', 'Circuit');
-            resultHtml += createResultItem('Rounds', result.sets.toString());
-            resultHtml += createResultItem('Exercises', result.circuitExercises.length.toString());
-        } else if (result.exerciseType === 'wave' && result.compoundReps) {
-            // Wave exercise
-            resultHtml += createResultItem('Type', 'Wave');
-            resultHtml += createResultItem('Reps Pattern', result.compoundReps.join('-'));
-            resultHtml += createResultItem('Total Sets', result.sets.toString());
-            if (result.weights && result.weights.length > 1) {
-                resultHtml += createResultItem('Weights', result.weights.join(', ') + 'kg');
-            } else if (result.weight > 0) {
-                resultHtml += createResultItem('Weight', result.weight + 'kg');
-            }
-        } else {
-            // Standard, compound, percentage, etc.
-            resultHtml += createResultItem('Sets', result.sets.toString());
-
-            // Handle compound reps
-            if (result.compoundReps && result.compoundReps.length > 0) {
-                resultHtml += createResultItem('Reps', result.compoundReps.join(' + '));
-            } else {
-                resultHtml += createResultItem('Reps', result.reps.toString());
-            }
-
-            // Handle weight display
-            if (result.needsRmLookup && result.weightPercentage) {
-                resultHtml += createResultItem('Weight', `${result.weightPercentage}% of 1RM`);
-            } else if (result.weightMinPercentage && result.weightMaxPercentage) {
-                resultHtml += createResultItem('Weight', `${result.weightMinPercentage}-${result.weightMaxPercentage}%`);
-            } else if (result.weightMin && result.weightMax) {
-                resultHtml += createResultItem('Weight', `${result.weightMin}-${result.weightMax}kg`);
-            } else if (result.weights && result.weights.length > 0) {
-                resultHtml += createResultItem('Weights', result.weights.join(', ') + 'kg');
-            } else if (result.weight > 0) {
-                resultHtml += createResultItem('Weight', `${result.weight}kg`);
-            }
-
-            // Handle RIR
-            if (result.rirMin !== undefined) {
-                if (result.rirMax !== undefined && result.rirMax !== result.rirMin) {
-                    resultHtml += createResultItem('RIR', `${result.rirMin}-${result.rirMax}`);
-                } else {
-                    resultHtml += createResultItem('RIR', result.rirMin.toString());
-                }
-            }
-        }
-
-        // Rest time (applies to all formats)
-        if (result.restTimeSeconds) {
-            const minutes = Math.floor(result.restTimeSeconds / 60);
-            const seconds = result.restTimeSeconds % 60;
-            let restDisplay = '';
-            if (minutes > 0 && seconds > 0) {
-                restDisplay = `${minutes}m ${seconds}s`;
-            } else if (minutes > 0) {
-                restDisplay = `${minutes}m`;
-            } else {
-                restDisplay = `${seconds}s`;
-            }
-            resultHtml += createResultItem('Rest', restDisplay);
-        }
-
-        resultHtml += '</div>';
-        demoOutput.innerHTML = resultHtml;
-    });
-}
-
-function createResultItem(label, value) {
-    return `
-        <div class="demo-result-item">
-            <span class="demo-result-label">${label}</span>
-            <span class="demo-result-value">${value}</span>
-        </div>
-    `;
-}
 
 // ===== Waitlist Form =====
 
