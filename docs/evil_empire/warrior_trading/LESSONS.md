@@ -844,3 +844,50 @@ The news API bug highlights a subtle cache anti-pattern: when an API call fails 
 - The cache stats (before this fix) wouldn't even count it as a miss since the code threw before reaching the miss counter
 
 Any endpoint that consistently returns an error becomes a permanent cache leak. Consider caching negative results (with a TTL) to prevent this class of bug in the future.
+
+---
+
+## 23. Multi-Sim Prefetch Bug & New Strategy/Config Tests (April 8, 2026)
+
+### Bug: `multi-sim.ts` prefetch path produced different scanner results
+
+**Problem:** `multi-sim.ts` used `prefetchAllDailyBars()` to load all daily bars in one bulk API call (full date range, `limit: 300`), then passed them to `runHistoricalScanner()` via the "fast path". Meanwhile `simulation.ts` used the per-day scanner path (5-day sliding window, `limit: 10`). These hit different Alpaca API URLs → different cache keys → different response data, producing **52 days with candidates** (prefetch) vs **31 days** (per-day). The prefetch path generated phantom candidates, inflating trade counts from 16 to 76-89 and distorting all results.
+
+**Fix:** Removed `prefetchAllDailyBars` from `multi-sim.ts`. Now uses the same per-day scanner path as `simulation.ts`. The disk cache (preloaded into memory) keeps repeat runs fast (~4s).
+
+**Verification:** After fix, `multi-sim.ts` produces identical results to `simulation.ts`: 31 days with candidates, 16 trades, 69% win rate, +$1,030 for the R6-BEST config.
+
+### New Features Added
+
+- **`MIN_STOP_DISTANCE` config** — minimum dollar distance between entry and stop price. Signals with tighter stops are rejected. Added to both live `RiskManager` and `BacktestRiskManager`.
+- **`src/scan.ts`** — standalone scanner CLI. `bun run scan` for live, `bun run scan 2026-04-08` for historical.
+- **`start` script** — production mode: builds dashboard then runs engine.
+- **`multi-sim.ts` CLI args** — `--from DATE`, `--days N`, `--configs SET` with organized config sets.
+
+### Results: Stop Distance Filter (all strategies, first hour, Jan-Apr 2026)
+
+| Config | Trades | Win% | P&L | Return |
+|--------|--------|------|-----|--------|
+| BASELINE (no filter) | 19 | 42% | -$835 | -3.3% |
+| MIN-STOP $0.05 | 10 | 30% | -$696 | -2.8% |
+| MIN-STOP $0.10 | 6 | 0% | -$992 | -4.0% |
+| MIN-STOP $0.20 | 1 | 0% | -$227 | -0.9% |
+| MIN-STOP $0.50 | 0 | — | $0 | 0% |
+
+### Results: Strategy Comparison (defaults, first hour, Jan-Apr 2026)
+
+| Config | Trades | Win% | P&L | Return |
+|--------|--------|------|-----|--------|
+| MA-PULLBACK only | 17 | 59% | +$651 | +2.6% |
+| GAP+FLAG+FLAT | 12 | 42% | -$377 | -1.5% |
+| VWAP bounce+reclaim | 6 | 33% | -$429 | -1.7% |
+| ALL strategies | 19 | 42% | -$835 | -3.3% |
+
+### Key Findings
+
+1. **multi-sim prefetch was producing invalid results.** All previous multi-sim runs that used `prefetchAllDailyBars` should be considered unreliable. The `simulation.ts` results (used for Rounds 5A/5B/6) were correct all along.
+2. **ma-pullback remains the only profitable strategy** on Jan-Apr 2026 data. All other strategies (flat-top, bull-flag, VWAP bounce/reclaim) lose money.
+3. **Min stop distance doesn't help when running all strategies** — they're all losers. Not tested yet with ma-pullback only.
+4. **Previous recommended config (R5A-BEST) still holds.** ma-pullback, first hour, risk 0.75%, time stop 15.
+5. **Only 3 active trading days out of 65** — the scanner on IEX free-tier data is very selective. SIP ($99/mo) would likely increase candidate count significantly but isn't justified until the strategy proves out on paper.
+6. **IEX vs SIP:** IEX is data from one exchange only. SIP is consolidated data from all 16+ US exchanges. Many small-cap candidates are invisible on IEX due to thin volume on that single exchange.

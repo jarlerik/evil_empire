@@ -11,6 +11,7 @@
     "build:dashboard": "vite build",
     "start": "vite build && bun run src/index.ts",
     "scan": "bun run src/scan.ts",
+    "multi-sim": "bun run src/multi-sim.ts",
     "backtest": "bun run src/backtest.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
