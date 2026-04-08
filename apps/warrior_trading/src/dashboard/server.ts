@@ -1,11 +1,14 @@
 import type { ServerWebSocket } from "bun";
 import { dashboardBus } from "./event-bus.js";
-import type { InitEvent } from "./types.js";
+import type { DashboardEvent, InitEvent } from "./types.js";
 
 const PORT = parseInt(Bun.env.DASHBOARD_PORT ?? "3939");
 
 export function startDashboard(initPayload: InitEvent): void {
   const clients = new Set<ServerWebSocket<unknown>>();
+
+  // Cache latest event per type so late-connecting clients get current state
+  const latestByType = new Map<string, DashboardEvent>();
 
   Bun.serve({
     port: PORT,
@@ -43,6 +46,10 @@ export function startDashboard(initPayload: InitEvent): void {
       open(ws) {
         clients.add(ws);
         ws.send(JSON.stringify(initPayload));
+        // Replay cached state so late-connecting clients see current scanner/session/risk
+        for (const event of latestByType.values()) {
+          ws.send(JSON.stringify(event));
+        }
       },
       message(ws, msg) {
         try {
@@ -59,6 +66,10 @@ export function startDashboard(initPayload: InitEvent): void {
   });
 
   dashboardBus.onEvent((event) => {
+    // Cache state events so late-connecting clients get current state
+    if (event.type === "scanner" || event.type === "session" || event.type === "risk") {
+      latestByType.set(event.type, event);
+    }
     const json = JSON.stringify(event);
     for (const ws of clients) {
       ws.send(json);

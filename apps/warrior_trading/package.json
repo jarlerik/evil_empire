@@ -9,6 +9,8 @@
     "dev:autotrader": "bun run src/index.ts & vite & wait",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "build:dashboard": "vite build",
+    "start": "vite build && bun run src/index.ts",
+    "scan": "bun run src/scan.ts",
     "backtest": "bun run src/backtest.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
