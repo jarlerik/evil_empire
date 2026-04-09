@@ -21,9 +21,15 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
+      '@evil-empire/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
       '@types/bun':
         specifier: ^1.2.0
         version: 1.3.11
+      eslint:
+        specifier: ^9.0.0
+        version: 9.39.2(jiti@1.21.7)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
