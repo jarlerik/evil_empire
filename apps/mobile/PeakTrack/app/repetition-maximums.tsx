@@ -9,13 +9,7 @@ import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
-import { RepetitionMaximum } from '../services/types';
-import {
-	fetchRepetitionMaximums,
-	createRepetitionMaximum,
-	updateRepetitionMaximum,
-	deleteRepetitionMaximum,
-} from '../services/repetitionMaximumService';
+import { RepetitionMaximum, fetchRepetitionMaximums, createRepetitionMaximum, updateRepetitionMaximum, deleteRepetitionMaximum } from '@evil-empire/peaktrack-services';
 
 export default function RepetitionMaximums() {
 	const { user } = useAuth();

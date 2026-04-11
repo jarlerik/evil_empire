@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { createChart, CrosshairMode, LineStyle, type IChartApi, type ISeriesApi } from 'lightweight-charts';
+import { createChart, CrosshairMode, LineStyle, ColorType, type IChartApi, type ISeriesApi } from 'lightweight-charts';
 import { colors } from '@evil-empire/ui';
 import { useDashboardState } from '../context/DashboardContext';
 
@@ -22,7 +22,7 @@ export function EquityPanel() {
     if (!containerRef.current) return;
     const chart = createChart(containerRef.current, {
       autoSize: true,
-      layout: { background: { type: 'solid', color: colors['background-card'] }, textColor: colors['text-secondary'] },
+      layout: { background: { type: ColorType.Solid, color: colors['background-card'] }, textColor: colors['text-secondary'] },
       grid: { vertLines: { color: colors.border }, horzLines: { color: colors.border } },
       rightPriceScale: { borderColor: colors.border },
       timeScale: { borderColor: colors.border, timeVisible: true },

@@ -1,13 +1,11 @@
-import { supabase } from '../lib/supabase';
-import { Exercise } from '../types/workout';
+import { Exercise } from '@evil-empire/types';
+import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 
 export async function fetchExercisesByWorkoutId(
 	workoutId: string,
 ): Promise<ServiceResult<Exercise[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('exercises')
@@ -26,9 +24,7 @@ export async function createExercise(
 	name: string,
 	workoutId: string,
 ): Promise<ServiceResult<Exercise>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('exercises')
@@ -46,9 +42,7 @@ export async function createExercise(
 export async function deleteExercise(
 	exerciseId: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('exercises')
@@ -66,9 +60,7 @@ export async function updateExerciseName(
 	exerciseId: string,
 	name: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('exercises')
@@ -85,9 +77,7 @@ export async function updateExerciseName(
 export async function fetchExercisesByWorkoutIds(
 	workoutIds: string[],
 ): Promise<ServiceResult<Exercise[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('exercises')

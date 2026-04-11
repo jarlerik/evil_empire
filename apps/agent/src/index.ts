@@ -1,7 +1,7 @@
 import { logger } from './utils/logger'
 import { acquireLock, releaseLock } from './utils/lock'
 import { pollForIssue, markInProgress, markDone, markFailed, markTodo } from './poller'
-import { cloneOrPull, createBranch, commitAll, push, ensureAgentLogEntry } from './utils/git'
+import { cloneOrPull, createBranch, ensureAgentLogEntry } from './utils/git'
 import { sendTelegram } from './utils/telegram'
 import { appendRun, getState } from './utils/state'
 import { runAgent } from './agent'
@@ -112,7 +112,7 @@ async function main() {
 
         // Git setup
         await cloneOrPull()
-        const branch = await createBranch(issue.number, issue.title)
+        await createBranch(issue.number, issue.title)
 
         // Run agent
         const { prUrl, costTracker } = await runAgent(issue)

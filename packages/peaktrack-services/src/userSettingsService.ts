@@ -1,12 +1,10 @@
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from './client';
 import { ServiceResult, UserSettingsRow } from './types';
 
 export async function fetchUserSettings(
 	userId: string,
 ): Promise<ServiceResult<UserSettingsRow>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('user_settings')
@@ -25,9 +23,7 @@ export async function upsertUserSettings(
 	userId: string,
 	settings: { weight_unit: 'kg' | 'lbs'; user_weight: string },
 ): Promise<ServiceResult<UserSettingsRow>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	// Try update first
 	const { data, error: updateError } = await supabase
@@ -71,9 +67,7 @@ export async function upsertUserSettings(
 export async function markOnboardingCompleted(
 	userId: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('user_settings')

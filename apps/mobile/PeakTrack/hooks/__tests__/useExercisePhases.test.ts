@@ -8,7 +8,7 @@ const mockInsertPhase = jest.fn();
 const mockUpdatePhase = jest.fn();
 const mockDeletePhase = jest.fn();
 
-jest.mock('../../services/exercisePhaseService', () => ({
+jest.mock('@evil-empire/peaktrack-services', () => ({
 	fetchPhasesByExerciseId: (...args: unknown[]) => mockFetchPhasesByExerciseId(...args),
 	insertPhase: (...args: unknown[]) => mockInsertPhase(...args),
 	updatePhase: (...args: unknown[]) => mockUpdatePhase(...args),

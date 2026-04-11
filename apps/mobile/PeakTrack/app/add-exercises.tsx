@@ -8,9 +8,7 @@ import { ExercisePhase } from '../lib/formatExercisePhase';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles } from '../styles/common';
 import { Exercise } from '../types/workout';
-import { fetchExercisesByWorkoutId, createExercise } from '../services/exerciseService';
-import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
-import { deleteWorkout } from '../services/workoutService';
+import { fetchExercisesByWorkoutId, createExercise, fetchPhasesByExerciseId, deleteWorkout } from '@evil-empire/peaktrack-services';
 
 export default function AddExercises() {
 	const params = useLocalSearchParams();

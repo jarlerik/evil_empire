@@ -1,4 +1,4 @@
-import { lookupExactRm, fetchAllRmsByReps } from '../services/repetitionMaximumService';
+import { lookupExactRm, fetchAllRmsByReps } from '@evil-empire/peaktrack-services';
 
 export interface RmMatch {
 	exerciseName: string;

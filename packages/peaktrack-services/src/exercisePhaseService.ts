@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/types';
+import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 
 export interface PhaseInsertData {
@@ -24,9 +24,7 @@ export interface PhaseInsertData {
 export async function fetchPhasesByExerciseId(
 	exerciseId: string,
 ): Promise<ServiceResult<ExercisePhase[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('exercise_phases')
@@ -44,9 +42,7 @@ export async function fetchPhasesByExerciseId(
 export async function fetchPhasesByExerciseIds(
 	exerciseIds: string[],
 ): Promise<ServiceResult<ExercisePhase[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	if (exerciseIds.length === 0) {
 		return { data: [], error: null };
@@ -68,9 +64,7 @@ export async function fetchPhasesByExerciseIds(
 export async function insertPhase(
 	data: PhaseInsertData,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('exercise_phases')
@@ -87,9 +81,7 @@ export async function updatePhase(
 	phaseId: string,
 	data: Omit<PhaseInsertData, 'exercise_id'>,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('exercise_phases')
@@ -106,9 +98,7 @@ export async function updatePhase(
 export async function deletePhase(
 	phaseId: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('exercise_phases')

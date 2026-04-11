@@ -1,32 +1,37 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
+import { initSupabaseClient, getSupabaseClient } from '@evil-empire/peaktrack-services';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Replace these with your Supabase project credentials
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string;
 
-const supabaseClientConfig = {
-  auth: {
+let supabaseInstance: SupabaseClient | null = null;
+
+// Only create the client on the client-side
+if (!(Platform.OS === 'web' && typeof window === 'undefined')) {
+  supabaseInstance = initSupabaseClient({
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-  },
-};
+  });
 
-// Only create the client on the client-side
-export const supabase = Platform.OS === 'web' && typeof window === 'undefined'
-  ? null // Return null during SSR
-  : createClient(supabaseUrl, supabaseAnonKey, supabaseClientConfig);
-
-// Handle auth state changes only on the client-side
-if (supabase) {
+  // Handle auth state changes only on the client-side
   AppState.addEventListener('change', (state) => {
     if (state === 'active') {
-      supabase.auth.startAutoRefresh();
+      supabaseInstance!.auth.startAutoRefresh();
     } else {
-      supabase.auth.stopAutoRefresh();
+      supabaseInstance!.auth.stopAutoRefresh();
     }
   });
 }
+
+// Legacy export for AuthContext which uses supabase directly for auth operations
+export const supabase = supabaseInstance;
+
+// Re-export the getter for any code that needs it
+export { getSupabaseClient };

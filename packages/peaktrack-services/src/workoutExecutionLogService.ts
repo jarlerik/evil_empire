@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 
 export interface ExecutionLogInsert {
@@ -13,7 +13,7 @@ export interface ExecutionLogInsert {
 	rest_time_seconds?: number | null;
 	emom_interval_seconds?: number | null;
 	exercise_type?: string | null;
-	circuit_exercises?: Array<{reps: string, name: string}> | string | null;
+	circuit_exercises?: Array<{ reps: string; name: string }> | string | null;
 	target_rm?: number | null;
 	rir_min?: number | null;
 	rir_max?: number | null;
@@ -39,7 +39,7 @@ export interface ExecutionLogDetail {
 	rest_time_seconds: number | null;
 	emom_interval_seconds: number | null;
 	exercise_type: string | null;
-	circuit_exercises: Array<{reps: string, name: string}> | string | null;
+	circuit_exercises: Array<{ reps: string; name: string }> | string | null;
 	target_rm: number | null;
 	rir_min: number | null;
 	rir_max: number | null;
@@ -50,9 +50,7 @@ export interface ExecutionLogDetail {
 export async function insertExecutionLog(
 	data: ExecutionLogInsert,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('workout_execution_logs')
@@ -68,9 +66,7 @@ export async function insertExecutionLog(
 export async function fetchCompletedWorkoutIds(
 	workoutIds: string[],
 ): Promise<ServiceResult<string[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	if (workoutIds.length === 0) {
 		return { data: [], error: null };
@@ -92,9 +88,7 @@ export async function fetchCompletedWorkoutIds(
 export async function fetchExecutionLogsByExerciseIds(
 	exerciseIds: string[],
 ): Promise<ServiceResult<ExecutionLogDetail[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	if (exerciseIds.length === 0) {
 		return { data: [], error: null };
@@ -116,9 +110,7 @@ export async function fetchExecutionLogsByExerciseIds(
 export async function fetchRecentExecutionLogs(
 	cutoffDate: string,
 ): Promise<ServiceResult<ExecutionLogRow[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('workout_execution_logs')
