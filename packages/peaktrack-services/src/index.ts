@@ -1,3 +1,5 @@
+export { initSupabaseClient, getSupabaseClient } from './client';
+export type { SupabaseClientOptions } from './client';
 export * from './types';
 export * from './workoutService';
 export * from './exerciseService';

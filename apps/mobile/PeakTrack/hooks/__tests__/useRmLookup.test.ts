@@ -5,7 +5,7 @@ import { useRmLookup } from '../useRmLookup';
 const mockLookupExactRm = jest.fn();
 const mockFetchAllRmsByReps = jest.fn();
 
-jest.mock('../../services/repetitionMaximumService', () => ({
+jest.mock('@evil-empire/peaktrack-services', () => ({
 	lookupExactRm: (...args: unknown[]) => mockLookupExactRm(...args),
 	fetchAllRmsByReps: (...args: unknown[]) => mockFetchAllRmsByReps(...args),
 }));

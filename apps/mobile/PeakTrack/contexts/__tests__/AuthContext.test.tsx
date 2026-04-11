@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '../AuthContext';
 
 // Mock supabase
 const mockGetSession = jest.fn();
+const mockGetUser = jest.fn();
 const mockOnAuthStateChange = jest.fn();
 const mockSignUp = jest.fn();
 const mockSignInWithPassword = jest.fn();
@@ -14,6 +15,7 @@ jest.mock('../../lib/supabase', () => ({
 	supabase: {
 		auth: {
 			getSession: () => mockGetSession(),
+			getUser: () => mockGetUser(),
 			onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
 				mockOnAuthStateChange(callback);
 				return {
@@ -43,6 +45,7 @@ describe('AuthContext', () => {
 		jest.clearAllMocks();
 		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 		mockGetSession.mockResolvedValue({ data: { session: null } });
+		mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
 	});
 
 	afterEach(() => {
@@ -72,6 +75,7 @@ describe('AuthContext', () => {
 			const mockSession = { user: mockUser, access_token: 'token' };
 
 			mockGetSession.mockResolvedValue({ data: { session: mockSession } });
+			mockGetUser.mockResolvedValue({ data: { user: mockUser }, error: null });
 
 			const { result } = renderHook(() => useAuth(), { wrapper });
 

@@ -13,40 +13,15 @@ jest.mock('../AuthContext', () => ({
 	}),
 }));
 
-// Mock supabase
-const mockUpdate = jest.fn();
-const mockInsert = jest.fn();
-const mockSingle = jest.fn();
+// Mock peaktrack-services
+const mockFetchUserSettings = jest.fn();
+const mockUpsertUserSettings = jest.fn();
+const mockMarkOnboardingCompleted = jest.fn();
 
-jest.mock('../../lib/supabase', () => ({
-	supabase: {
-		from: () => ({
-			select: () => ({
-				eq: () => ({
-					single: () => mockSingle(),
-					maybeSingle: () => mockSingle(),
-				}),
-			}),
-			update: (data: unknown) => {
-				mockUpdate(data);
-				return {
-					eq: () => ({
-						select: () => ({
-							single: () => mockSingle(),
-						}),
-					}),
-				};
-			},
-			insert: (data: unknown) => {
-				mockInsert(data);
-				return {
-					select: () => ({
-						single: () => mockSingle(),
-					}),
-				};
-			},
-		}),
-	},
+jest.mock('@evil-empire/peaktrack-services', () => ({
+	fetchUserSettings: (...args: unknown[]) => mockFetchUserSettings(...args),
+	upsertUserSettings: (...args: unknown[]) => mockUpsertUserSettings(...args),
+	markOnboardingCompleted: (...args: unknown[]) => mockMarkOnboardingCompleted(...args),
 }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -60,7 +35,11 @@ describe('UserSettingsContext', () => {
 		jest.clearAllMocks();
 		consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 		mockUserState.user = { id: 'user-1', email: 'test@example.com' };
-		mockSingle.mockResolvedValue({
+		mockFetchUserSettings.mockResolvedValue({
+			data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
+			error: null,
+		});
+		mockUpsertUserSettings.mockResolvedValue({
 			data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
 			error: null,
 		});
@@ -112,15 +91,10 @@ describe('UserSettingsContext', () => {
 
 	describe('updateSettings', () => {
 		it('should update settings in database and local state', async () => {
-			mockSingle
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
-					error: null,
-				})
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
-					error: null,
-				});
+			mockUpsertUserSettings.mockResolvedValue({
+				data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
+				error: null,
+			});
 
 			const { result } = renderHook(() => useUserSettings(), { wrapper });
 
@@ -132,7 +106,8 @@ describe('UserSettingsContext', () => {
 				await result.current.updateSettings({ weight_unit: 'lbs' });
 			});
 
-			expect(mockUpdate).toHaveBeenCalledWith(
+			expect(mockUpsertUserSettings).toHaveBeenCalledWith(
+				'user-1',
 				expect.objectContaining({
 					weight_unit: 'lbs',
 					user_weight: '85',
@@ -141,15 +116,10 @@ describe('UserSettingsContext', () => {
 		});
 
 		it('should merge partial updates with existing settings', async () => {
-			mockSingle
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
-					error: null,
-				})
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '90', onboarding_completed: false },
-					error: null,
-				});
+			mockUpsertUserSettings.mockResolvedValue({
+				data: { weight_unit: 'kg', user_weight: '90', onboarding_completed: false },
+				error: null,
+			});
 
 			const { result } = renderHook(() => useUserSettings(), { wrapper });
 
@@ -161,7 +131,8 @@ describe('UserSettingsContext', () => {
 				await result.current.updateSettings({ user_weight: '90' });
 			});
 
-			expect(mockUpdate).toHaveBeenCalledWith(
+			expect(mockUpsertUserSettings).toHaveBeenCalledWith(
+				'user-1',
 				expect.objectContaining({
 					weight_unit: 'kg',
 					user_weight: '90',
@@ -176,19 +147,10 @@ describe('UserSettingsContext', () => {
 		});
 
 		it('should insert settings if update returns no data', async () => {
-			mockSingle
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
-					error: null,
-				})
-				.mockResolvedValueOnce({
-					data: null,
-					error: null,
-				})
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
-					error: null,
-				});
+			mockUpsertUserSettings.mockResolvedValue({
+				data: { weight_unit: 'lbs', user_weight: '185', onboarding_completed: false },
+				error: null,
+			});
 
 			const { result } = renderHook(() => useUserSettings(), { wrapper });
 
@@ -200,28 +162,20 @@ describe('UserSettingsContext', () => {
 				await result.current.updateSettings({ weight_unit: 'lbs' });
 			});
 
-			expect(mockInsert).toHaveBeenCalledWith(
+			expect(mockUpsertUserSettings).toHaveBeenCalledWith(
+				'user-1',
 				expect.objectContaining({
-					user_id: 'user-1',
 					weight_unit: 'lbs',
+					user_weight: '85',
 				}),
 			);
 		});
 
-		it('should throw error on insert failure', async () => {
-			// First call: fetch settings successfully
-			// Second call: update returns no data (triggers insert)
-			// Third call: insert fails
-			mockSingle
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
-					error: null,
-				})
-				.mockResolvedValueOnce({
-					data: null,
-					error: null,
-				})
-				.mockRejectedValueOnce({ message: 'Insert failed' });
+		it('should throw error on upsert failure', async () => {
+			mockUpsertUserSettings.mockResolvedValue({
+				data: null,
+				error: 'Upsert failed',
+			});
 
 			const { result } = renderHook(() => useUserSettings(), { wrapper });
 
@@ -233,7 +187,9 @@ describe('UserSettingsContext', () => {
 				act(async () => {
 					await result.current.updateSettings({ weight_unit: 'lbs' });
 				}),
-			).rejects.toEqual({ message: 'Insert failed' });
+			).rejects.toThrow('Upsert failed');
+
+			expect(consoleSpy).toHaveBeenCalled();
 		});
 
 		it('should not update when no user', async () => {
@@ -249,34 +205,13 @@ describe('UserSettingsContext', () => {
 				await result.current.updateSettings({ weight_unit: 'lbs' });
 			});
 
-			expect(mockUpdate).not.toHaveBeenCalled();
-		});
-	});
-
-	describe('default settings creation', () => {
-		it('should create default settings when none exist', async () => {
-			mockSingle
-				.mockRejectedValueOnce({ code: 'PGRST116', message: 'No rows' })
-				.mockResolvedValueOnce({
-					data: { weight_unit: 'kg', user_weight: '85', onboarding_completed: false },
-					error: null,
-				});
-
-			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-			const { result } = renderHook(() => useUserSettings(), { wrapper });
-
-			await waitFor(() => {
-				expect(result.current.loading).toBe(false);
-			});
-
-			consoleSpy.mockRestore();
+			expect(mockUpsertUserSettings).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('settings values', () => {
 		it('should support kg weight unit', async () => {
-			mockSingle.mockResolvedValue({
+			mockFetchUserSettings.mockResolvedValue({
 				data: { weight_unit: 'kg', user_weight: '100', onboarding_completed: false },
 				error: null,
 			});
@@ -291,7 +226,7 @@ describe('UserSettingsContext', () => {
 		});
 
 		it('should support lbs weight unit', async () => {
-			mockSingle.mockResolvedValue({
+			mockFetchUserSettings.mockResolvedValue({
 				data: { weight_unit: 'lbs', user_weight: '220', onboarding_completed: false },
 				error: null,
 			});

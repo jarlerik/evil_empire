@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 
 export interface WorkoutRatingRow {
@@ -12,9 +12,7 @@ export async function saveWorkoutRating(
 	workoutId: string,
 	rating: number,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('workout_ratings')
@@ -33,9 +31,7 @@ export async function saveWorkoutRating(
 export async function fetchWorkoutRatings(
 	workoutIds: string[],
 ): Promise<ServiceResult<WorkoutRatingRow[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	if (workoutIds.length === 0) {
 		return { data: [], error: null };

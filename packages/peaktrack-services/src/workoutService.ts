@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
-import { supabase } from '../lib/supabase';
-import { Workout } from '../types/workout';
+import { Workout } from '@evil-empire/types';
+import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 import { createExercise, fetchExercisesByWorkoutId } from './exerciseService';
 import { fetchPhasesByExerciseIds, insertPhase, PhaseInsertData } from './exercisePhaseService';
@@ -8,9 +8,7 @@ import { fetchPhasesByExerciseIds, insertPhase, PhaseInsertData } from './exerci
 export async function fetchWorkoutsByUserId(
 	userId: string,
 ): Promise<ServiceResult<Workout[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('workouts')
@@ -30,9 +28,7 @@ export async function createWorkout(
 	userId: string,
 	workoutDate: string,
 ): Promise<ServiceResult<Workout>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('workouts')
@@ -50,9 +46,7 @@ export async function createWorkout(
 export async function deleteWorkout(
 	workoutId: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('workouts')
@@ -70,9 +64,7 @@ export async function updateWorkoutDate(
 	workoutId: string,
 	newDate: string,
 ): Promise<ServiceResult<Workout>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('workouts')
@@ -92,9 +84,7 @@ export async function fetchWorkoutsByIds(
 	workoutIds: string[],
 	userId: string,
 ): Promise<ServiceResult<Workout[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('workouts')

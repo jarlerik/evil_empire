@@ -1,12 +1,10 @@
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from './client';
 import { ServiceResult, RepetitionMaximum } from './types';
 
 export async function fetchRepetitionMaximums(
 	userId: string,
 ): Promise<ServiceResult<RepetitionMaximum[]>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('repetition_maximums')
@@ -30,9 +28,7 @@ export async function createRepetitionMaximum(params: {
 	weight: number;
 	date: string;
 }): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('repetition_maximums')
@@ -55,9 +51,7 @@ export async function updateRepetitionMaximum(
 	id: string,
 	data: { exercise_name: string; reps: number; weight: number; date: string },
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('repetition_maximums')
@@ -74,9 +68,7 @@ export async function updateRepetitionMaximum(
 export async function deleteRepetitionMaximum(
 	id: string,
 ): Promise<ServiceResult<null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { error } = await supabase
 		.from('repetition_maximums')
@@ -95,9 +87,7 @@ export async function lookupExactRm(
 	exerciseName: string,
 	reps: number,
 ): Promise<ServiceResult<{ weight: number } | null>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('repetition_maximums')
@@ -120,9 +110,7 @@ export async function fetchAllRmsByReps(
 	userId: string,
 	reps: number,
 ): Promise<ServiceResult<Array<{ exercise_name: string; weight: number }>>> {
-	if (!supabase) {
-		return { data: null, error: 'Database not available' };
-	}
+	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase
 		.from('repetition_maximums')
