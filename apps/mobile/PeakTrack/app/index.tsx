@@ -17,6 +17,9 @@ import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
 import { CoachMark } from '../components/CoachMark';
 import { useCoachMark } from '../hooks/useCoachMark';
+import { ProgramSessionCard } from '../components/ProgramSessionCard';
+import { usePrograms } from '../contexts/ProgramsContext';
+import { ProgramSessionForDate } from '@evil-empire/types';
 
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
@@ -39,6 +42,8 @@ export default function Index() {
 	const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+	const [programSessions, setProgramSessions] = useState<ProgramSessionForDate[]>([]);
+	const { fetchSessionsForRange } = usePrograms();
 
 	const weekDayCoach = useCoachMark('week-day-selector');
 	const addExerciseCoach = useCoachMark('add-exercise-area');
@@ -101,11 +106,17 @@ export default function Index() {
 						setCompletedWorkoutIds(new Set(completed));
 					}
 				}
+
+				// Fetch program sessions for the visible week
+				const rangeEnd = addDays(selectedWeekStart, 6);
+				const psessions = await fetchSessionsForRange(selectedWeekStart, rangeEnd);
+				setProgramSessions(psessions);
+
 				setIsFetchingWorkouts(false);
 			};
 			fetchWorkouts();
 
-		}, [user]),
+		}, [user, selectedWeekStart, fetchSessionsForRange]),
 	);
 
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
@@ -244,6 +255,18 @@ export default function Index() {
 			}
 		}
 	}
+	// Virtual program sessions count as 'planned' on their dates (unless
+	// a completed workout already wins).
+	for (const ps of programSessions) {
+		if (!dayStatuses[ps.date] && !ps.materializedWorkoutId) {
+			dayStatuses[ps.date] = 'planned';
+		}
+	}
+
+	const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+	const virtualSessionsForDate = programSessions.filter(
+		ps => ps.date === selectedDateStr && !ps.materializedWorkoutId,
+	);
 
 		return (
 			<KeyboardAvoidingView
@@ -300,7 +323,7 @@ export default function Index() {
 									{format(selectedDate, 'EEEE, LLLL d')}
 								</Text>
 
-								{sortedWorkouts.length === 0 ? (
+								{sortedWorkouts.length === 0 && virtualSessionsForDate.length === 0 ? (
 									<Text style={styles.noWorkoutText}>No exercises yet.</Text>
 								) : (
 									sortedWorkouts.map((workout) => {
@@ -358,6 +381,10 @@ export default function Index() {
 										);
 									})
 								)}
+
+								{virtualSessionsForDate.map(ps => (
+									<ProgramSessionCard key={ps.session.id} item={ps} unit={weightUnit} />
+								))}
 
 								{sortedWorkouts.length > 0 && activeWorkoutHasExercises && (
 									<Pressable onPress={handleAddAnotherWorkout} style={styles.addWorkoutButton}>
