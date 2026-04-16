@@ -8,6 +8,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { UserSettingsProvider } from '../contexts/UserSettingsContext';
 import { OnboardingProvider } from '../contexts/OnboardingContext';
 import { AudioProvider } from '../contexts/AudioContext';
+import { ProgramsProvider } from '../contexts/ProgramsContext';
 import { UnitSelectionModal } from '../components/UnitSelectionModal';
 import { StrictMode, useEffect } from 'react';
 
@@ -33,6 +34,7 @@ export default function Layout() {
 		<AuthProvider>
 			<UserSettingsProvider>
 			<OnboardingProvider>
+				<ProgramsProvider>
 				<GestureHandlerRootView style={{ flex: 1 }}>
 					<SafeAreaProvider>
 						<SafeAreaView style={styles.safeArea}>
@@ -50,6 +52,10 @@ export default function Layout() {
 								<Stack.Screen name="edit-exercise" />
 								<Stack.Screen name="import-workout" />
 								<Stack.Screen name="repetition-maximums" />
+								<Stack.Screen name="programs" />
+								<Stack.Screen name="create-program" />
+								<Stack.Screen name="program-detail" />
+								<Stack.Screen name="program-assign" />
 								</Stack>
 								<UnitSelectionModal />
 							<StatusBar style="light" />
@@ -57,6 +63,7 @@ export default function Layout() {
 						</SafeAreaView>
 					</SafeAreaProvider>
 				</GestureHandlerRootView>
+				</ProgramsProvider>
 			</OnboardingProvider>
 			</UserSettingsProvider>
 		</AuthProvider>

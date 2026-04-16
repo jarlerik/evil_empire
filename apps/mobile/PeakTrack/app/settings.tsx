@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Modal, Keyboard, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles, colors } from '../styles/common';
@@ -44,6 +45,9 @@ export default function Settings() {
 				<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 					<View style={commonStyles.container}>
 						<View style={[commonStyles.headerRow, styles.headerRow]}>
+							<Pressable onPress={() => router.back()} style={commonStyles.backButton} accessibilityLabel="Back">
+								<Ionicons name="chevron-back" size={24} color={colors.text} />
+							</Pressable>
 							<Text style={commonStyles.title}>Settings</Text>
 						</View>
 						<View style={styles.settings}>

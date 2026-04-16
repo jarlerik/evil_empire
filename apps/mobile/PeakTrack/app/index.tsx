@@ -257,8 +257,17 @@ export default function Index() {
 						keyboardShouldPersistTaps="handled"
 					>
 						<View style={commonStyles.container}>
-							<View style={[commonStyles.headerRow, styles.headerRow, { justifyContent: 'center' }]}>
+							<View style={[commonStyles.headerRow, styles.headerRow, styles.headerRowWithSettings]}>
+								<View style={styles.headerSpacer} />
 								<Text style={commonStyles.title}>PEAKTRACK</Text>
+								<Pressable
+									onPress={() => router.push('/settings')}
+									style={styles.settingsIconButton}
+									accessibilityRole="button"
+									accessibilityLabel="Open settings"
+								>
+									<Ionicons name="settings-outline" size={24} color="#fff" />
+								</Pressable>
 							</View>
 
 							<Text style={styles.monthTitle}>
@@ -401,6 +410,20 @@ const styles = StyleSheet.create({
 	headerRow: {
 		justifyContent: 'space-between',
 		marginBottom: 16,
+	},
+	headerRowWithSettings: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	headerSpacer: {
+		width: 40,
+	},
+	settingsIconButton: {
+		width: 40,
+		height: 40,
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 	input: {
 		backgroundColor: '#262626',

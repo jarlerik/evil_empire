@@ -19,7 +19,7 @@ const navigationItems: NavigationItem[] = [
 	{ label: 'Home', href: '/', icon: 'home-outline', activeIcon: 'home' },
 	{ label: 'History', href: '/history', icon: 'time-outline', activeIcon: 'time' },
 	{ label: 'RMs', href: '/repetition-maximums', icon: 'podium-gold', activeIcon: 'podium-gold', iconFamily: 'material-community' },
-	{ label: 'Settings', href: '/settings', icon: 'settings-outline', activeIcon: 'settings' },
+	{ label: 'Programs', href: '/programs', icon: 'barbell-outline', activeIcon: 'barbell' },
 ];
 
 export function NavigationBar() {
