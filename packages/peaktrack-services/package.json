@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@evil-empire/parsers": "workspace:*",
     "@evil-empire/types": "workspace:*",
     "@supabase/supabase-js": "^2.49.4",
     "date-fns": "^4.1.0"

@@ -365,6 +365,9 @@ importers:
 
   packages/peaktrack-services:
     dependencies:
+      '@evil-empire/parsers':
+        specifier: workspace:*
+        version: link:../parsers
       '@evil-empire/types':
         specifier: workspace:*
         version: link:../types
