@@ -13,6 +13,9 @@
  * feeds `setSpecLine` into the parser and combines the results.
  */
 
+
+const LIGHT_WEIGHT_PERCENTAGE = 60;
+
 export interface PreprocessedBlock {
 	/** Original block text exactly as the user pasted it (for "edit raw" UI fallback). */
 	rawText: string;
@@ -67,7 +70,7 @@ function trySplitInline(line: string): { name: string; spec: string } | null {
  * globally so all parsers benefit.
  */
 function rewriteSetSpec(line: string): string {
-	return line.replace(/@\s*light(?:\s*weight)?\b/gi, '@60%').trim();
+	return line.replace(/@\s*light(?:\s*weight)?\b/gi, `@${LIGHT_WEIGHT_PERCENTAGE}%`).trim();
 }
 
 function stripTrailingSeparator(line: string): string {

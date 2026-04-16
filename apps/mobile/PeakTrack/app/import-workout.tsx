@@ -19,6 +19,7 @@ import {
 	createExercise,
 	insertPhase,
 	createRepetitionMaximum,
+	fetchWorkoutsByUserId,
 } from '@evil-empire/peaktrack-services';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
@@ -228,7 +229,13 @@ export default function ImportWorkoutScreen() {
 		setError(null);
 
 		try {
-			const workoutName = `Imported - ${format(targetDate, 'MMM d')}`;
+			// Number the new workout based on how many already exist for the same date
+			// (matches the home screen's "Add another workout" naming convention).
+			const { data: allWorkouts } = await fetchWorkoutsByUserId(user.id);
+			const existingForDate = (allWorkouts ?? []).filter(w => w.workout_date === targetDateStr);
+			const workoutNumber = existingForDate.length + 1;
+			const workoutName = `Workout #${workoutNumber} ${format(targetDate, 'MMM d')}`;
+
 			const { data: workout, error: workoutError } = await createWorkout(workoutName, user.id, targetDateStr);
 			if (workoutError || !workout) {
 				setError('Failed to create workout. Please try again.');

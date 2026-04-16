@@ -380,7 +380,7 @@ export default function Index() {
 									disabled={isLoading}
 								>
 									<Ionicons name="clipboard-outline" size={16} color="#C87E25" />
-									<Text style={styles.pasteWorkoutLinkText}>Paste workout from another app</Text>
+									<Text style={styles.pasteWorkoutLinkText}>Paste workout</Text>
 								</Pressable>
 							</View>
 						</View>
