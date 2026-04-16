@@ -100,6 +100,7 @@ export function loadConfig() {
       firstHourOnly: env("FIRST_HOUR_ONLY", "false").toLowerCase() === "true",
       entryDelayBars: envInt("ENTRY_DELAY_BARS", 0), // skip first N bars after open before entries
       minConfidence: envInt("MIN_CONFIDENCE", 0), // 0 = use session-based defaults (50/75)
+      minStopDistance: envFloat("MIN_STOP_DISTANCE", 0), // 0 = disabled, >0 = reject signals with stop < $N from entry
       strategies: parseStrategies(env("STRATEGIES", "all")),
     },
 

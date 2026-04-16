@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings, markOnboardingCompleted } from '../services/userSettingsService';
+import { fetchUserSettings as fetchUserSettingsService, upsertUserSettings, markOnboardingCompleted } from '@evil-empire/peaktrack-services';
 
 interface UserSettings {
   weight_unit: 'kg' | 'lbs' | null;

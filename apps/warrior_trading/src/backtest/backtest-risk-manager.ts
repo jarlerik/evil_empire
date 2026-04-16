@@ -61,8 +61,13 @@ export class BacktestRiskManager {
       return { approved: false, reason: `${this.state.consecutiveLosses} consecutive losses`, positionSize: zero };
     }
 
+    const stopDistance = signal.entryPrice - signal.stopPrice;
+    if (this.config.trading.minStopDistance > 0 && stopDistance < this.config.trading.minStopDistance) {
+      return { approved: false, reason: `Stop distance $${stopDistance.toFixed(3)} below minimum $${this.config.trading.minStopDistance}`, positionSize: zero };
+    }
+
     const reward = signal.targetPrice - signal.entryPrice;
-    const risk = signal.entryPrice - signal.stopPrice;
+    const risk = stopDistance;
     if (risk <= 0) {
       return { approved: false, reason: "Invalid stop: risk <= 0", positionSize: zero };
     }

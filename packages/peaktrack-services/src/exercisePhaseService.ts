@@ -1,0 +1,113 @@
+import { ExercisePhase } from '@evil-empire/types';
+import { getSupabaseClient } from './client';
+import { ServiceResult } from './types';
+
+export interface PhaseInsertData {
+	exercise_id: string;
+	sets: number;
+	repetitions: number;
+	weight: number;
+	compound_reps?: number[] | null;
+	weights?: number[] | null;
+	exercise_type?: string;
+	notes?: string | null;
+	target_rm?: number | null;
+	rir_min?: number | null;
+	rir_max?: number | null;
+	circuit_exercises?: Array<{ reps: string; name: string }> | null;
+	weight_min?: number | null;
+	weight_max?: number | null;
+	rest_time_seconds?: number | null;
+	emom_interval_seconds?: number | null;
+}
+
+export async function fetchPhasesByExerciseId(
+	exerciseId: string,
+): Promise<ServiceResult<ExercisePhase[]>> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('exercise_phases')
+		.select('*')
+		.eq('exercise_id', exerciseId)
+		.order('created_at', { ascending: true });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
+}
+
+export async function fetchPhasesByExerciseIds(
+	exerciseIds: string[],
+): Promise<ServiceResult<ExercisePhase[]>> {
+	const supabase = getSupabaseClient();
+
+	if (exerciseIds.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const { data, error } = await supabase
+		.from('exercise_phases')
+		.select('*')
+		.in('exercise_id', exerciseIds)
+		.order('created_at', { ascending: true });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
+}
+
+export async function insertPhase(
+	data: PhaseInsertData,
+): Promise<ServiceResult<null>> {
+	const supabase = getSupabaseClient();
+
+	const { error } = await supabase
+		.from('exercise_phases')
+		.insert([data]);
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data: null, error: null };
+}
+
+export async function updatePhase(
+	phaseId: string,
+	data: Omit<PhaseInsertData, 'exercise_id'>,
+): Promise<ServiceResult<null>> {
+	const supabase = getSupabaseClient();
+
+	const { error } = await supabase
+		.from('exercise_phases')
+		.update(data)
+		.eq('id', phaseId);
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data: null, error: null };
+}
+
+export async function deletePhase(
+	phaseId: string,
+): Promise<ServiceResult<null>> {
+	const supabase = getSupabaseClient();
+
+	const { error } = await supabase
+		.from('exercise_phases')
+		.delete()
+		.eq('id', phaseId);
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data: null, error: null };
+}

@@ -12,7 +12,7 @@
 import { preloadCache, getCacheStats, resetCacheStats } from "./alpaca/cache.js";
 import { createAlpacaClient } from "./alpaca/client.js";
 import { getBars, initMarketData } from "./alpaca/market-data.js";
-import { runHistoricalScanner, prefetchAllDailyBars } from "./scanner/historical-scanner.js";
+import { runHistoricalScanner } from "./scanner/historical-scanner.js";
 import { BacktestEngine } from "./backtest/backtest-engine.js";
 import { DEFAULT_BACKTEST_CONFIG, type BacktestConfig, type BacktestResult } from "./backtest/types.js";
 import type { Bar } from "./utils/bar.js";
@@ -27,11 +27,13 @@ interface SimConfig {
   env: Record<string, string>;
 }
 
-// ── Cross-validation: best configs on original Oct 2025 - Mar 2026 range ──
-const SIM_CONFIGS: SimConfig[] = [
-  // R4 original best
+// ── Configurable from CLI: bun run src/multi-sim.ts [--from DATE] [--days N] [--configs SET] ──
+// Config sets: "prev" = previous best configs, "stop-distance" = min stop distance variants,
+//              "all-strategies" = all strategies vs ma-pullback only, "default" = all sets
+
+const PREV_BEST_CONFIGS: SimConfig[] = [
   {
-    name: "R4-BEST: risk1% trail6% time15 cool10",
+    name: "PREV-R4: risk1% trail6% time15 cool10",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
@@ -41,9 +43,8 @@ const SIM_CONFIGS: SimConfig[] = [
       COOLDOWN_BARS: "10",
     },
   },
-  // R6 best: cooldown 20
   {
-    name: "R6-BEST: risk1% trail6% time15 cool20",
+    name: "PREV-R6: risk1% trail6% time15 cool20",
     env: {
       STRATEGIES: "ma-pullback",
       FIRST_HOUR_ONLY: "true",
@@ -53,35 +54,88 @@ const SIM_CONFIGS: SimConfig[] = [
       COOLDOWN_BARS: "20",
     },
   },
-  // Default risk 1.5%
+];
+
+const STOP_DISTANCE_CONFIGS: SimConfig[] = [
   {
-    name: "DEFAULT: risk1.5% first hour",
+    name: "BASELINE: no min stop distance",
     env: {
-      STRATEGIES: "ma-pullback",
+      STRATEGIES: "all",
       FIRST_HOUR_ONLY: "true",
+      MIN_STOP_DISTANCE: "0",
     },
   },
-  // Cooldown 20 + time stop 15 only (no trail override)
   {
-    name: "SIMPLE: time15 + cool20 (default risk 1.5%)",
+    name: "MIN-STOP $0.05",
     env: {
-      STRATEGIES: "ma-pullback",
+      STRATEGIES: "all",
       FIRST_HOUR_ONLY: "true",
-      TIME_STOP_BARS: "15",
-      COOLDOWN_BARS: "20",
+      MIN_STOP_DISTANCE: "0.05",
     },
   },
-  // R5A best
   {
-    name: "R5A-BEST: risk0.75% time15",
+    name: "MIN-STOP $0.10",
     env: {
-      STRATEGIES: "ma-pullback",
+      STRATEGIES: "all",
       FIRST_HOUR_ONLY: "true",
-      RISK_PER_TRADE_PCT: "0.75",
-      TIME_STOP_BARS: "15",
+      MIN_STOP_DISTANCE: "0.10",
+    },
+  },
+  {
+    name: "MIN-STOP $0.20",
+    env: {
+      STRATEGIES: "all",
+      FIRST_HOUR_ONLY: "true",
+      MIN_STOP_DISTANCE: "0.20",
+    },
+  },
+  {
+    name: "MIN-STOP $0.50",
+    env: {
+      STRATEGIES: "all",
+      FIRST_HOUR_ONLY: "true",
+      MIN_STOP_DISTANCE: "0.50",
     },
   },
 ];
+
+const ALL_STRATEGIES_CONFIGS: SimConfig[] = [
+  {
+    name: "ALL-STRATS: defaults",
+    env: {
+      STRATEGIES: "all",
+      FIRST_HOUR_ONLY: "true",
+    },
+  },
+  {
+    name: "MA-PULLBACK only: defaults",
+    env: {
+      STRATEGIES: "ma-pullback",
+      FIRST_HOUR_ONLY: "true",
+    },
+  },
+  {
+    name: "GAP+FLAG+FLAT: momentum trio",
+    env: {
+      STRATEGIES: "gap-and-go,bull-flag,flat-top",
+      FIRST_HOUR_ONLY: "true",
+    },
+  },
+  {
+    name: "VWAP strategies: bounce+reclaim",
+    env: {
+      STRATEGIES: "vwap-bounce,vwap-reclaim",
+      FIRST_HOUR_ONLY: "true",
+    },
+  },
+];
+
+const CONFIG_SETS: Record<string, SimConfig[]> = {
+  "prev": PREV_BEST_CONFIGS,
+  "stop-distance": STOP_DISTANCE_CONFIGS,
+  "all-strategies": ALL_STRATEGIES_CONFIGS,
+  "default": [...PREV_BEST_CONFIGS, ...STOP_DISTANCE_CONFIGS, ...ALL_STRATEGIES_CONFIGS],
+};
 
 function shiftDateByDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00Z");
@@ -243,10 +297,36 @@ async function runSimWithConfig(
 if (import.meta.main) {
   const startTime = Date.now();
   const equity = 25_000;
-  const dates = getConsecutiveTradingDays("2025-10-01", 125);
+
+  // Parse CLI args
+  const args = Bun.argv.slice(2);
+  let fromDate = "2026-01-02";
+  let numDays = 65; // ~3 months of trading days
+  let configSetName = "default";
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--from" && args[i + 1]) fromDate = args[++i];
+    else if (args[i] === "--days" && args[i + 1]) numDays = parseInt(args[++i], 10);
+    else if (args[i] === "--configs" && args[i + 1]) configSetName = args[++i];
+    else if (args[i] === "--help") {
+      console.log("Usage: bun run src/multi-sim.ts [--from DATE] [--days N] [--configs SET]");
+      console.log("  --from DATE     Start date (default: 2026-01-02)");
+      console.log("  --days N        Number of trading days (default: 65)");
+      console.log(`  --configs SET   Config set: ${Object.keys(CONFIG_SETS).join(", ")} (default: default)`);
+      process.exit(0);
+    }
+  }
+
+  const SIM_CONFIGS = CONFIG_SETS[configSetName];
+  if (!SIM_CONFIGS) {
+    console.error(`Unknown config set "${configSetName}". Available: ${Object.keys(CONFIG_SETS).join(", ")}`);
+    process.exit(1);
+  }
+
+  const dates = getConsecutiveTradingDays(fromDate, numDays);
 
   console.log("╔══════════════════════════════════════════════════════════╗");
-  console.log("║   CROSS-VALIDATION: Oct 2025 - Mar 2026                ║");
+  console.log(`║   MULTI-SIM: ${fromDate} → ${dates[dates.length - 1]}`.padEnd(57) + "║");
   console.log("╚══════════════════════════════════════════════════════════╝");
   console.log(`  Date range: ${dates[0]} to ${dates[dates.length - 1]}`);
   console.log(`  Trading days: ${dates.length}`);
@@ -260,25 +340,13 @@ if (import.meta.main) {
   resetCacheStats();
 
   // Step 2: Fetch all data once using default config
-  console.log("\n[2/3] Fetching all day data (scanner + bars)...");
+  // Uses per-day scanner (same as simulation.ts) to ensure consistent results.
+  // The disk cache is preloaded into memory, so repeat runs are fast.
+  console.log("\n[2/3] Fetching all day data (per-day scanner + bars)...");
   const { loadConfig } = await import("./config.js");
   const defaultConfig = loadConfig();
   const client = createAlpacaClient(defaultConfig);
   initMarketData(defaultConfig);
-
-  // Pre-fetch all daily bars for the full date range in ~40 API calls
-  // instead of ~5,000 per-day sliding-window calls.
-  // Buffer: 35 days before earliest date covers RVOL 30-day lookback + weekends.
-  const prefetchStart = shiftDateByDays(dates[0], -35);
-  const prefetchEnd = dates[dates.length - 1];
-  console.log(`  Pre-fetching daily bars: ${prefetchStart} → ${prefetchEnd}`);
-  const allDailyBars = await prefetchAllDailyBars(
-    client,
-    defaultConfig,
-    prefetchStart,
-    prefetchEnd,
-  );
-  console.log(`  ${allDailyBars.size.toLocaleString()} symbols loaded`);
 
   const preloadedData = new Map<string, DayData>();
 
@@ -287,7 +355,8 @@ if (import.meta.main) {
     process.stdout.write(`\r  Day ${i + 1}/${dates.length}: ${date}`);
 
     try {
-      const candidates = await runHistoricalScanner(client, defaultConfig, date, allDailyBars);
+      // Use per-day scanner path (no prefetch) — matches simulation.ts behavior
+      const candidates = await runHistoricalScanner(client, defaultConfig, date);
       const barsBySymbol = new Map<string, Bar[]>();
 
       for (const candidate of candidates) {

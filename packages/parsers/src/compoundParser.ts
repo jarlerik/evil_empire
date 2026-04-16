@@ -428,6 +428,67 @@ export function parseCompoundMultipleWeights(cleanInput: string, restTimeSeconds
 }
 
 /**
+ * Pattern 2c: Compound format with weight range "sets x reps1 + reps2 (+ reps3 ...) @min-max kg/lbs"
+ * Example: "6 x 3 + 2 + 2 @67-71kg"
+ *
+ * This is the shape produced by reverseParsePhase when a compound percentage range
+ * (e.g., "6 x 3+2+2 @70-75%") has been resolved to absolute weights via RM lookup
+ * and then round-tripped into the edit input.
+ */
+export function parseCompoundWeightRange(cleanInput: string, restTimeSeconds?: number): ParserResult {
+	const pattern = /^([1-9]\d*)\s*x\s*((?:[1-9]\d*)(?:\s*\+\s*[1-9]\d*)+)\s*@\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|lbs)$/i;
+	const match = cleanInput.match(pattern);
+
+	if (!match) {
+		return { matched: false };
+	}
+
+	const sets = parseInt(match[1]);
+	const repsSequence = match[2];
+	const minWeight = parseFloat(match[3]);
+	const maxWeight = parseFloat(match[4]);
+
+	const repsParts = repsSequence
+		.split('+')
+		.map(r => r.trim())
+		.map(r => parseInt(r, 10))
+		.filter(r => !isNaN(r) && r > 0);
+
+	if (repsParts.length < 2) {
+		return { matched: false };
+	}
+
+	if (minWeight <= 0 || maxWeight <= 0) {
+		return {
+			matched: true,
+			data: invalidResult('Weight must be positive'),
+		};
+	}
+
+	if (minWeight > maxWeight) {
+		return {
+			matched: true,
+			data: invalidResult('Minimum weight must be less than or equal to maximum weight'),
+		};
+	}
+
+	const totalReps = repsParts.reduce((sum, r) => sum + r, 0);
+
+	return {
+		matched: true,
+		data: validResult({
+			sets,
+			reps: totalReps,
+			weight: minWeight,
+			weightMin: minWeight,
+			weightMax: maxWeight,
+			compoundReps: repsParts,
+			...(restTimeSeconds !== undefined && { restTimeSeconds }),
+		}),
+	};
+}
+
+/**
  * Pattern 2: Compound format with 2+ rep parts "sets x reps1 + reps2 (+ reps3 ...) @weightkg"
  * Example: "4 x 2 + 2 @50kg"
  */

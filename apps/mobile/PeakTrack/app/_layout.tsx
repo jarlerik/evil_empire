@@ -48,6 +48,7 @@ export default function Layout() {
 								<Stack.Screen name="history" />
 								<Stack.Screen name="add-exercises" />
 								<Stack.Screen name="edit-exercise" />
+								<Stack.Screen name="import-workout" />
 								<Stack.Screen name="repetition-maximums" />
 								</Stack>
 								<UnitSelectionModal />

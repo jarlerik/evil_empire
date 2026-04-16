@@ -116,4 +116,46 @@ describe('parseSetInput - Percentage Format', () => {
 			});
 		});
 	});
+
+	describe('"of 1RM" suffix (some sources append this redundantly)', () => {
+		it('should accept simple percentage with " of 1RM" suffix', () => {
+			const result = parseSetInput('4 x 5 @95% of 1RM');
+			expect(result).toEqual({
+				sets: 4,
+				reps: 5,
+				weight: 0,
+				isValid: true,
+				weightPercentage: 95,
+				needsRmLookup: true,
+			});
+		});
+
+		it('should accept percentage range with " of 1RM" suffix', () => {
+			const result = parseSetInput('8 x 3 @70-75% of 1RM');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMinPercentage).toBe(70);
+			expect(result.weightMaxPercentage).toBe(75);
+			expect(result.needsRmLookup).toBe(true);
+		});
+
+		it('should accept compound percentage with " of 1RM" suffix', () => {
+			const result = parseSetInput('4 x 2 + 2 @80% of 1RM');
+			expect(result.isValid).toBe(true);
+			expect(result.weightPercentage).toBe(80);
+			expect(result.compoundReps).toEqual([2, 2]);
+			expect(result.needsRmLookup).toBe(true);
+		});
+
+		it('should be case-insensitive (handles "of 1rm")', () => {
+			const result = parseSetInput('4 x 5 @95% of 1rm');
+			expect(result.isValid).toBe(true);
+			expect(result.weightPercentage).toBe(95);
+		});
+
+		it('should tolerate variable whitespace ("of  1 RM")', () => {
+			const result = parseSetInput('4 x 5 @95% of  1 RM');
+			expect(result.isValid).toBe(true);
+			expect(result.weightPercentage).toBe(95);
+		});
+	});
 });

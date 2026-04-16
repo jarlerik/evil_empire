@@ -3,10 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate } from '../services/workoutService';
-import { fetchExercisesByWorkoutId, createExercise } from '../services/exerciseService';
-import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
-import { fetchCompletedWorkoutIds } from '../services/workoutExecutionLogService';
+import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutId, createExercise, fetchPhasesByExerciseId, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -374,6 +371,17 @@ export default function Index() {
 								/>
 								{errorState && <Text style={styles.errorText}>{errorState}</Text>}
 								<Button title={isLoading ? 'Adding...' : 'Add exercise'} onPress={handleAddExercise} disabled={isLoading} />
+								<Pressable
+									onPress={() => router.push({
+										pathname: '/import-workout',
+										params: { selectedDate: format(selectedDate, 'yyyy-MM-dd') },
+									})}
+									style={styles.pasteWorkoutLink}
+									disabled={isLoading}
+								>
+									<Ionicons name="clipboard-outline" size={16} color="#C87E25" />
+									<Text style={styles.pasteWorkoutLinkText}>Paste workout</Text>
+								</Pressable>
 							</View>
 						</View>
 					</ScrollView>
@@ -514,5 +522,18 @@ const styles = StyleSheet.create({
 	errorText: {
 		color: 'red',
 		marginBottom: 10,
+	},
+	pasteWorkoutLink: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		paddingVertical: 12,
+		marginTop: 8,
+	},
+	pasteWorkoutLinkText: {
+		color: '#C87E25',
+		fontSize: 14,
+		fontWeight: '500',
 	},
 });

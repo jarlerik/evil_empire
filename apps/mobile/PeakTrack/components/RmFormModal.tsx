@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { format } from 'date-fns';
-import { RepetitionMaximum } from '../services/types';
+import { RepetitionMaximum } from '@evil-empire/peaktrack-services';
 
 export interface RmFormData {
 	exerciseName: string;

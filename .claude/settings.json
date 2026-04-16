@@ -2,5 +2,39 @@
   "enabledPlugins": {
     "expo-app-design@expo-plugins": true,
     "react-native-best-practices@callstack-agent-skills": true
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title 'Claude Code' -message 'Needs your attention' -sound default -group claude-code"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path'); [[ \"$FILE\" =~ \\.(ts|tsx|js|jsx)$ ]] && pnpm exec eslint --fix \"$FILE\" || true"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-task-completed.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

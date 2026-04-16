@@ -49,7 +49,7 @@ export function SessionBanner() {
       />
       {mode === 'backtest' && backtestProgress != null && (
         <View style={styles.progressWrap}>
-          <View style={[styles.progressBar, { width: `${(backtestProgress * 100).toFixed(1)}%` }]} />
+          <View style={[styles.progressBar, { width: `${Math.round(backtestProgress * 1000) / 10}%` }]} />
         </View>
       )}
       {!connected && (

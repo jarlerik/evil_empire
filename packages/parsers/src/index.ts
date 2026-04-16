@@ -8,9 +8,10 @@
 import { ParsedSetData, invalidResult } from './types';
 import { parseEmom } from './emomParser';
 import { parseRestTime } from './restTimeParser';
+import { preprocessWorkoutText } from './workoutTextPreprocessor';
 
 // Import all parsers
-import { parseCompoundPercentage, parseCompoundMultipleWeightsWithRange, parseCompoundMultipleWeights, parseCompoundWeight } from './compoundParser';
+import { parseCompoundPercentage, parseCompoundMultipleWeightsWithRange, parseCompoundMultipleWeights, parseCompoundWeightRange, parseCompoundWeight } from './compoundParser';
 import { parsePercentageRange, parseSimplePercentage } from './percentageParser';
 import { parseWeightRange, parseStandard, parseMultipleWeights, parseMultipleWeightsWithRange } from './standardParser';
 import { parseSimpleRir, parseStandardWithRir, parseRirWithoutWeight } from './rirParser';
@@ -24,6 +25,8 @@ export { invalidResult } from './types';
 export { reverseParsePhase } from './reverseParser';
 export { formatExercisePhase } from './formatExercisePhase';
 export type { ExercisePhase } from './formatExercisePhase';
+export { preprocessWorkoutText } from './workoutTextPreprocessor';
+export type { PreprocessedBlock } from './workoutTextPreprocessor';
 
 /**
  * Parses a string input in various exercise formats.
@@ -76,7 +79,8 @@ export function parseSetInput(input: string): ParsedSetData {
 		: parseRestTime(afterEmom);
 
 	// Remove any extra spaces and convert to lowercase for easier parsing
-	const cleanInput = remainingInput.toLowerCase();
+	// Strip " of 1RM" suffix that some sources append to percentages (e.g. "@95% of 1RM" → "@95%")
+	const cleanInput = remainingInput.toLowerCase().replace(/\s+of\s+1\s*rm\s*$/i, '');
 
 	// Pattern order matters! More specific patterns must come before general ones.
 	// Each parser returns { matched: boolean, data?: ParsedSetData }
@@ -145,6 +149,12 @@ export function parseSetInput(input: string): ParsedSetData {
 	const compoundMultiWeights = parseCompoundMultipleWeights(cleanInput, restTimeSeconds);
 	if (compoundMultiWeights.matched) {
 		return withExtras(compoundMultiWeights.data!);
+	}
+
+	// 9c. Compound with weight range (e.g., "6 x 3 + 2 + 2 @67-71kg")
+	const compoundWeightRange = parseCompoundWeightRange(cleanInput, restTimeSeconds);
+	if (compoundWeightRange.matched) {
+		return withExtras(compoundWeightRange.data!);
 	}
 
 	// 9. Compound with weight (kg)
@@ -231,4 +241,70 @@ export function parseSetInput(input: string): ParsedSetData {
 	return invalidResult(
 		'Unrecognized format. Examples: "3 x 5 @50kg", "4 x 3 @80%", "3-2-1 65kg", "Build to 8RM".',
 	);
+}
+
+/**
+ * Possible "missing information" flags on a `ParsedWorkoutBlock`.
+ *
+ * - `'unparseable'` — the set-spec line couldn't be parsed (or none was found).
+ *   The UI should show the raw text and let the user edit it.
+ * - `'rmSource'` — the parsed set uses a percentage that requires a 1RM lookup.
+ *   The UI should resolve this against the user's stored RMs and prompt for a
+ *   reference movement when no exact match is available.
+ */
+export type WorkoutBlockMissing = 'unparseable' | 'rmSource';
+
+/**
+ * One imported exercise: the preprocessor's name/notes guess, the parser's
+ * structured output, and a checklist of what (if anything) is still missing
+ * before the block can be saved as an `ExercisePhase`.
+ */
+export interface ParsedWorkoutBlock {
+	/** Original block text exactly as the user pasted it. */
+	rawText: string;
+	/** Best-guess exercise name from the preprocessor. May be empty. */
+	suggestedName: string;
+	/** Result of feeding `setSpecLine` into `parseSetInput`. `isValid: false` on failure. */
+	parsed: ParsedSetData;
+	/** Notes the preprocessor extracted from lines after the set-spec. */
+	notes?: string;
+	/** Information still required before the block can be saved. */
+	missing: WorkoutBlockMissing[];
+}
+
+/**
+ * Parse free-form pasted workout text into a list of structured blocks.
+ *
+ * High-level flow:
+ * 1. {@link preprocessWorkoutText} splits the input into per-exercise blocks
+ *    and rewrites tokens (`@light weight` → `@60%`).
+ * 2. Each block's set-spec line is fed through {@link parseSetInput}.
+ * 3. A `missing` checklist is computed from the parser result so the UI can
+ *    drive any follow-up prompts (RM picker, raw-edit fallback).
+ *
+ * Returns `[]` for empty input.
+ */
+export function parseWorkoutText(raw: string): ParsedWorkoutBlock[] {
+	return preprocessWorkoutText(raw).map(block => {
+		const parsed =
+			block.parseError === 'no_set_spec'
+				? invalidResult('No sets x reps line found in this block.')
+				: parseSetInput(block.setSpecLine);
+
+		const missing: WorkoutBlockMissing[] = [];
+		if (!parsed.isValid) {
+			missing.push('unparseable');
+		}
+		if (parsed.needsRmLookup) {
+			missing.push('rmSource');
+		}
+
+		return {
+			rawText: block.rawText,
+			suggestedName: block.suggestedName,
+			parsed,
+			...(block.notesText !== undefined && { notes: block.notesText }),
+			missing,
+		};
+	});
 }

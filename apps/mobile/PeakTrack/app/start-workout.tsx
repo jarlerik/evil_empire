@@ -9,10 +9,7 @@ import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutio
 import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
 import { WorkoutTimerDisplay } from '../components/WorkoutTimerDisplay';
 import { Exercise } from '../types/workout';
-import { fetchExercisesByWorkoutId } from '../services/exerciseService';
-import { fetchPhasesByExerciseId } from '../services/exercisePhaseService';
-import { insertExecutionLog } from '../services/workoutExecutionLogService';
-import { saveWorkoutRating } from '../services/workoutRatingService';
+import { fetchExercisesByWorkoutId, fetchPhasesByExerciseId, insertExecutionLog, saveWorkoutRating } from '@evil-empire/peaktrack-services';
 import { WorkoutRatingModal } from '../components/WorkoutRatingModal';
 import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
 import { useUserSettings } from '../contexts/UserSettingsContext';

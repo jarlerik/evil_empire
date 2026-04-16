@@ -57,8 +57,8 @@ export function WorkoutRatingModal({ visible, onSave, onSkip }: WorkoutRatingMod
 					</View>
 
 					<View style={styles.labelsRow}>
-						<Text style={styles.labelText}>Easy</Text>
 						<Text style={styles.labelText}>Brutal</Text>
+						<Text style={styles.labelText}>Easy</Text>
 					</View>
 
 					<View style={styles.buttonRow}>
