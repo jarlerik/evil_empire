@@ -395,6 +395,49 @@ describe('parseSetInput - Compound Format', () => {
 		});
 	});
 
+	describe('compound with weight range (kg/lbs)', () => {
+		it('should parse compound with a weight range', () => {
+			const result = parseSetInput('6 x 3 + 2 + 2 @67-71kg');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 7,
+				weight: 67,
+				weightMin: 67,
+				weightMax: 71,
+				compoundReps: [3, 2, 2],
+				isValid: true,
+			});
+		});
+
+		it('should parse compound weight range with rest time', () => {
+			const result = parseSetInput('6 x 3 + 2 + 2 @67-71kg 120s');
+			expect(result).toEqual({
+				sets: 6,
+				reps: 7,
+				weight: 67,
+				weightMin: 67,
+				weightMax: 71,
+				compoundReps: [3, 2, 2],
+				restTimeSeconds: 120,
+				isValid: true,
+			});
+		});
+
+		it('should parse compound weight range in lbs', () => {
+			const result = parseSetInput('4 x 2 + 2 @150-170lbs');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMin).toBe(150);
+			expect(result.weightMax).toBe(170);
+			expect(result.compoundReps).toEqual([2, 2]);
+		});
+
+		it('should return invalid when min weight exceeds max', () => {
+			const result = parseSetInput('3 x 2 + 2 @80-70kg');
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('Minimum weight');
+		});
+	});
+
 	describe('compound with multiple weights (kg)', () => {
 		it('should parse compound with multiple weights', () => {
 			const result = parseSetInput('3 x 1 + 1 @50kg 60kg 70kg');

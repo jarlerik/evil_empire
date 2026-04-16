@@ -10,7 +10,7 @@ import { parseEmom } from './emomParser';
 import { parseRestTime } from './restTimeParser';
 
 // Import all parsers
-import { parseCompoundPercentage, parseCompoundMultipleWeightsWithRange, parseCompoundMultipleWeights, parseCompoundWeight } from './compoundParser';
+import { parseCompoundPercentage, parseCompoundMultipleWeightsWithRange, parseCompoundMultipleWeights, parseCompoundWeightRange, parseCompoundWeight } from './compoundParser';
 import { parsePercentageRange, parseSimplePercentage } from './percentageParser';
 import { parseWeightRange, parseStandard, parseMultipleWeights, parseMultipleWeightsWithRange } from './standardParser';
 import { parseSimpleRir, parseStandardWithRir, parseRirWithoutWeight } from './rirParser';
@@ -145,6 +145,12 @@ export function parseSetInput(input: string): ParsedSetData {
 	const compoundMultiWeights = parseCompoundMultipleWeights(cleanInput, restTimeSeconds);
 	if (compoundMultiWeights.matched) {
 		return withExtras(compoundMultiWeights.data!);
+	}
+
+	// 9c. Compound with weight range (e.g., "6 x 3 + 2 + 2 @67-71kg")
+	const compoundWeightRange = parseCompoundWeightRange(cleanInput, restTimeSeconds);
+	if (compoundWeightRange.matched) {
+		return withExtras(compoundWeightRange.data!);
 	}
 
 	// 9. Compound with weight (kg)
