@@ -371,6 +371,17 @@ export default function Index() {
 								/>
 								{errorState && <Text style={styles.errorText}>{errorState}</Text>}
 								<Button title={isLoading ? 'Adding...' : 'Add exercise'} onPress={handleAddExercise} disabled={isLoading} />
+								<Pressable
+									onPress={() => router.push({
+										pathname: '/import-workout',
+										params: { selectedDate: format(selectedDate, 'yyyy-MM-dd') },
+									})}
+									style={styles.pasteWorkoutLink}
+									disabled={isLoading}
+								>
+									<Ionicons name="clipboard-outline" size={16} color="#C87E25" />
+									<Text style={styles.pasteWorkoutLinkText}>Paste workout from another app</Text>
+								</Pressable>
 							</View>
 						</View>
 					</ScrollView>
@@ -511,5 +522,18 @@ const styles = StyleSheet.create({
 	errorText: {
 		color: 'red',
 		marginBottom: 10,
+	},
+	pasteWorkoutLink: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		paddingVertical: 12,
+		marginTop: 8,
+	},
+	pasteWorkoutLinkText: {
+		color: '#C87E25',
+		fontSize: 14,
+		fontWeight: '500',
 	},
 });
