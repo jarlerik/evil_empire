@@ -79,7 +79,15 @@ export async function createProgram(input: {
 export async function updateProgram(
 	programId: string,
 	patch: Partial<
-		Pick<Program, 'name' | 'description' | 'duration_weeks' | 'status'>
+		Pick<
+			Program,
+			| 'name'
+			| 'description'
+			| 'duration_weeks'
+			| 'status'
+			| 'start_iso_year'
+			| 'start_iso_week'
+		>
 	>,
 ): Promise<ServiceResult<Program>> {
 	const supabase = getSupabaseClient();
@@ -400,17 +408,26 @@ export async function upsertProgramRm(input: {
 
 	const supabase = getSupabaseClient();
 
-	// Hand-rolled upsert on (program_id, LOWER(exercise_name)) — can't use
-	// onConflict with a functional index, so do find-then-insert-or-update.
-	const { data: existing, error: fetchErr } = await supabase
-		.from('program_repetition_maximums')
-		.select('id')
-		.eq('program_id', input.program_id)
-		.ilike('exercise_name', trimmedName)
-		.maybeSingle();
+	// Hand-rolled upsert on (program_id, LOWER(exercise_name)) — PostgREST
+	// doesn't expose ON CONFLICT on functional unique indexes, so do
+	// fetch-then-write and catch unique_violation (23505) to handle races.
+	const findExisting = async () => {
+		const { data: rows, error: fetchErr } = await supabase
+			.from('program_repetition_maximums')
+			.select('id, exercise_name')
+			.eq('program_id', input.program_id);
+		if (fetchErr) {
+			return { existing: null, error: fetchErr.message };
+		}
+		const needle = trimmedName.toLowerCase();
+		const match =
+			(rows ?? []).find(r => r.exercise_name.trim().toLowerCase() === needle) ?? null;
+		return { existing: match, error: null };
+	};
 
-	if (fetchErr) {
-		return { data: null, error: fetchErr.message };
+	const { existing, error: findErr } = await findExisting();
+	if (findErr) {
+		return { data: null, error: findErr };
 	}
 
 	if (existing) {
@@ -446,6 +463,29 @@ export async function upsertProgramRm(input: {
 		.single();
 
 	if (error) {
+		// Unique violation — concurrent write won. Re-find and update.
+		const code = (error as { code?: string }).code;
+		if (code === '23505') {
+			const { existing: racer, error: refindErr } = await findExisting();
+			if (refindErr || !racer) {
+				return { data: null, error: refindErr ?? 'Unique violation but row not found' };
+			}
+			const { data: updated, error: updateErr } = await supabase
+				.from('program_repetition_maximums')
+				.update({
+					exercise_name: trimmedName,
+					weight: input.weight,
+					tested_at: input.tested_at ?? null,
+					source: input.source,
+				})
+				.eq('id', racer.id)
+				.select()
+				.single();
+			if (updateErr) {
+				return { data: null, error: updateErr.message };
+			}
+			return { data: updated, error: null };
+		}
 		return { data: null, error: error.message };
 	}
 	return { data, error: null };

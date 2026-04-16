@@ -194,7 +194,8 @@ CREATE POLICY "Users can insert their own programs" ON programs
 
 DROP POLICY IF EXISTS "Users can update their own programs" ON programs;
 CREATE POLICY "Users can update their own programs" ON programs
-    FOR UPDATE USING (user_id = auth.uid());
+    FOR UPDATE USING (user_id = auth.uid())
+    WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users can delete their own programs" ON programs;
 CREATE POLICY "Users can delete their own programs" ON programs
@@ -214,7 +215,11 @@ CREATE POLICY "Users can insert their own program sessions" ON program_sessions
 
 DROP POLICY IF EXISTS "Users can update their own program sessions" ON program_sessions;
 CREATE POLICY "Users can update their own program sessions" ON program_sessions
-    FOR UPDATE USING (user_id = auth.uid());
+    FOR UPDATE USING (user_id = auth.uid())
+    WITH CHECK (
+        user_id = auth.uid()
+        AND program_id IN (SELECT id FROM programs WHERE user_id = auth.uid())
+    );
 
 DROP POLICY IF EXISTS "Users can delete their own program sessions" ON program_sessions;
 CREATE POLICY "Users can delete their own program sessions" ON program_sessions
@@ -234,7 +239,11 @@ CREATE POLICY "Users can insert their own program exercises" ON program_exercise
 
 DROP POLICY IF EXISTS "Users can update their own program exercises" ON program_exercises;
 CREATE POLICY "Users can update their own program exercises" ON program_exercises
-    FOR UPDATE USING (user_id = auth.uid());
+    FOR UPDATE USING (user_id = auth.uid())
+    WITH CHECK (
+        user_id = auth.uid()
+        AND program_session_id IN (SELECT id FROM program_sessions WHERE user_id = auth.uid())
+    );
 
 DROP POLICY IF EXISTS "Users can delete their own program exercises" ON program_exercises;
 CREATE POLICY "Users can delete their own program exercises" ON program_exercises
@@ -254,7 +263,11 @@ CREATE POLICY "Users can insert their own program RMs" ON program_repetition_max
 
 DROP POLICY IF EXISTS "Users can update their own program RMs" ON program_repetition_maximums;
 CREATE POLICY "Users can update their own program RMs" ON program_repetition_maximums
-    FOR UPDATE USING (user_id = auth.uid());
+    FOR UPDATE USING (user_id = auth.uid())
+    WITH CHECK (
+        user_id = auth.uid()
+        AND program_id IN (SELECT id FROM programs WHERE user_id = auth.uid())
+    );
 
 DROP POLICY IF EXISTS "Users can delete their own program RMs" ON program_repetition_maximums;
 CREATE POLICY "Users can delete their own program RMs" ON program_repetition_maximums
@@ -284,18 +297,23 @@ DECLARE
     v_ex JSONB;
     v_phase JSONB;
 BEGIN
-    -- Fast-path idempotency: session already materialized.
-    SELECT id INTO v_existing_workout_id
-        FROM workouts WHERE program_session_id = p_session_id LIMIT 1;
-    IF v_existing_workout_id IS NOT NULL THEN
-        RETURN v_existing_workout_id;
-    END IF;
-
     -- Resolve owner from program_sessions (RLS gates this SELECT).
+    -- Doing this BEFORE the idempotency check ensures the session is the
+    -- caller's and the existing-workout lookup is always ownership-scoped.
     SELECT user_id INTO v_user_id
         FROM program_sessions WHERE id = p_session_id;
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'program_session % not found or not accessible', p_session_id;
+    END IF;
+
+    -- Fast-path idempotency: session already materialized by this user.
+    SELECT id INTO v_existing_workout_id
+        FROM workouts
+        WHERE program_session_id = p_session_id
+          AND user_id = v_user_id
+        LIMIT 1;
+    IF v_existing_workout_id IS NOT NULL THEN
+        RETURN v_existing_workout_id;
     END IF;
 
     INSERT INTO workouts (user_id, name, workout_date, program_session_id)
@@ -343,7 +361,10 @@ BEGIN
     RETURN v_workout_id;
 EXCEPTION WHEN unique_violation THEN
     SELECT id INTO v_existing_workout_id
-        FROM workouts WHERE program_session_id = p_session_id LIMIT 1;
+        FROM workouts
+        WHERE program_session_id = p_session_id
+          AND user_id = v_user_id
+        LIMIT 1;
     RETURN v_existing_workout_id;
 END;
 $$;

@@ -8,6 +8,20 @@ import {
 	addDays,
 } from 'date-fns';
 
+/**
+ * Build a stable anchor for a given ISO year + week. Using noon as the seed
+ * avoids DST-transition windows where the intra-day hour shifts the ISO
+ * week of the resulting date. startOfISOWeek normalizes the output to
+ * local-midnight-Monday regardless.
+ */
+function anchorForIsoWeek(isoYear: number, isoWeek: number): Date {
+	const seed = new Date();
+	seed.setHours(12, 0, 0, 0);
+	const yearAnchored = setISOWeekYear(seed, isoYear);
+	const weekAnchored = setISOWeek(yearAnchored, isoWeek);
+	return startOfISOWeek(weekAnchored);
+}
+
 interface ProgramWindow {
 	start_iso_year: number | null;
 	start_iso_week: number | null;
@@ -26,11 +40,7 @@ export function resolveSessionDate(
 	weekOffset: number,
 	dayOfWeek: number,
 ): Date {
-	// Anchor at Monday of the start week. We set year then week to avoid
-	// the year→week order dependency issue in some date-fns builds.
-	const yearAnchored = setISOWeekYear(new Date(), startIsoYear);
-	const weekAnchored = setISOWeek(yearAnchored, startIsoWeek);
-	const anchor = startOfISOWeek(weekAnchored);
+	const anchor = anchorForIsoWeek(startIsoYear, startIsoWeek);
 	return addDays(anchor, weekOffset * 7 + (dayOfWeek - 1));
 }
 
@@ -45,9 +55,7 @@ export function resolveSessionForDate(
 	if (program.start_iso_year == null || program.start_iso_week == null) {
 		return null;
 	}
-	const yearAnchored = setISOWeekYear(new Date(), program.start_iso_year);
-	const weekAnchored = setISOWeek(yearAnchored, program.start_iso_week);
-	const anchor = startOfISOWeek(weekAnchored);
+	const anchor = anchorForIsoWeek(program.start_iso_year, program.start_iso_week);
 	const days = differenceInCalendarDays(startOfISOWeek(date), anchor);
 	if (days < 0) {
 		return null;

@@ -225,8 +225,27 @@ export default function ProgramAssign() {
 		return Number.isFinite(w) && w > 0;
 	});
 
+	const hasUnresolvedNewNames = names.some(n => {
+		const w = parseFloat(n.weight);
+		return !Number.isFinite(w) || w <= 0;
+	});
+
 	const handleConfirmWeek = () => {
 		if (isReassign) {
+			// If the user added new percentage-based exercises after the
+			// original assignment, new names may have no snapshot yet. Go
+			// through step 2 to collect those before shifting the start week.
+			if (hasUnresolvedNewNames) {
+				Alert.alert(
+					'Re-assign start week',
+					'New exercises need 1RMs before re-assigning. We will collect them next.',
+					[
+						{ text: 'Cancel', style: 'cancel' },
+						{ text: 'Continue', onPress: () => setStep(2) },
+					],
+				);
+				return;
+			}
 			Alert.alert(
 				'Re-assign start week',
 				'Future virtual sessions will shift to the new start week. Workouts you have already started stay on the dates you did them. Your 1RM snapshot is preserved.',
@@ -266,21 +285,30 @@ export default function ProgramAssign() {
 		}
 		setSaving(true);
 
-		// Write snapshots
+		// Write snapshots — abort the whole flow if any write fails so we
+		// never transition to active with incomplete snapshots.
+		const failures: string[] = [];
 		for (const entry of names) {
 			const w = parseFloat(entry.weight);
 			if (!Number.isFinite(w) || w <= 0) {
+				failures.push(entry.name);
 				continue;
 			}
 			const source = entry.source ?? 'manual';
-			await upsertProgramRm({
+			const { error: rmErr } = await upsertProgramRm({
 				program_id: programId,
 				exercise_name: entry.name,
 				weight: w,
 				source,
 				tested_at: entry.testedAt,
 			});
-			// Manual entries also go to the user's global RMs
+			if (rmErr) {
+				failures.push(`${entry.name} (${rmErr})`);
+				continue;
+			}
+			// Manual entries also go to the user's global RMs.
+			// A failure here is non-fatal — the program snapshot is what
+			// materialization reads from.
 			if (source === 'manual') {
 				await createRepetitionMaximum({
 					userId: user.id,
@@ -292,7 +320,16 @@ export default function ProgramAssign() {
 			}
 		}
 
-		// Transition to active
+		if (failures.length > 0) {
+			setSaving(false);
+			Alert.alert(
+				'Could not save 1RMs',
+				`Please retry. Failed for: ${failures.join(', ')}`,
+			);
+			return;
+		}
+
+		// Transition to active only after every snapshot wrote successfully.
 		const { error: assignError } = await assignProgramStart(programId, startYear, startWeek);
 		setSaving(false);
 		if (assignError) {

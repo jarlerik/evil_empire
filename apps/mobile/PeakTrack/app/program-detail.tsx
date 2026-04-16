@@ -109,7 +109,14 @@ export default function ProgramDetail() {
 			return;
 		}
 		const next = program.status === 'archived' ? 'draft' : 'archived';
-		const { error } = await updateProgram(programId, { status: next });
+		// When unarchiving to draft, clear the start-week fields so the UI
+		// doesn't show a stale "starts week N" subtitle and users go
+		// through the assign flow again.
+		const patch: Parameters<typeof updateProgram>[1] =
+			next === 'draft'
+				? { status: next, start_iso_year: null, start_iso_week: null }
+				: { status: next };
+		const { error } = await updateProgram(programId, patch);
 		if (!error) {
 			invalidateSessionCache();
 			await reloadPrograms();
