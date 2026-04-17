@@ -6,14 +6,11 @@ import {
 	ScrollView,
 	Pressable,
 	Alert,
-	KeyboardAvoidingView,
-	Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
-import { usePrograms } from '../contexts/ProgramsContext';
+import { parseSetInput } from '@evil-empire/parsers';
 import {
 	Program,
 	ProgramSession,
@@ -27,20 +24,32 @@ import {
 	fetchProgramRmsByProgramId,
 	deleteProgram,
 	updateProgram,
-	deleteAllProgramSessions,
-	deleteProgramSession,
-	upsertProgramSession,
-	upsertProgramExercise,
 } from '@evil-empire/peaktrack-services';
+import { useAuth } from '../contexts/AuthContext';
+import { usePrograms } from '../contexts/ProgramsContext';
 import { colors } from '../styles/common';
 import { Button } from '../components/Button';
 import { LoadScreen } from './components/LoadScreen';
-import { ProgramPlanEditor } from '../components/ProgramPlanEditor';
 import {
-	parseProgramText,
-	serializeProgramText,
-	defaultDayForSession,
-} from '../lib/parseProgramText';
+	exerciseNeedsRmSnapshot,
+	resolveWeightsFromSnapshot,
+} from '../lib/resolveProgramWeights';
+
+const DAY_LABELS: Record<number, string> = {
+	1: 'Mon',
+	2: 'Tue',
+	3: 'Wed',
+	4: 'Thu',
+	5: 'Fri',
+	6: 'Sat',
+	7: 'Sun',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+	draft: 'Draft',
+	active: 'Active',
+	archived: 'Archived',
+};
 
 export default function ProgramDetail() {
 	const { user } = useAuth();
@@ -53,7 +62,6 @@ export default function ProgramDetail() {
 	const [exercises, setExercises] = useState<ProgramExercise[]>([]);
 	const [rms, setRms] = useState<ProgramRepetitionMaximum[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [saving, setSaving] = useState(false);
 
 	const loadAll = useCallback(async () => {
 		if (!programId || !user) {
@@ -89,120 +97,41 @@ export default function ProgramDetail() {
 		}, [loadAll]),
 	);
 
-	// Build the text representation of the saved plan for the editor's initial value.
-	const initialPlanText = useMemo(() => {
-		if (!program || sessions.length === 0) {
-			return '';
-		}
+	/**
+	 * Group sessions by week for rendering. Sessions within a week are
+	 * sorted by day_of_week. Only weeks that have at least one session
+	 * with at least one exercise appear in the list.
+	 */
+	const weeks = useMemo(() => {
 		const exercisesBySession = new Map<string, ProgramExercise[]>();
 		for (const ex of exercises) {
 			const list = exercisesBySession.get(ex.program_session_id) ?? [];
 			list.push(ex);
 			exercisesBySession.set(ex.program_session_id, list);
 		}
-		const input = sessions.map(s => ({
-			week_offset: s.week_offset,
-			day_of_week: s.day_of_week,
-			exercises: (exercisesBySession.get(s.id) ?? []).map(e => ({
-				name: e.name,
-				raw_input: e.raw_input,
-			})),
-		}));
-		return serializeProgramText(input, program.name);
-	}, [program, sessions, exercises]);
 
-	const handleSavePlan = async (text: string) => {
-		if (!programId || !program) {
-			return;
-		}
-		const parsed = parseProgramText(text);
-		if (parsed.errors.length > 0 || parsed.weeks.length === 0) {
-			Alert.alert(
-				'Could not save plan',
-				parsed.errors[0] ?? 'Please enter at least one week.',
-			);
-			return;
+		const byWeek = new Map<number, Array<ProgramSession & { exs: ProgramExercise[] }>>();
+		for (const s of sessions) {
+			const exs = exercisesBySession.get(s.id) ?? [];
+			if (exs.length === 0) {
+				continue;
+			}
+			const list = byWeek.get(s.week_offset) ?? [];
+			list.push({ ...s, exs });
+			byWeek.set(s.week_offset, list);
 		}
 
-		const sessionsPerWeek = parsed.sessionsPerWeek ?? 1;
-
-		const confirmAndSave = async () => {
-			setSaving(true);
-			// Wipe existing sessions — cascades to exercises. workouts.program_session_id
-			// is SET NULL so history stays.
-			const { error: delErr } = await deleteAllProgramSessions(programId);
-			if (delErr) {
-				setSaving(false);
-				Alert.alert('Could not save plan', delErr);
-				return;
-			}
-
-			// Re-create sessions + exercises.
-			for (const week of parsed.weeks) {
-				const weekOffset = week.weekNumber - 1;
-				for (let i = 0; i < week.sessions.length; i++) {
-					const sess = week.sessions[i];
-					const dayOfWeek = defaultDayForSession(i, sessionsPerWeek);
-					const { data: createdSession, error: sErr } = await upsertProgramSession({
-						program_id: programId,
-						week_offset: weekOffset,
-						day_of_week: dayOfWeek,
-					});
-					if (sErr || !createdSession) {
-						setSaving(false);
-						Alert.alert('Could not save plan', sErr ?? 'Failed to create session');
-						return;
-					}
-					const exerciseName = sess.name ?? program.name;
-					const { error: eErr } = await upsertProgramExercise({
-						program_session_id: createdSession.id,
-						order_index: 0,
-						name: exerciseName,
-						raw_input: sess.rawInput,
-						notes: null,
-					});
-					if (eErr) {
-						// Roll back the just-created session so we don't leave
-						// an orphan row that would render as phantom content
-						// on next load.
-						await deleteProgramSession(createdSession.id);
-						setSaving(false);
-						Alert.alert('Could not save plan', eErr);
-						return;
-					}
-				}
-			}
-
-			// Update duration_weeks to match the plan.
-			const { error: updErr } = await updateProgram(programId, {
-				duration_weeks: parsed.weeks.length,
-			});
-			if (updErr) {
-				setSaving(false);
-				Alert.alert('Could not save plan', updErr);
-				return;
-			}
-
-			invalidateSessionCache();
-			await reloadPrograms();
-			await loadAll();
-			setSaving(false);
-		};
-
-		// Warn on active programs since a rewrite shifts future virtual cards.
-		if (program.status === 'active') {
-			Alert.alert(
-				'Rewrite active program?',
-				'Past workouts stay intact. Future virtual sessions will shift to the new plan.',
-				[
-					{ text: 'Cancel', style: 'cancel' },
-					{ text: 'Rewrite', style: 'destructive', onPress: () => void confirmAndSave() },
-				],
-			);
-			return;
+		const result: Array<{
+			weekOffset: number;
+			sessions: Array<ProgramSession & { exs: ProgramExercise[] }>;
+		}> = [];
+		const keys = Array.from(byWeek.keys()).sort((a, b) => a - b);
+		for (const k of keys) {
+			const list = (byWeek.get(k) ?? []).slice().sort((a, b) => a.day_of_week - b.day_of_week);
+			result.push({ weekOffset: k, sessions: list });
 		}
-		await confirmAndSave();
-	};
+		return result;
+	}, [sessions, exercises]);
 
 	const handleDelete = () => {
 		if (!programId || !program) {
@@ -253,17 +182,22 @@ export default function ProgramDetail() {
 	}
 
 	const isActive = program.status === 'active';
-	const hasSessions = sessions.length > 0;
+	const hasSessions = weeks.length > 0;
+	const assignedLabel =
+		program.start_iso_year != null && program.start_iso_week != null
+			? ` · Week ${program.start_iso_week}, ${program.start_iso_year}`
+			: '';
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.flex}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+		<View style={styles.flex}>
+			<ScrollView contentContainerStyle={styles.scrollContent}>
 				<View style={styles.container}>
 					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Back">
+						<Pressable
+							onPress={() => router.back()}
+							style={styles.backButton}
+							accessibilityLabel="Back"
+						>
 							<Ionicons name="chevron-back" size={24} color={colors.text} />
 						</Pressable>
 						<Text style={styles.title} numberOfLines={2}>
@@ -273,21 +207,77 @@ export default function ProgramDetail() {
 
 					<Text style={styles.subtitle}>
 						{program.duration_weeks} week{program.duration_weeks === 1 ? '' : 's'} ·{' '}
-						{program.status}
-						{program.start_iso_year != null && program.start_iso_week != null
-							? ` · starts week ${program.start_iso_week}, ${program.start_iso_year}`
-							: ''}
+						{STATUS_LABELS[program.status] ?? program.status}
+						{assignedLabel}
 					</Text>
 					{program.description ? (
 						<Text style={styles.description}>{program.description}</Text>
 					) : null}
 
-					<ProgramPlanEditor
-						key={initialPlanText} // reset state when loaded plan changes
-						initialText={initialPlanText}
-						isSaving={saving}
-						onSave={handleSavePlan}
-					/>
+					<Pressable
+						onPress={() =>
+							router.push({ pathname: '/program-edit', params: { programId: program.id } })
+						}
+						style={styles.editBtn}
+						accessibilityRole="button"
+						accessibilityLabel="Edit plan"
+					>
+						<Ionicons name="pencil-outline" size={16} color={colors.primary} />
+						<Text style={styles.editBtnText}>Edit plan</Text>
+					</Pressable>
+
+					{hasSessions ? (
+						<View style={styles.planSection}>
+							{weeks.map(week => (
+								<View key={week.weekOffset} style={styles.weekBlock}>
+									<Text style={styles.weekHeading}>Week {week.weekOffset + 1}</Text>
+									{week.sessions.map(s => {
+										const ex = s.exs[0]; // one exercise per session in the plan-editor flow
+										if (!ex) {
+											return null;
+										}
+										const parsed = parseSetInput(ex.raw_input);
+										let display = ex.raw_input;
+										let showRaw = false;
+										if (parsed.isValid && exerciseNeedsRmSnapshot(parsed) && rms.length > 0) {
+											try {
+												const r = resolveWeightsFromSnapshot(ex.name, parsed, rms);
+												const baseSpec = parsed.compoundReps
+													? `${parsed.sets} × ${parsed.compoundReps.join('+')}`
+													: `${parsed.sets} × ${parsed.reps}`;
+												if (r.weightMin !== undefined && r.weightMax !== undefined) {
+													display = `${baseSpec} @ ${r.weightMin}–${r.weightMax}kg`;
+												} else {
+													display = `${baseSpec} @ ${r.weight}kg`;
+												}
+												showRaw = true;
+											} catch {
+												display = ex.raw_input;
+											}
+										}
+										return (
+											<View key={s.id} style={styles.sessionRow}>
+												<Text style={styles.dayLabel}>{DAY_LABELS[s.day_of_week]}</Text>
+												<View style={styles.sessionBody}>
+													<Text style={styles.sessionSpec}>{display}</Text>
+													{showRaw ? (
+														<Text style={styles.sessionRaw}>{ex.raw_input}</Text>
+													) : null}
+												</View>
+											</View>
+										);
+									})}
+								</View>
+							))}
+						</View>
+					) : (
+						<View style={styles.emptyPlan}>
+							<Text style={styles.emptyText}>No plan yet.</Text>
+							<Text style={styles.emptyHint}>
+								Tap Edit plan to add exercises.
+							</Text>
+						</View>
+					)}
 
 					{rms.length > 0 ? (
 						<View style={styles.rmsSection}>
@@ -338,7 +328,7 @@ export default function ProgramDetail() {
 					</View>
 				</View>
 			</ScrollView>
-		</KeyboardAvoidingView>
+		</View>
 	);
 }
 
@@ -375,6 +365,76 @@ const styles = StyleSheet.create({
 		color: colors.textMuted,
 		fontSize: 13,
 		marginBottom: 8,
+	},
+	editBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		marginTop: 12,
+		borderWidth: 1,
+		borderColor: colors.primary,
+		borderRadius: 6,
+		alignSelf: 'flex-start',
+	},
+	editBtnText: {
+		color: colors.primary,
+		fontSize: 13,
+		fontWeight: '600',
+	},
+	planSection: {
+		marginTop: 20,
+	},
+	weekBlock: {
+		marginBottom: 18,
+		paddingBottom: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: '#1a1a1a',
+	},
+	weekHeading: {
+		color: colors.text,
+		fontSize: 15,
+		fontWeight: '600',
+		marginBottom: 8,
+	},
+	sessionRow: {
+		flexDirection: 'row',
+		paddingVertical: 6,
+		gap: 12,
+	},
+	dayLabel: {
+		color: colors.primary,
+		fontSize: 13,
+		fontWeight: '600',
+		width: 40,
+	},
+	sessionBody: {
+		flex: 1,
+	},
+	sessionSpec: {
+		color: colors.text,
+		fontSize: 14,
+	},
+	sessionRaw: {
+		color: colors.textMuted,
+		fontSize: 11,
+		marginTop: 2,
+	},
+	emptyPlan: {
+		marginTop: 32,
+		alignItems: 'center',
+	},
+	emptyText: {
+		color: colors.text,
+		fontSize: 16,
+		fontWeight: '600',
+	},
+	emptyHint: {
+		color: colors.textMuted,
+		fontSize: 13,
+		marginTop: 6,
 	},
 	rmsSection: {
 		marginTop: 24,

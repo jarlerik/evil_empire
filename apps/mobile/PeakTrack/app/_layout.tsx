@@ -55,6 +55,7 @@ export default function Layout() {
 								<Stack.Screen name="programs" />
 								<Stack.Screen name="create-program" />
 								<Stack.Screen name="program-detail" />
+								<Stack.Screen name="program-edit" />
 								<Stack.Screen name="program-assign" />
 								</Stack>
 								<UnitSelectionModal />
