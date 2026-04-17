@@ -8,3 +8,4 @@ export * from './userSettingsService';
 export * from './repetitionMaximumService';
 export * from './workoutExecutionLogService';
 export * from './workoutRatingService';
+export * from './programService';

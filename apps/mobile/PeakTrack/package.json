@@ -23,7 +23,8 @@
     "moduleNameMapper": {
       "^@evil-empire/parsers$": "<rootDir>/../../../packages/parsers/src",
       "^@evil-empire/peaktrack-services$": "<rootDir>/../../../packages/peaktrack-services/src",
-      "^@evil-empire/types$": "<rootDir>/../../../packages/types/src"
+      "^@evil-empire/types$": "<rootDir>/../../../packages/types/src",
+      "^@evil-empire/ui$": "<rootDir>/../../../apps/evil_ui/src"
     },
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@evil-empire/.*)"
@@ -33,6 +34,7 @@
     "@evil-empire/parsers": "workspace:*",
     "@evil-empire/peaktrack-services": "workspace:*",
     "@evil-empire/types": "workspace:*",
+    "@evil-empire/ui": "workspace:*",
     "@expo/metro-runtime": "^6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
