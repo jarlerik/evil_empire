@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
 	View,
 	Text,
@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { DayPicker, DayOfWeek } from '@evil-empire/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { usePrograms } from '../contexts/ProgramsContext';
 import {
@@ -38,6 +39,8 @@ import {
 	defaultDayForSession,
 } from '../lib/parseProgramText';
 
+const DAY_SHORT: readonly string[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 export default function ProgramEdit() {
 	const { user } = useAuth();
 	const params = useLocalSearchParams<{ programId: string }>();
@@ -49,6 +52,13 @@ export default function ProgramEdit() {
 	const [exercises, setExercises] = useState<ProgramExercise[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	/**
+	 * Days the user wants each week's sessions to land on. Order of this
+	 * array matches session index within a week (first selected → session 1,
+	 * second → session 2, etc.). Seeded from existing sessions on load.
+	 */
+	const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
+	const [daysTouched, setDaysTouched] = useState(false);
 
 	const loadAll = useCallback(async () => {
 		if (!programId || !user) {
@@ -102,6 +112,23 @@ export default function ProgramEdit() {
 		return serializeProgramText(input, program.name);
 	}, [program, sessions, exercises]);
 
+	// Seed the day picker from the saved sessions' distinct day-of-week values.
+	// Only runs once per load so the user's in-progress selection isn't clobbered
+	// by subsequent reloads (e.g. focus-refresh).
+	useEffect(() => {
+		if (daysTouched || sessions.length === 0) {
+			return;
+		}
+		const seen = new Set<number>();
+		for (const s of sessions) {
+			seen.add(s.day_of_week);
+		}
+		const asArray = Array.from(seen).sort((a, b) => a - b) as DayOfWeek[];
+		if (asArray.length > 0) {
+			setSelectedDays(asArray);
+		}
+	}, [sessions, daysTouched]);
+
 	const handleSavePlan = async (text: string) => {
 		if (!programId || !program) {
 			return;
@@ -117,6 +144,32 @@ export default function ProgramEdit() {
 
 		const sessionsPerWeek = parsed.sessionsPerWeek ?? 1;
 
+		// If the user picked specific days, warn them when their selection
+		// doesn't cover every session (e.g. picked 2 days for a 3-per-week
+		// plan). Extras fall back to the default split for that index.
+		if (selectedDays.length > 0 && selectedDays.length < sessionsPerWeek) {
+			const cont = await new Promise<boolean>(resolve => {
+				Alert.alert(
+					'Not enough days selected',
+					`You picked ${selectedDays.length} day${selectedDays.length === 1 ? '' : 's'} but the plan has ${sessionsPerWeek} sessions per week. Extra sessions will use default days.`,
+					[
+						{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+						{ text: 'Continue', onPress: () => resolve(true) },
+					],
+				);
+			});
+			if (!cont) {
+				return;
+			}
+		}
+
+		const resolveDay = (sessionIndex: number): number => {
+			if (sessionIndex < selectedDays.length) {
+				return selectedDays[sessionIndex];
+			}
+			return defaultDayForSession(sessionIndex, sessionsPerWeek);
+		};
+
 		const confirmAndSave = async () => {
 			setSaving(true);
 			const { error: delErr } = await deleteAllProgramSessions(programId);
@@ -130,7 +183,7 @@ export default function ProgramEdit() {
 				const weekOffset = week.weekNumber - 1;
 				for (let i = 0; i < week.sessions.length; i++) {
 					const sess = week.sessions[i];
-					const dayOfWeek = defaultDayForSession(i, sessionsPerWeek);
+					const dayOfWeek = resolveDay(i);
 					const { data: createdSession, error: sErr } = await upsertProgramSession({
 						program_id: programId,
 						week_offset: weekOffset,
@@ -210,6 +263,22 @@ export default function ProgramEdit() {
 						{program.name}
 					</Text>
 
+					<View style={styles.daysSection}>
+						<DayPicker
+							label="Session days"
+							value={selectedDays}
+							onChange={next => {
+								setSelectedDays(next);
+								setDaysTouched(true);
+							}}
+						/>
+						<Text style={styles.daysHint}>
+							{selectedDays.length === 0
+								? 'Pick which days sessions land on. If left empty, a default split is used (2 → Mon/Thu, 3 → Mon/Wed/Fri, …).'
+								: `Session order matches the order of picks: first session → ${DAY_SHORT[selectedDays[0] - 1]}${selectedDays.length > 1 ? `, second → ${DAY_SHORT[selectedDays[1] - 1]}` : ''}${selectedDays.length > 2 ? ', …' : ''}.`}
+						</Text>
+					</View>
+
 					<ProgramPlanEditor
 						key={initialPlanText}
 						initialText={initialPlanText}
@@ -250,5 +319,18 @@ const styles = StyleSheet.create({
 		color: colors.textMuted,
 		fontSize: 13,
 		marginBottom: 12,
+	},
+	daysSection: {
+		marginTop: 8,
+		marginBottom: 16,
+		paddingBottom: 16,
+		borderBottomWidth: 1,
+		borderBottomColor: '#1a1a1a',
+	},
+	daysHint: {
+		color: colors.textMuted,
+		fontSize: 12,
+		marginTop: 8,
+		lineHeight: 16,
 	},
 });
