@@ -223,6 +223,25 @@ export async function deleteProgramSession(
 }
 
 /**
+ * Delete every program_session for a program. Cascades to program_exercises.
+ * workouts.program_session_id is ON DELETE SET NULL so any already-materialized
+ * history is preserved (the FK just detaches).
+ */
+export async function deleteAllProgramSessions(
+	programId: string,
+): Promise<ServiceResult<null>> {
+	const supabase = getSupabaseClient();
+	const { error } = await supabase
+		.from('program_sessions')
+		.delete()
+		.eq('program_id', programId);
+	if (error) {
+		return { data: null, error: error.message };
+	}
+	return { data: null, error: null };
+}
+
+/**
  * Idempotent "find-or-create" for a session keyed on (program_id, week_offset, day_of_week).
  * Used by the matrix editor when adding an exercise to a day that has no row yet.
  */
