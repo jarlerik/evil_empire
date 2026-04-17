@@ -206,8 +206,9 @@ export default function ProgramDetail() {
 					</View>
 
 					<Text style={styles.subtitle}>
-						{program.duration_weeks} week{program.duration_weeks === 1 ? '' : 's'} ·{' '}
-						{STATUS_LABELS[program.status] ?? program.status}
+						{program.status === 'draft'
+							? STATUS_LABELS[program.status]
+							: `${program.duration_weeks} week${program.duration_weeks === 1 ? '' : 's'} · ${STATUS_LABELS[program.status] ?? program.status}`}
 						{assignedLabel}
 					</Text>
 					{program.description ? (

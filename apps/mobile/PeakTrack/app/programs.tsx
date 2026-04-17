@@ -55,8 +55,13 @@ export default function Programs() {
 					) : (
 						<View style={styles.list}>
 							{programs.map(p => {
+								// Hide duration on drafts — it's a placeholder until the
+								// user saves a plan, at which point it becomes the parsed
+								// week count.
 								const subtitle = [
-									`${p.duration_weeks} week${p.duration_weeks === 1 ? '' : 's'}`,
+									p.status === 'draft'
+										? null
+										: `${p.duration_weeks} week${p.duration_weeks === 1 ? '' : 's'}`,
 									p.start_iso_year != null && p.start_iso_week != null
 										? `Week ${p.start_iso_week}, ${p.start_iso_year}`
 										: null,
