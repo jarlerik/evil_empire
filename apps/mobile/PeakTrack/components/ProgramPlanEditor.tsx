@@ -55,7 +55,7 @@ export function ProgramPlanEditor({
 				multiline
 				autoCapitalize="none"
 				autoCorrect={false}
-				placeholder={'## 2 x week\n6 x 2@80%\n6 x 3@80%\n\n6 x 2@80%\n6 x 4@80%'}
+				placeholder="Start typing your plan…"
 				placeholderTextColor={colors.textMuted}
 				textAlignVertical="top"
 				spellCheck={false}

@@ -63,23 +63,32 @@ not a real spec`;
 		expect(r.errors[0]).toMatch(/Week 1 line 2/);
 	});
 
-	it('gives a targeted hint for missing-reps like "1 x 105%"', () => {
+	it('accepts "1 x 105%" shorthand as "1 x 1 @105%"', () => {
 		const input = `## 2 x week
 6 x 2@80%
 1 x 105%`;
 		const r = parseProgramText(input);
-		expect(r.errors).toHaveLength(1);
-		expect(r.errors[0]).toMatch(/Missing reps/);
-		expect(r.errors[0]).toMatch(/1 x 1 @105%/);
+		expect(r.errors).toEqual([]);
+		expect(r.weeks[0].sessions[1].rawInput).toBe('1 x 1 @105%');
 	});
 
-	it('gives a targeted hint for missing "@" like "3 x 5 80%"', () => {
+	it('accepts "3 x 5 80%" shorthand as "3 x 5 @80%"', () => {
 		const input = `## 1 x week
 3 x 5 80%`;
 		const r = parseProgramText(input);
-		expect(r.errors).toHaveLength(1);
-		expect(r.errors[0]).toMatch(/Missing "@"/);
-		expect(r.errors[0]).toMatch(/3 x 5 @80%/);
+		expect(r.errors).toEqual([]);
+		expect(r.weeks[0].sessions[0].rawInput).toBe('3 x 5 @80%');
+	});
+
+	it('accepts kg and lbs shorthand', () => {
+		const input = `## 1 x week
+1 x 100kg
+
+1 x 220lbs`;
+		const r = parseProgramText(input);
+		expect(r.errors).toEqual([]);
+		expect(r.weeks[0].sessions[0].rawInput).toBe('1 x 1 @100kg');
+		expect(r.weeks[1].sessions[0].rawInput).toBe('1 x 1 @220lbs');
 	});
 
 	it('infers sessions_per_week from the most common block length when no header', () => {
@@ -194,5 +203,13 @@ describe('serializeProgramText', () => {
 
 	it('returns empty string for an empty program', () => {
 		expect(serializeProgramText([], 'Anything')).toBe('');
+	});
+
+	it('returns empty string when every session has no exercises (orphans)', () => {
+		const sessions = [
+			{ week_offset: 0, day_of_week: 1, exercises: [] },
+			{ week_offset: 0, day_of_week: 4, exercises: [] },
+		];
+		expect(serializeProgramText(sessions, 'Back squat')).toBe('');
 	});
 });

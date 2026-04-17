@@ -28,6 +28,7 @@ import {
 	deleteProgram,
 	updateProgram,
 	deleteAllProgramSessions,
+	deleteProgramSession,
 	upsertProgramSession,
 	upsertProgramExercise,
 } from '@evil-empire/peaktrack-services';
@@ -161,6 +162,10 @@ export default function ProgramDetail() {
 						notes: null,
 					});
 					if (eErr) {
+						// Roll back the just-created session so we don't leave
+						// an orphan row that would render as phantom content
+						// on next load.
+						await deleteProgramSession(createdSession.id);
 						setSaving(false);
 						Alert.alert('Could not save plan', eErr);
 						return;
