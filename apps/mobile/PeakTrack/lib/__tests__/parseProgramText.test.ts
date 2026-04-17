@@ -63,6 +63,25 @@ not a real spec`;
 		expect(r.errors[0]).toMatch(/Week 1 line 2/);
 	});
 
+	it('gives a targeted hint for missing-reps like "1 x 105%"', () => {
+		const input = `## 2 x week
+6 x 2@80%
+1 x 105%`;
+		const r = parseProgramText(input);
+		expect(r.errors).toHaveLength(1);
+		expect(r.errors[0]).toMatch(/Missing reps/);
+		expect(r.errors[0]).toMatch(/1 x 1 @105%/);
+	});
+
+	it('gives a targeted hint for missing "@" like "3 x 5 80%"', () => {
+		const input = `## 1 x week
+3 x 5 80%`;
+		const r = parseProgramText(input);
+		expect(r.errors).toHaveLength(1);
+		expect(r.errors[0]).toMatch(/Missing "@"/);
+		expect(r.errors[0]).toMatch(/3 x 5 @80%/);
+	});
+
 	it('infers sessions_per_week from the most common block length when no header', () => {
 		const input = `6 x 2@80%
 6 x 3@80%

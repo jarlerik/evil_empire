@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Platform, Pressable } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/common';
 import { Button } from './Button';
 import { parseProgramText } from '../lib/parseProgramText';
@@ -29,9 +31,21 @@ export function ProgramPlanEditor({
 
 	return (
 		<View style={styles.container}>
-			<Text style={styles.label}>Plan</Text>
+			<View style={styles.labelRow}>
+				<Text style={styles.label}>Plan</Text>
+				<Pressable
+					onPress={() => router.push('/exercise-input-help')}
+					hitSlop={8}
+					style={styles.helpLink}
+					accessibilityRole="link"
+					accessibilityLabel="See syntax examples"
+				>
+					<Ionicons name="help-circle-outline" size={14} color={colors.primary} />
+					<Text style={styles.helpLinkText}>Syntax help</Text>
+				</Pressable>
+			</View>
 			<Text style={styles.hint}>
-				{'First line: "## N x week" (optional).\nBlocks separated by blank lines are weeks.\nEach line in a block is one session.'}
+				{'Each line is a session, e.g. "6 x 2@80%" (sets × reps @weight).\nBlank line separates weeks. First line may be "## N x week".'}
 			</Text>
 
 			<TextInput
@@ -83,11 +97,27 @@ const styles = StyleSheet.create({
 	container: {
 		marginTop: 12,
 	},
+	labelRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 4,
+	},
 	label: {
 		color: colors.text,
 		fontSize: 14,
 		fontWeight: '600',
-		marginBottom: 4,
+	},
+	helpLink: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 3,
+		paddingVertical: 4,
+		paddingHorizontal: 6,
+	},
+	helpLinkText: {
+		color: colors.primary,
+		fontSize: 12,
 	},
 	hint: {
 		color: colors.textMuted,

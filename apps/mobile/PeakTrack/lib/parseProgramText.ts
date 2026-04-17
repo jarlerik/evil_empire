@@ -27,6 +27,34 @@ const SESSIONS_PER_WEEK_HEADER = /^##\s*(\d+)\s*x\s*week\s*$/i;
 const NAME_PREFIX = /^([^:]{1,60}):\s*(.+)$/;
 
 /**
+ * Sniff common "almost right" syntax mistakes and return a targeted hint.
+ * Falls back to the parser's own error message when no pattern matches.
+ *
+ * Upstream parseSetInput emits a generic "Invalid wave format" for inputs
+ * like `1 x 105%` because that falls into its wave-fallback regex. For the
+ * program editor context we can do better: readers of this editor are
+ * writing specs meant for the standard parser, not waves.
+ */
+function explainSpecError(spec: string, parserMessage: string): string {
+	const trimmed = spec.trim();
+	// "N x P%" or "N x Pkg" — missing reps and/or @
+	// e.g. "1 x 105%" → "1 x 1 @105%"
+	const missingReps = /^(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*(kg|lbs|%|rir)\s*$/i.exec(trimmed);
+	if (missingReps) {
+		const [, sets, weight, unit] = missingReps;
+		return `Missing reps. Did you mean "${sets} x 1 @${weight}${unit}"? Format is sets × reps @weight.`;
+	}
+	// "N x R P%" — missing @ before weight
+	// e.g. "3 x 5 80%"
+	const missingAt = /^(\d+)\s*x\s*(\d+)\s+(\d+(?:\.\d+)?)\s*(kg|lbs|%)\s*$/i.exec(trimmed);
+	if (missingAt) {
+		const [, sets, reps, weight, unit] = missingAt;
+		return `Missing "@". Did you mean "${sets} x ${reps} @${weight}${unit}"?`;
+	}
+	return parserMessage;
+}
+
+/**
  * Parse a free-form program plan.
  *
  * Grammar:
@@ -110,9 +138,8 @@ export function parseProgramText(text: string): ParsedPlan {
 			}
 			const parsed = parseSetInput(spec);
 			if (!parsed.isValid) {
-				errors.push(
-					`Week ${weekIdx + 1} line ${lineIdx + 1}: ${parsed.errorMessage ?? 'could not parse'} (${spec})`,
-				);
+				const hint = explainSpecError(spec, parsed.errorMessage ?? 'could not parse');
+				errors.push(`Week ${weekIdx + 1} line ${lineIdx + 1}: ${hint} (${spec})`);
 				continue;
 			}
 			sessions.push({ rawInput: spec, ...(name && { name }) });
