@@ -32,7 +32,7 @@ export function ProgramSessionCard({ item, unit = 'kg' }: ProgramSessionCardProp
 		}
 	}
 
-	const sessionLabel = `${item.session.name ?? item.program.name} · Week ${item.session.week_offset + 1}`;
+	const sessionLabel = `${item.session.name ?? item.program.name} - W${item.session.week_offset + 1} D${item.session.day_of_week}`;
 
 	const handleStart = async () => {
 		if (missingNames.length > 0) {

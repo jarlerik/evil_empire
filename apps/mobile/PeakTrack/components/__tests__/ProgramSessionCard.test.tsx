@@ -65,7 +65,7 @@ describe('ProgramSessionCard', () => {
 	it('renders session title with program name and week number', () => {
 		const item = makeItem();
 		const { getByText } = render(<ProgramSessionCard item={item} />);
-		expect(getByText('Russian squat · Week 3')).toBeTruthy();
+		expect(getByText('Russian squat - W3 D1')).toBeTruthy();
 	});
 
 	it('renders resolved weights when snapshots are present', () => {
@@ -94,6 +94,6 @@ describe('ProgramSessionCard', () => {
 			},
 		});
 		const { getByText } = render(<ProgramSessionCard item={item} />);
-		expect(getByText('Heavy squats · Week 3')).toBeTruthy();
+		expect(getByText('Heavy squats - W3 D1')).toBeTruthy();
 	});
 });
