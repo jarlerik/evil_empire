@@ -33,10 +33,23 @@ config.resolver.extraNodeModules = {
   'react-dom': path.resolve(projectRoot, 'node_modules/react-dom'),
 };
 
+// Workspace packages that live outside packages/*. Maps bare import
+// specifier → source folder (the folder must contain an index.ts).
+const WORKSPACE_OVERRIDES = {
+  '@evil-empire/ui': path.resolve(workspaceRoot, 'apps/evil_ui/src'),
+};
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Handle workspace packages
   if (moduleName.startsWith('@evil-empire/')) {
+    const overridePath = WORKSPACE_OVERRIDES[moduleName];
+    if (overridePath) {
+      return {
+        filePath: path.resolve(overridePath, 'index.ts'),
+        type: 'sourceFile',
+      };
+    }
     const packageName = moduleName.replace('@evil-empire/', '');
     const packagePath = path.resolve(workspaceRoot, 'packages', packageName, 'src');
     return {

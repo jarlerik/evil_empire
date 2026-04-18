@@ -31,19 +31,19 @@ describe('NavigationBar', () => {
 		await waitFor(() => {
 			expect(getByText('Home')).toBeTruthy();
 			expect(getByText('History')).toBeTruthy();
-			expect(getByText('Settings')).toBeTruthy();
+			expect(getByText('Programs')).toBeTruthy();
 		});
 	});
 
-	it('should navigate to settings when pressed', async () => {
+	it('should navigate to programs when pressed', async () => {
 		const { getByText } = render(<NavigationBar />, { wrapper });
 
 		await waitFor(() => {
-			expect(getByText('Settings')).toBeTruthy();
+			expect(getByText('Programs')).toBeTruthy();
 		});
 
-		fireEvent.press(getByText('Settings'));
+		fireEvent.press(getByText('Programs'));
 
-		expect(pushMock).toHaveBeenCalledWith('/settings');
+		expect(pushMock).toHaveBeenCalledWith('/programs');
 	});
 });
