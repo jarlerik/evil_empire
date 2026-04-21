@@ -1,9 +1,15 @@
 import { format } from 'date-fns';
-import { Workout } from '@evil-empire/types';
+import { Workout, Exercise } from '@evil-empire/types';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 import { createExercise, fetchExercisesByWorkoutId } from './exerciseService';
 import { fetchPhasesByExerciseIds, insertPhase, PhaseInsertData } from './exercisePhaseService';
+
+export interface WorkoutWithNested extends Workout {
+	exercises: Array<Exercise & { exercise_phases: ExercisePhase[] }>;
+	workout_execution_logs: Array<{ id: string }>;
+}
 
 export async function fetchWorkoutsByUserId(
 	userId: string,
@@ -49,6 +55,46 @@ export async function fetchWorkoutsByUserIdAndDateRange(
 	}
 
 	return { data, error: null };
+}
+
+/**
+ * Fetch workouts + nested exercises + nested exercise_phases for a user/date
+ * range in a single round-trip using a PostgREST embedded select. Collapses
+ * what used to be three serial waves of queries into one.
+ *
+ * RLS: each nested level re-evaluates its own policy, so the nested shape is
+ * equivalent to three separate queries from a security perspective — only
+ * rows the user can read will be returned.
+ */
+export async function fetchWorkoutsWithNestedForDateRange(
+	userId: string,
+	startDate: string, // yyyy-MM-dd
+	endDate: string,   // yyyy-MM-dd inclusive
+): Promise<ServiceResult<WorkoutWithNested[]>> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('workouts')
+		.select(`
+			*,
+			exercises (
+				*,
+				exercise_phases (*)
+			),
+			workout_execution_logs ( id )
+		`)
+		.eq('user_id', userId)
+		.gte('workout_date', startDate)
+		.lte('workout_date', endDate)
+		.order('created_at', { ascending: false })
+		.order('created_at', { ascending: true, referencedTable: 'exercises' })
+		.order('created_at', { ascending: true, referencedTable: 'exercises.exercise_phases' });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data: (data ?? []) as WorkoutWithNested[], error: null };
 }
 
 export async function createWorkout(

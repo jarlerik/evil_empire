@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserIdAndDateRange, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutIds, createExercise, fetchPhasesByExerciseIds, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
+import { fetchWorkoutsWithNestedForDateRange, createWorkout, deleteWorkout, updateWorkoutDate, createExercise } from '@evil-empire/peaktrack-services';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -93,59 +93,49 @@ export default function Index() {
 			const rangeStartStr = format(selectedWeekStart, 'yyyy-MM-dd');
 			const rangeEndStr = format(rangeEnd, 'yyyy-MM-dd');
 
-			// Wave 1: workouts fetch runs in parallel with program sessions fetch
-			// (programs don't depend on the user's workouts). Workouts are
-			// scoped to the visible week — the WeekDaySelector only renders
-			// those 7 days and dayStatuses is derived from the same set.
-			const tWave1 = performance.now();
+			// Single parallel fetch: workouts+exercises+phases+execution_logs
+			// via nested select, in parallel with program sessions. Replaces
+			// the three sequential waves with one round-trip wall-clock (plus
+			// the programs-sessions chain internally).
+			const tFetch = performance.now();
 			const [workoutsRes, sessionsRes] = await Promise.all([
-				fetchWorkoutsByUserIdAndDateRange(user.id, rangeStartStr, rangeEndStr),
+				fetchWorkoutsWithNestedForDateRange(user.id, rangeStartStr, rangeEndStr),
 				fetchSessionsForRange(selectedWeekStart, rangeEnd),
 			]);
-			if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}
+			if (__DEV__) {console.log(`[loadData] workouts+nested / sessions: ${(performance.now() - tFetch).toFixed(1)}ms`);}
 
 			setProgramSessions(sessionsRes);
 
 			if (!workoutsRes.error && workoutsRes.data) {
 				const workoutsData = workoutsRes.data;
-				setWorkouts(workoutsData);
 
-				const workoutIds = workoutsData.map(w => w.id);
-
-				// Wave 2: exercises and completion logs both keyed by workout ids.
-				const tWave2 = performance.now();
-				const [exercisesRes, completedRes] = await Promise.all([
-					fetchExercisesByWorkoutIds(workoutIds),
-					fetchCompletedWorkoutIds(workoutIds),
-				]);
-				if (__DEV__) {console.log(`[loadData] wave 2 (exercises + completed): ${(performance.now() - tWave2).toFixed(1)}ms`);}
-
-				const allExercises = exercisesRes.data ?? [];
+				// Unpack the nested shape into the flat state the UI expects.
+				const flatWorkouts: Workout[] = [];
 				const exercisesMap: Record<string, Exercise[]> = {};
-				for (const ex of allExercises) {
-					const list = exercisesMap[ex.workout_id] ?? [];
-					list.push(ex);
-					exercisesMap[ex.workout_id] = list;
-				}
-				setExercises(exercisesMap);
-
-				if (completedRes.data) {
-					setCompletedWorkoutIds(new Set(completedRes.data));
-				}
-
-				// Wave 3: phases keyed by exercise ids.
-				const tWave3 = performance.now();
-				const exerciseIds = allExercises.map(e => e.id);
-				const phasesRes = await fetchPhasesByExerciseIds(exerciseIds);
-				if (__DEV__) {console.log(`[loadData] wave 3 (phases): ${(performance.now() - tWave3).toFixed(1)}ms (${phasesRes.data?.length ?? 0} rows)`);}
-
 				const phasesMap: Record<string, ExercisePhase[]> = {};
-				for (const phase of phasesRes.data ?? []) {
-					const list = phasesMap[phase.exercise_id] ?? [];
-					list.push(phase);
-					phasesMap[phase.exercise_id] = list;
+				const completedIds = new Set<string>();
+
+				for (const w of workoutsData) {
+					const { exercises: nestedExercises, workout_execution_logs: logs, ...workout } = w;
+					flatWorkouts.push(workout);
+					if (logs && logs.length > 0) {
+						completedIds.add(workout.id);
+					}
+					const exerciseList: Exercise[] = [];
+					for (const ex of nestedExercises ?? []) {
+						const { exercise_phases: nestedPhases, ...exercise } = ex;
+						exerciseList.push(exercise);
+						if (nestedPhases && nestedPhases.length > 0) {
+							phasesMap[exercise.id] = nestedPhases;
+						}
+					}
+					exercisesMap[workout.id] = exerciseList;
 				}
+
+				setWorkouts(flatWorkouts);
+				setExercises(exercisesMap);
 				setExercisePhases(phasesMap);
+				setCompletedWorkoutIds(completedIds);
 			}
 
 			if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
