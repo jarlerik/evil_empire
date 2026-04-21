@@ -9,16 +9,19 @@ import {
 	resolveWeightsFromSnapshot,
 	findProgramRm,
 } from '../lib/resolveProgramWeights';
-import { buildPhaseData } from '../lib/buildPhaseData';
+import { prepareMaterializeInputs, sessionLabel as buildSessionLabel } from '../lib/prepareMaterializeInputs';
 import { colors } from '../styles/common';
 import { usePrograms } from '../contexts/ProgramsContext';
 
 interface ProgramSessionCardProps {
 	item: ProgramSessionForDate;
 	unit?: 'kg' | 'lbs';
+	isMissed?: boolean;
+	isMoveActive?: boolean;
+	onMoveRequest?: () => void;
 }
 
-export function ProgramSessionCard({ item, unit = 'kg' }: ProgramSessionCardProps) {
+export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMoveActive = false, onMoveRequest }: ProgramSessionCardProps) {
 	const { materializeSession } = usePrograms();
 	const [starting, setStarting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -32,67 +35,23 @@ export function ProgramSessionCard({ item, unit = 'kg' }: ProgramSessionCardProp
 		}
 	}
 
-	const sessionLabel = `${item.session.name ?? item.program.name} - W${item.session.week_offset + 1} D${item.session.day_of_week}`;
+	const sessionLabel = buildSessionLabel(item);
 
 	const handleStart = async () => {
-		if (missingNames.length > 0) {
-			setError(
-				`Missing 1RM snapshot for: ${missingNames.join(', ')}. Open the program to resolve.`,
-			);
-			return;
-		}
-		setStarting(true);
 		setError(null);
-
-		const materializeExercises = [];
-		try {
-			for (let i = 0; i < item.exercises.length; i++) {
-				const ex = item.exercises[i];
-				const parsed = parseSetInput(ex.raw_input);
-				if (!parsed.isValid) {
-					throw new Error(`Cannot parse "${ex.raw_input}" for ${ex.name}`);
-				}
-
-				let calculatedWeight = parsed.weight;
-				let weightRange: { min: number; max: number } | undefined;
-
-				if (exerciseNeedsRmSnapshot(parsed)) {
-					const resolved = resolveWeightsFromSnapshot(ex.name, parsed, item.rms);
-					calculatedWeight = resolved.weight;
-					if (resolved.weightMin !== undefined && resolved.weightMax !== undefined) {
-						weightRange = { min: resolved.weightMin, max: resolved.weightMax };
-					}
-					// Weights array override (for per-set percentages)
-					if (resolved.weights) {
-						parsed.weights = resolved.weights;
-					}
-				} else if (parsed.weightMin !== undefined && parsed.weightMax !== undefined) {
-					weightRange = { min: parsed.weightMin, max: parsed.weightMax };
-					calculatedWeight = parsed.weightMin;
-				}
-
-				const phase = buildPhaseData('', parsed, calculatedWeight, weightRange, false);
-				// Strip the empty exercise_id — the RPC fills it after inserting
-				const { exercise_id: _exerciseId, ...phaseWithoutId } = phase;
-				materializeExercises.push({
-					name: ex.name,
-					order_index: i,
-					phase: phaseWithoutId,
-				});
-			}
-		} catch (e) {
-			setError(e instanceof Error ? e.message : 'Failed to prepare exercises');
-			setStarting(false);
+		const prep = prepareMaterializeInputs(item);
+		if (!prep.ok) {
+			setError(prep.error);
 			return;
 		}
 
+		setStarting(true);
 		const { workout_id, error: rpcError } = await materializeSession({
 			session_id: item.session.id,
 			target_date: item.date,
 			name: sessionLabel,
-			exercises: materializeExercises,
+			exercises: prep.exercises,
 		});
-
 		setStarting(false);
 
 		if (rpcError || !workout_id) {
@@ -116,6 +75,20 @@ export function ProgramSessionCard({ item, unit = 'kg' }: ProgramSessionCardProp
 				<View style={styles.headerBody}>
 					<Text style={styles.title}>{sessionLabel}</Text>
 				</View>
+				{isMissed && onMoveRequest && (
+					<Pressable
+						onPress={onMoveRequest}
+						style={styles.moveBtn}
+						accessibilityRole="button"
+						accessibilityLabel={isMoveActive ? 'Cancel move' : 'Move to another day'}
+					>
+						<Ionicons
+							name="arrow-forward-outline"
+							size={22}
+							color={isMoveActive ? colors.primary : '#fff'}
+						/>
+					</Pressable>
+				)}
 				<Pressable
 					onPress={handleStart}
 					disabled={starting || missingNames.length > 0}
@@ -196,6 +169,13 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		fontSize: 15,
 		fontWeight: '600',
+	},
+	moveBtn: {
+		width: 40,
+		height: 40,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: 4,
 	},
 	startBtn: {
 		width: 40,

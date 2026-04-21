@@ -7,11 +7,12 @@ interface WeekDaySelectorProps {
 	selectedDate: Date;
 	onSelectDate: (date: Date) => void;
 	dayStatuses?: Record<string, 'completed' | 'missed' | 'planned'>;
+	isMoveMode?: boolean;
 }
 
-export function WeekDaySelector({ weekStart, selectedDate, onSelectDate, dayStatuses }: WeekDaySelectorProps) {
+export function WeekDaySelector({ weekStart, selectedDate, onSelectDate, dayStatuses, isMoveMode }: WeekDaySelectorProps) {
 	return (
-		<View style={styles.daySelector}>
+		<View style={[styles.daySelector, isMoveMode && styles.daySelectorMoveMode]}>
 			{Array.from({ length: 7 }).map((_, i) => {
 				const day = addDays(weekStart, i);
 				const dayKey = format(day, 'yyyy-MM-dd');
@@ -64,6 +65,13 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		marginBottom: 24,
+	},
+	daySelectorMoveMode: {
+		borderWidth: 1,
+		borderColor: '#C87E25',
+		borderRadius: 12,
+		paddingHorizontal: 4,
+		paddingVertical: 8,
 	},
 	dayPressable: {
 		alignItems: 'center',
