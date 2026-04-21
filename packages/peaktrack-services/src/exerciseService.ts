@@ -79,6 +79,10 @@ export async function fetchExercisesByWorkoutIds(
 ): Promise<ServiceResult<Exercise[]>> {
 	const supabase = getSupabaseClient();
 
+	if (workoutIds.length === 0) {
+		return { data: [], error: null };
+	}
+
 	const { data, error } = await supabase
 		.from('exercises')
 		.select('*')

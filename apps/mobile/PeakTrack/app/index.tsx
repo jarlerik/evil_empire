@@ -1,9 +1,9 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutId, createExercise, fetchPhasesByExerciseId, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
+import { fetchWorkoutsWithNestedForDateRange, createWorkout, deleteWorkout, updateWorkoutDate, createExercise } from '@evil-empire/peaktrack-services';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,6 +20,11 @@ import { useCoachMark } from '../hooks/useCoachMark';
 import { ProgramSessionCard } from '../components/ProgramSessionCard';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { ProgramSessionForDate } from '@evil-empire/types';
+import { prepareMaterializeInputs, sessionLabel } from '../lib/prepareMaterializeInputs';
+
+type PendingMove =
+	| { kind: 'workout'; id: string }
+	| { kind: 'session'; id: string };
 
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
@@ -43,7 +48,8 @@ export default function Index() {
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 	const [programSessions, setProgramSessions] = useState<ProgramSessionForDate[]>([]);
-	const { fetchSessionsForRange } = usePrograms();
+	const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+	const { fetchSessionsForRange, materializeSession } = usePrograms();
 
 	const weekDayCoach = useCoachMark('week-day-selector');
 	const addExerciseCoach = useCoachMark('add-exercise-area');
@@ -56,67 +62,100 @@ export default function Index() {
 		const nextStart = addDays(selectedWeekStart, 7);
 		setSelectedWeekStart(nextStart);
 		setSelectedDate(nextStart);
+		setPendingMove(null);
 	};
 
 	const prevWeek = () => {
 		const prevStart = subDays(selectedWeekStart, 7);
 		setSelectedWeekStart(prevStart);
 		setSelectedDate(prevStart);
+		setPendingMove(null);
 	};
 
-	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
-		const phasesMap: Record<string, ExercisePhase[]> = {};
-		for (const exercise of exerciseList) {
-			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
-			if (!error && data) {
-				phasesMap[exercise.id] = data;
-			}
+	// Dedupe concurrent loadData calls. useFocusEffect can fire twice on mount
+	// (React Navigation quirk) and the app also triggers loadData from a few
+	// user-interaction paths — none of them want to run in parallel with an
+	// already-in-flight load.
+	const loadingPromiseRef = useRef<Promise<void> | null>(null);
+
+	const loadData = useCallback(async (opts?: { showLoader?: boolean }): Promise<void> => {
+		if (loadingPromiseRef.current) {
+			return loadingPromiseRef.current;
 		}
-		return phasesMap;
-	};
+		if (!user) {return;}
+
+		const run = async (): Promise<void> => {
+			const showLoader = opts?.showLoader ?? true;
+			if (showLoader) {setIsFetchingWorkouts(true);}
+
+			const t0 = performance.now();
+			const rangeEnd = addDays(selectedWeekStart, 6);
+			const rangeStartStr = format(selectedWeekStart, 'yyyy-MM-dd');
+			const rangeEndStr = format(rangeEnd, 'yyyy-MM-dd');
+
+			// Single parallel fetch: workouts+exercises+phases+execution_logs
+			// via nested select, in parallel with program sessions. Replaces
+			// the three sequential waves with one round-trip wall-clock (plus
+			// the programs-sessions chain internally).
+			const tFetch = performance.now();
+			const [workoutsRes, sessionsRes] = await Promise.all([
+				fetchWorkoutsWithNestedForDateRange(user.id, rangeStartStr, rangeEndStr),
+				fetchSessionsForRange(selectedWeekStart, rangeEnd),
+			]);
+			if (__DEV__) {console.log(`[loadData] workouts+nested / sessions: ${(performance.now() - tFetch).toFixed(1)}ms`);}
+
+			setProgramSessions(sessionsRes);
+
+			if (!workoutsRes.error && workoutsRes.data) {
+				const workoutsData = workoutsRes.data;
+
+				// Unpack the nested shape into the flat state the UI expects.
+				const flatWorkouts: Workout[] = [];
+				const exercisesMap: Record<string, Exercise[]> = {};
+				const phasesMap: Record<string, ExercisePhase[]> = {};
+				const completedIds = new Set<string>();
+
+				for (const w of workoutsData) {
+					const { exercises: nestedExercises, workout_execution_logs: logs, ...workout } = w;
+					flatWorkouts.push(workout);
+					if (logs && logs.length > 0) {
+						completedIds.add(workout.id);
+					}
+					const exerciseList: Exercise[] = [];
+					for (const ex of nestedExercises ?? []) {
+						const { exercise_phases: nestedPhases, ...exercise } = ex;
+						exerciseList.push(exercise);
+						if (nestedPhases && nestedPhases.length > 0) {
+							phasesMap[exercise.id] = nestedPhases;
+						}
+					}
+					exercisesMap[workout.id] = exerciseList;
+				}
+
+				setWorkouts(flatWorkouts);
+				setExercises(exercisesMap);
+				setExercisePhases(phasesMap);
+				setCompletedWorkoutIds(completedIds);
+			}
+
+			if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
+
+			if (showLoader) {setIsFetchingWorkouts(false);}
+		};
+
+		const p = run();
+		loadingPromiseRef.current = p;
+		try {
+			await p;
+		} finally {
+			loadingPromiseRef.current = null;
+		}
+	}, [user, selectedWeekStart, fetchSessionsForRange]);
 
 	useFocusEffect(
 		useCallback(() => {
-			if (!user) {return;}
-			const fetchWorkouts = async () => {
-				setIsFetchingWorkouts(true);
-				const { data, error } = await fetchWorkoutsByUserId(user.id);
-				if (!error && data) {
-					setWorkouts(data);
-
-					// Fetch exercises and phases for all workouts
-					const exercisesMap: Record<string, Exercise[]> = {};
-					const allPhasesMap: Record<string, ExercisePhase[]> = {};
-
-					for (const workout of data) {
-						const { data: exData, error: exError } = await fetchExercisesByWorkoutId(workout.id);
-						if (!exError && exData) {
-							exercisesMap[workout.id] = exData;
-							const phases = await fetchExercisePhasesForList(exData);
-							Object.assign(allPhasesMap, phases);
-						}
-					}
-
-					setExercises(exercisesMap);
-					setExercisePhases(allPhasesMap);
-
-					const ids = data.map((w) => w.id);
-					const { data: completed } = await fetchCompletedWorkoutIds(ids);
-					if (completed) {
-						setCompletedWorkoutIds(new Set(completed));
-					}
-				}
-
-				// Fetch program sessions for the visible week
-				const rangeEnd = addDays(selectedWeekStart, 6);
-				const psessions = await fetchSessionsForRange(selectedWeekStart, rangeEnd);
-				setProgramSessions(psessions);
-
-				setIsFetchingWorkouts(false);
-			};
-			fetchWorkouts();
-
-		}, [user, selectedWeekStart, fetchSessionsForRange]),
+			loadData();
+		}, [loadData]),
 	);
 
 	const filteredWorkouts = workouts.filter(w => w.workout_date === format(selectedDate, 'yyyy-MM-dd'));
@@ -210,15 +249,67 @@ export default function Index() {
 		);
 	};
 
-	const handleMoveToToday = async (workoutId: string) => {
-		const todayStr = format(new Date(), 'yyyy-MM-dd');
-		const { error } = await updateWorkoutDate(workoutId, todayStr);
+	const handleMoveWorkout = async (workoutId: string, targetDate: Date) => {
+		const dateStr = format(targetDate, 'yyyy-MM-dd');
+		const { error } = await updateWorkoutDate(workoutId, dateStr);
 		if (!error) {
-			setWorkouts(prev => prev.map(w => w.id === workoutId ? { ...w, workout_date: todayStr } : w));
-			setSelectedDate(new Date());
-			setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+			setWorkouts(prev => prev.map(w => w.id === workoutId ? { ...w, workout_date: dateStr } : w));
+			setSelectedDate(targetDate);
+			setSelectedWeekStart(startOfWeek(targetDate, { weekStartsOn: 1 }));
+			setPendingMove(null);
 		}
 	};
+
+	const handleMoveSession = async (sessionId: string, targetDate: Date) => {
+		const ps = programSessions.find(p => p.session.id === sessionId);
+		if (!ps) {return;}
+		const prep = prepareMaterializeInputs(ps);
+		if (!prep.ok) {
+			setErrorState(prep.error);
+			return;
+		}
+		const dateStr = format(targetDate, 'yyyy-MM-dd');
+		const { workout_id, error } = await materializeSession({
+			session_id: sessionId,
+			target_date: dateStr,
+			name: sessionLabel(ps),
+			exercises: prep.exercises,
+		});
+		if (error || !workout_id) {
+			setErrorState(error ?? 'Could not move session.');
+			return;
+		}
+		setSelectedDate(targetDate);
+		setSelectedWeekStart(startOfWeek(targetDate, { weekStartsOn: 1 }));
+		setPendingMove(null);
+		setErrorState(null);
+		await loadData({ showLoader: false });
+	};
+
+	const handleDaySelect = (date: Date) => {
+		if (!pendingMove) {
+			setSelectedDate(date);
+			return;
+		}
+		if (pendingMove.kind === 'workout') {
+			handleMoveWorkout(pendingMove.id, date);
+		} else {
+			handleMoveSession(pendingMove.id, date);
+		}
+	};
+
+	useEffect(() => {
+		if (!pendingMove) {return;}
+		if (pendingMove.kind === 'workout') {
+			const stillPresent = workouts.some(w => w.id === pendingMove.id);
+			if (!stillPresent) {setPendingMove(null);}
+		} else {
+			const stillPresent = programSessions.some(
+				ps => ps.session.id === pendingMove.id && !ps.materializedWorkoutId,
+			);
+			if (!stillPresent) {setPendingMove(null);}
+		}
+	}, [workouts, programSessions, pendingMove]);
 
 	if (authLoading || settingsLoading) {
 		return <LoadScreen />;
@@ -255,10 +346,16 @@ export default function Index() {
 			}
 		}
 	}
-	// Virtual program sessions count as 'planned' on their dates (unless
-	// a completed workout already wins).
+	// Virtual program sessions: past = missed (user never materialized them),
+	// future/today = planned. Materialized sessions are reflected via the
+	// workouts loop above.
 	for (const ps of programSessions) {
-		if (!dayStatuses[ps.date] && !ps.materializedWorkoutId) {
+		if (ps.materializedWorkoutId) {continue;}
+		if (dayStatuses[ps.date] === 'completed') {continue;}
+		const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
+		if (isBefore(psDay, today)) {
+			dayStatuses[ps.date] = 'missed';
+		} else if (!dayStatuses[ps.date]) {
 			dayStatuses[ps.date] = 'planned';
 		}
 	}
@@ -309,12 +406,36 @@ export default function Index() {
 								</View>
 							</View>
 
+							{pendingMove && (
+								<View style={styles.moveBanner}>
+									<Text style={styles.moveBannerText} numberOfLines={1}>
+										Tap a day to move &ldquo;{
+											pendingMove.kind === 'workout'
+												? (workouts.find(w => w.id === pendingMove.id)?.name ?? 'workout')
+												: (() => {
+													const ps = programSessions.find(p => p.session.id === pendingMove.id);
+													return ps ? sessionLabel(ps) : 'session';
+												})()
+										}&rdquo;
+									</Text>
+									<Pressable
+										onPress={() => setPendingMove(null)}
+										style={styles.moveBannerCancel}
+										accessibilityRole="button"
+										accessibilityLabel="Cancel move"
+									>
+										<Text style={styles.moveBannerCancelText}>Cancel</Text>
+									</Pressable>
+								</View>
+							)}
+
 							<View ref={weekDayCoach.ref} onLayout={weekDayCoach.onLayout}>
 								<WeekDaySelector
 									weekStart={selectedWeekStart}
 									selectedDate={selectedDate}
-									onSelectDate={setSelectedDate}
+									onSelectDate={handleDaySelect}
 									dayStatuses={dayStatuses}
+									isMoveMode={pendingMove !== null}
 								/>
 							</View>
 
@@ -355,10 +476,20 @@ export default function Index() {
 														)}
 														{workoutMissed && (
 															<Pressable
-																onPress={() => handleMoveToToday(workout.id)}
+																onPress={() =>
+																	setPendingMove(prev =>
+																		prev?.kind === 'workout' && prev.id === workout.id
+																			? null
+																			: { kind: 'workout', id: workout.id },
+																	)
+																}
 																style={styles.iconButton}
 															>
-																<Ionicons name="arrow-forward-outline" size={22} color="#fff" />
+																<Ionicons
+																	name="arrow-forward-outline"
+																	size={22}
+																	color={pendingMove?.kind === 'workout' && pendingMove.id === workout.id ? '#C87E25' : '#fff'}
+																/>
 															</Pressable>
 														)}
 													</View>
@@ -382,9 +513,27 @@ export default function Index() {
 									})
 								)}
 
-								{virtualSessionsForDate.map(ps => (
-									<ProgramSessionCard key={ps.session.id} item={ps} unit={weightUnit} />
-								))}
+								{virtualSessionsForDate.map(ps => {
+									const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
+									const psIsMissed = isBefore(psDay, today);
+									const psMoveActive = pendingMove?.kind === 'session' && pendingMove.id === ps.session.id;
+									return (
+										<ProgramSessionCard
+											key={ps.session.id}
+											item={ps}
+											unit={weightUnit}
+											isMissed={psIsMissed}
+											isMoveActive={psMoveActive}
+											onMoveRequest={() =>
+												setPendingMove(prev =>
+													prev?.kind === 'session' && prev.id === ps.session.id
+														? null
+														: { kind: 'session', id: ps.session.id },
+												)
+											}
+										/>
+									);
+								})}
 
 								{sortedWorkouts.length > 0 && activeWorkoutHasExercises && (
 									<Pressable onPress={handleAddAnotherWorkout} style={styles.addWorkoutButton}>
@@ -583,6 +732,32 @@ const styles = StyleSheet.create({
 	},
 	pasteWorkoutLinkText: {
 		color: '#C87E25',
+		fontSize: 14,
+		fontWeight: '500',
+	},
+	moveBanner: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		backgroundColor: '#262626',
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		marginBottom: 12,
+	},
+	moveBannerText: {
+		color: '#C87E25',
+		fontSize: 14,
+		fontWeight: '500',
+		flex: 1,
+		marginRight: 12,
+	},
+	moveBannerCancel: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+	},
+	moveBannerCancelText: {
+		color: '#fff',
 		fontSize: 14,
 		fontWeight: '500',
 	},

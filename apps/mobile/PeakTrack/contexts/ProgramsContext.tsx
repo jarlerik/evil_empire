@@ -74,6 +74,13 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 			if (cached) {
 				return cached;
 			}
+			// The service fetches active programs itself. An earlier version
+			// passed the context's `programs` state to skip that query, but
+			// there is a React effect-ordering window during sign-in where
+			// `programs` is transiently [] and `loading` is false, which made
+			// the service treat "no active programs" as fact and cached an
+			// empty result for the date range. Paying one extra ~220ms
+			// round-trip is cheaper than re-introducing that bug.
 			const { data, error } = await fetchProgramSessionsForDateRange(
 				user.id,
 				startDate,
