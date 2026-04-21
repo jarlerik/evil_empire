@@ -74,8 +74,11 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 			if (cached) {
 				return cached;
 			}
-			// Pass the already-loaded programs in so the service skips its own
-			// programs query (saves one round-trip on the home page critical path).
+			// Only pass preloaded programs once the initial context load has
+			// finished. During the loading window `programs` is still an empty
+			// array — passing it would make the service treat "no active
+			// programs" as fact and cache an empty result for the date range.
+			const preloaded = loading ? undefined : programs;
 			const { data, error } = await fetchProgramSessionsForDateRange(
 				user.id,
 				startDate,
@@ -84,7 +87,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 					resolveSessionsInRange,
 					formatDate: d => format(d, 'yyyy-MM-dd'),
 				},
-				programs,
+				preloaded,
 			);
 			if (error || !data) {
 				return [];
@@ -92,7 +95,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 			sessionCacheRef.current.set(key, data);
 			return data;
 		},
-		[user, programs],
+		[user, programs, loading],
 	);
 
 	const materializeSession = useCallback(
