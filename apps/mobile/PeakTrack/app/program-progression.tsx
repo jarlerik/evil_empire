@@ -24,9 +24,9 @@ const MIN_SESSION_WIDTH = 44;
 const COLUMN_GAP = 8;
 const TILE_SIZE = 12;
 const TILE_GAP = 2;
-const TREND_HEIGHT = 56;
-const TREND_TOP_PADDING = 8;
-const TREND_BOTTOM_PADDING = 8;
+const TREND_HEIGHT = 140;
+const TREND_TOP_PADDING = 12;
+const TREND_BOTTOM_PADDING = 12;
 const SET_COLUMN_GAP = 2;
 
 const NEUTRAL = '#2a2a2a';

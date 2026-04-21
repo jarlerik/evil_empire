@@ -134,6 +134,16 @@ function normalizeFromParsed(
 		};
 	}
 
+	if (isWaveWeights(resolvedWeights) && !compound) {
+		const reps = parsed.reps > 0 ? parsed.reps : 0;
+		return {
+			setCount: resolvedWeights.length,
+			repsPerSet: new Array(resolvedWeights.length).fill(reps),
+			weightPerSet: resolvedWeights,
+			isWave: true,
+		};
+	}
+
 	if (compound && compound.length > 0 && !isWaveWeights(resolvedWeights)) {
 		const repsTotal = sum(compound);
 		const sets = parsed.sets > 0 ? parsed.sets : 1;
@@ -168,6 +178,16 @@ export function normalizePerformed(performed: PerformedShape): NormalizedSpec | 
 		return {
 			setCount: compound.length,
 			repsPerSet: compound,
+			weightPerSet: weights,
+			isWave: true,
+		};
+	}
+
+	if (isWaveWeights(weights) && !compound) {
+		const reps = performed.repetitions > 0 ? performed.repetitions : 0;
+		return {
+			setCount: weights.length,
+			repsPerSet: new Array(weights.length).fill(reps),
 			weightPerSet: weights,
 			isWave: true,
 		};
@@ -283,6 +303,18 @@ export function buildSessionLayout(input: {
 		performedSpec?.setCount ?? 0,
 	);
 
+	// Per-column weight labels are only useful when reps also vary (true wave):
+	// they pair each varying stack height with its weight. When reps are uniform
+	// across columns, many identical-looking labels collide visually (the column
+	// is only TILE_SIZE wide) and the same info is clearer in a range header.
+	const refSpec = performedSpec ?? prescribedSpec;
+	const repsUniform = refSpec
+		? new Set(refSpec.repsPerSet.slice(0, refSpec.setCount)).size <= 1
+		: true;
+	const anyWave =
+		(performedSpec?.isWave ?? false) || (prescribedSpec?.isWave ?? false);
+	const showPerColumnWeight = anyWave && !repsUniform;
+
 	const columns: ColumnLayout[] = [];
 	for (let i = 0; i < columnCount; i += 1) {
 		const prescribedReps = prescribedSpec?.repsPerSet[i];
@@ -316,21 +348,27 @@ export function buildSessionLayout(input: {
 		const tiles = buildColumnTiles(reps, baseColor, compoundSegments);
 
 		const weightForLabel = performedWeight ?? prescribedWeight;
-		const isWaveColumn = (performedSpec?.isWave ?? false) || (prescribedSpec?.isWave ?? false);
 		columns.push({
 			tiles,
-			...(isWaveColumn && weightForLabel !== undefined
+			...(showPerColumnWeight && weightForLabel !== undefined
 				? { weightLabel: formatKg(weightForLabel) }
 				: {}),
 		});
 	}
 
-	const refSpec = performedSpec ?? prescribedSpec;
-	const weights = refSpec ? uniqueWeights(refSpec) : [];
-	const headerWeightLabel =
-		refSpec && !refSpec.isWave && weights.length === 1 && weights[0] !== undefined
-			? formatKg(weights[0])
-			: undefined;
+	const uniqueWts = refSpec
+		? uniqueWeights(refSpec).slice().sort((a, b) => a - b)
+		: [];
+	let headerWeightLabel: string | undefined;
+	if (uniqueWts.length === 1 && uniqueWts[0] !== undefined) {
+		headerWeightLabel = formatKg(uniqueWts[0]);
+	} else if (uniqueWts.length >= 2) {
+		const min = uniqueWts[0];
+		const max = uniqueWts[uniqueWts.length - 1];
+		if (min !== undefined && max !== undefined) {
+			headerWeightLabel = `${min}-${formatKg(max)}`;
+		}
+	}
 
 	return {
 		sessionId,

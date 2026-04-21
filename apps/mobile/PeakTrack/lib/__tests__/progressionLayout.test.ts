@@ -140,6 +140,34 @@ describe('buildSessionLayout', () => {
 		});
 	});
 
+	describe('per-set weights without compound reps', () => {
+		it('uses each weight as its own set and sums real per-set volume', () => {
+			const layout = buildSessionLayout({
+				...baseInput,
+				prescribed: makePrescribed('6 x 2 @100 100 102 102 105 105kg'),
+				performed: makePhase({
+					sets: 6,
+					repetitions: 2,
+					weight: 100,
+					weights: [100, 100, 102, 102, 105, 105],
+				}),
+				programRms: [],
+			});
+			expect(layout.columns).toHaveLength(6);
+			expect(layout.columns.map(c => c.tiles.length)).toEqual([2, 2, 2, 2, 2, 2]);
+			// Reps are uniform → per-column weight labels suppressed in favour of
+			// a min-max range in the header.
+			expect(layout.columns.every(c => c.weightLabel === undefined)).toBe(true);
+			expect(layout.performedVolume).toBe(
+				2 * 100 + 2 * 100 + 2 * 102 + 2 * 102 + 2 * 105 + 2 * 105,
+			);
+			expect(layout.prescribedVolume).toBe(
+				2 * 100 + 2 * 100 + 2 * 102 + 2 * 102 + 2 * 105 + 2 * 105,
+			);
+			expect(layout.headerWeightLabel).toBe('100-105kg');
+		});
+	});
+
 	describe('wave', () => {
 		it('renders variable-height columns and per-column weight labels', () => {
 			const layout = buildSessionLayout({
@@ -167,7 +195,7 @@ describe('buildSessionLayout', () => {
 			expect(layout.performedVolume).toBe(
 				3 * 60 + 2 * 65 + 1 * 70 + 3 * 65 + 2 * 75 + 1 * 80,
 			);
-			expect(layout.headerWeightLabel).toBeUndefined();
+			expect(layout.headerWeightLabel).toBe('60-80kg');
 		});
 	});
 
