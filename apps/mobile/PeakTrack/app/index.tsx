@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutIds, createExercise, fetchPhasesByExerciseIds, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
+import { fetchWorkoutsByUserIdAndDateRange, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutIds, createExercise, fetchPhasesByExerciseIds, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -90,12 +90,16 @@ export default function Index() {
 
 			const t0 = performance.now();
 			const rangeEnd = addDays(selectedWeekStart, 6);
+			const rangeStartStr = format(selectedWeekStart, 'yyyy-MM-dd');
+			const rangeEndStr = format(rangeEnd, 'yyyy-MM-dd');
 
 			// Wave 1: workouts fetch runs in parallel with program sessions fetch
-			// (programs don't depend on the user's workouts).
+			// (programs don't depend on the user's workouts). Workouts are
+			// scoped to the visible week — the WeekDaySelector only renders
+			// those 7 days and dayStatuses is derived from the same set.
 			const tWave1 = performance.now();
 			const [workoutsRes, sessionsRes] = await Promise.all([
-				fetchWorkoutsByUserId(user.id),
+				fetchWorkoutsByUserIdAndDateRange(user.id, rangeStartStr, rangeEndStr),
 				fetchSessionsForRange(selectedWeekStart, rangeEnd),
 			]);
 			if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}

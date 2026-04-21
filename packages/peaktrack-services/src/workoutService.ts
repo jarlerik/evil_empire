@@ -23,6 +23,34 @@ export async function fetchWorkoutsByUserId(
 	return { data, error: null };
 }
 
+/**
+ * Fetch workouts scoped to a user AND a workout_date range, inclusive on both
+ * ends. Uses the idx_workouts_user_date composite index for a bounded index
+ * range scan. Prefer this over fetchWorkoutsByUserId on views that only need
+ * a known date window (e.g. the home-page weekly view).
+ */
+export async function fetchWorkoutsByUserIdAndDateRange(
+	userId: string,
+	startDate: string, // yyyy-MM-dd
+	endDate: string,   // yyyy-MM-dd inclusive
+): Promise<ServiceResult<Workout[]>> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('workouts')
+		.select('*')
+		.eq('user_id', userId)
+		.gte('workout_date', startDate)
+		.lte('workout_date', endDate)
+		.order('created_at', { ascending: false });
+
+	if (error) {
+		return { data: null, error: error.message };
+	}
+
+	return { data, error: null };
+}
+
 export async function createWorkout(
 	name: string,
 	userId: string,
