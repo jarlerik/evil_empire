@@ -101,12 +101,6 @@ export default function Index() {
 			if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}
 
 			setProgramSessions(sessionsRes);
-			if (__DEV__) {
-				console.log(`[loadData] program sessions returned: ${sessionsRes.length}`);
-				for (const ps of sessionsRes) {
-					console.log(`  - ${ps.date} w${ps.session.week_offset}d${ps.session.day_of_week} program="${ps.program.name}" status=${ps.program.status} exercises=${ps.exercises.length} materialized=${ps.materializedWorkoutId ?? 'none'}`);
-				}
-			}
 
 			if (!workoutsRes.error && workoutsRes.data) {
 				const workoutsData = workoutsRes.data;
