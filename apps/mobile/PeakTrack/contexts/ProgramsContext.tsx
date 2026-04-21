@@ -74,6 +74,8 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 			if (cached) {
 				return cached;
 			}
+			// Pass the already-loaded programs in so the service skips its own
+			// programs query (saves one round-trip on the home page critical path).
 			const { data, error } = await fetchProgramSessionsForDateRange(
 				user.id,
 				startDate,
@@ -82,6 +84,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 					resolveSessionsInRange,
 					formatDate: d => format(d, 'yyyy-MM-dd'),
 				},
+				programs,
 			);
 			if (error || !data) {
 				return [];
@@ -89,7 +92,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 			sessionCacheRef.current.set(key, data);
 			return data;
 		},
-		[user],
+		[user, programs],
 	);
 
 	const materializeSession = useCallback(

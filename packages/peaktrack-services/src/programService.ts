@@ -533,10 +533,16 @@ export async function deleteProgramRm(
  * Returns one entry per (session, calendar_date) tuple, joined with exercises
  * and per-program RM snapshots.
  *
- * Bounded 5-query shape: programs, sessions, exercises, materialized-links, rms.
+ * Bounded query shape: [optional programs], sessions, then (exercises ∥
+ * materialized-links ∥ rms) in parallel.
  *
  * Date math happens client-side to keep SQL simple and predictable; mobile
  * date-fns is the canonical ISO week oracle.
+ *
+ * If `preloadedPrograms` is supplied, the programs query is skipped — the
+ * caller should pass the cached program list from context when available.
+ * Any status filtering is applied here, so the caller can pass the full
+ * list without pre-filtering.
  */
 export async function fetchProgramSessionsForDateRange(
 	userId: string,
@@ -550,20 +556,29 @@ export async function fetchProgramSessionsForDateRange(
 		) => Array<{ date: Date; week_offset: number; day_of_week: number }>;
 		formatDate: (d: Date) => string; // yyyy-MM-dd
 	},
+	preloadedPrograms?: Program[],
 ): Promise<ServiceResult<ProgramSessionForDate[]>> {
 	const supabase = getSupabaseClient();
 
-	// 1. Active programs for the user
-	const { data: programs, error: pErr } = await supabase
-		.from('programs')
-		.select('*')
-		.eq('user_id', userId)
-		.eq('status', 'active');
+	// 1. Active programs for the user. Skip the query entirely when the
+	// caller already has them cached (e.g. from ProgramsContext state).
+	let programs: Program[];
+	if (preloadedPrograms !== undefined) {
+		programs = preloadedPrograms.filter(p => p.status === 'active');
+	} else {
+		const { data: fetchedPrograms, error: pErr } = await supabase
+			.from('programs')
+			.select('*')
+			.eq('user_id', userId)
+			.eq('status', 'active');
 
-	if (pErr) {
-		return { data: null, error: pErr.message };
+		if (pErr) {
+			return { data: null, error: pErr.message };
+		}
+		programs = (fetchedPrograms ?? []) as Program[];
 	}
-	if (!programs || programs.length === 0) {
+
+	if (programs.length === 0) {
 		return { data: [], error: null };
 	}
 
@@ -573,7 +588,7 @@ export async function fetchProgramSessionsForDateRange(
 		string,
 		Array<{ date: Date; week_offset: number; day_of_week: number }>
 	>();
-	for (const p of programs as Program[]) {
+	for (const p of programs) {
 		const tuples = scheduling.resolveSessionsInRange(p, startDate, endDate);
 		if (tuples.length > 0) {
 			tuplesByProgram.set(p.id, tuples);
@@ -662,7 +677,7 @@ export async function fetchProgramSessionsForDateRange(
 
 	// Merge: for each tuple under each program, find the matching session row (if any).
 	const programById = new Map<string, Program>();
-	for (const p of programs as Program[]) {
+	for (const p of programs) {
 		programById.set(p.id, p);
 	}
 	const sessionByKey = new Map<string, ProgramSession>();

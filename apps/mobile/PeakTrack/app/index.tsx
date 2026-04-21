@@ -1,5 +1,5 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,70 +72,90 @@ export default function Index() {
 		setPendingMove(null);
 	};
 
-	const loadData = useCallback(async (opts?: { showLoader?: boolean }) => {
-		if (!user) {return;}
-		const showLoader = opts?.showLoader ?? true;
-		if (showLoader) {setIsFetchingWorkouts(true);}
+	// Dedupe concurrent loadData calls. useFocusEffect can fire twice on mount
+	// (React Navigation quirk) and the app also triggers loadData from a few
+	// user-interaction paths — none of them want to run in parallel with an
+	// already-in-flight load.
+	const loadingPromiseRef = useRef<Promise<void> | null>(null);
 
-		const t0 = performance.now();
-		const rangeEnd = addDays(selectedWeekStart, 6);
-
-		// Wave 1: workouts fetch runs in parallel with program sessions fetch
-		// (programs don't depend on the user's workouts).
-		const tWave1 = performance.now();
-		const [workoutsRes, sessionsRes] = await Promise.all([
-			fetchWorkoutsByUserId(user.id),
-			fetchSessionsForRange(selectedWeekStart, rangeEnd),
-		]);
-		if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}
-
-		setProgramSessions(sessionsRes);
-
-		if (!workoutsRes.error && workoutsRes.data) {
-			const workoutsData = workoutsRes.data;
-			setWorkouts(workoutsData);
-
-			const workoutIds = workoutsData.map(w => w.id);
-
-			// Wave 2: exercises and completion logs both keyed by workout ids.
-			const tWave2 = performance.now();
-			const [exercisesRes, completedRes] = await Promise.all([
-				fetchExercisesByWorkoutIds(workoutIds),
-				fetchCompletedWorkoutIds(workoutIds),
-			]);
-			if (__DEV__) {console.log(`[loadData] wave 2 (exercises + completed): ${(performance.now() - tWave2).toFixed(1)}ms`);}
-
-			const allExercises = exercisesRes.data ?? [];
-			const exercisesMap: Record<string, Exercise[]> = {};
-			for (const ex of allExercises) {
-				const list = exercisesMap[ex.workout_id] ?? [];
-				list.push(ex);
-				exercisesMap[ex.workout_id] = list;
-			}
-			setExercises(exercisesMap);
-
-			if (completedRes.data) {
-				setCompletedWorkoutIds(new Set(completedRes.data));
-			}
-
-			// Wave 3: phases keyed by exercise ids.
-			const tWave3 = performance.now();
-			const exerciseIds = allExercises.map(e => e.id);
-			const phasesRes = await fetchPhasesByExerciseIds(exerciseIds);
-			if (__DEV__) {console.log(`[loadData] wave 3 (phases): ${(performance.now() - tWave3).toFixed(1)}ms (${phasesRes.data?.length ?? 0} rows)`);}
-
-			const phasesMap: Record<string, ExercisePhase[]> = {};
-			for (const phase of phasesRes.data ?? []) {
-				const list = phasesMap[phase.exercise_id] ?? [];
-				list.push(phase);
-				phasesMap[phase.exercise_id] = list;
-			}
-			setExercisePhases(phasesMap);
+	const loadData = useCallback(async (opts?: { showLoader?: boolean }): Promise<void> => {
+		if (loadingPromiseRef.current) {
+			return loadingPromiseRef.current;
 		}
+		if (!user) {return;}
 
-		if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
+		const run = async (): Promise<void> => {
+			const showLoader = opts?.showLoader ?? true;
+			if (showLoader) {setIsFetchingWorkouts(true);}
 
-		if (showLoader) {setIsFetchingWorkouts(false);}
+			const t0 = performance.now();
+			const rangeEnd = addDays(selectedWeekStart, 6);
+
+			// Wave 1: workouts fetch runs in parallel with program sessions fetch
+			// (programs don't depend on the user's workouts).
+			const tWave1 = performance.now();
+			const [workoutsRes, sessionsRes] = await Promise.all([
+				fetchWorkoutsByUserId(user.id),
+				fetchSessionsForRange(selectedWeekStart, rangeEnd),
+			]);
+			if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}
+
+			setProgramSessions(sessionsRes);
+
+			if (!workoutsRes.error && workoutsRes.data) {
+				const workoutsData = workoutsRes.data;
+				setWorkouts(workoutsData);
+
+				const workoutIds = workoutsData.map(w => w.id);
+
+				// Wave 2: exercises and completion logs both keyed by workout ids.
+				const tWave2 = performance.now();
+				const [exercisesRes, completedRes] = await Promise.all([
+					fetchExercisesByWorkoutIds(workoutIds),
+					fetchCompletedWorkoutIds(workoutIds),
+				]);
+				if (__DEV__) {console.log(`[loadData] wave 2 (exercises + completed): ${(performance.now() - tWave2).toFixed(1)}ms`);}
+
+				const allExercises = exercisesRes.data ?? [];
+				const exercisesMap: Record<string, Exercise[]> = {};
+				for (const ex of allExercises) {
+					const list = exercisesMap[ex.workout_id] ?? [];
+					list.push(ex);
+					exercisesMap[ex.workout_id] = list;
+				}
+				setExercises(exercisesMap);
+
+				if (completedRes.data) {
+					setCompletedWorkoutIds(new Set(completedRes.data));
+				}
+
+				// Wave 3: phases keyed by exercise ids.
+				const tWave3 = performance.now();
+				const exerciseIds = allExercises.map(e => e.id);
+				const phasesRes = await fetchPhasesByExerciseIds(exerciseIds);
+				if (__DEV__) {console.log(`[loadData] wave 3 (phases): ${(performance.now() - tWave3).toFixed(1)}ms (${phasesRes.data?.length ?? 0} rows)`);}
+
+				const phasesMap: Record<string, ExercisePhase[]> = {};
+				for (const phase of phasesRes.data ?? []) {
+					const list = phasesMap[phase.exercise_id] ?? [];
+					list.push(phase);
+					phasesMap[phase.exercise_id] = list;
+				}
+				setExercisePhases(phasesMap);
+			}
+
+			if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
+
+			if (showLoader) {setIsFetchingWorkouts(false);}
+		};
+
+		const p = run();
+		loadingPromiseRef.current = p;
+		try {
+			await p;
+		} finally {
+			loadingPromiseRef.current = null;
+		}
 	}, [user, selectedWeekStart, fetchSessionsForRange]);
 
 	useFocusEffect(
