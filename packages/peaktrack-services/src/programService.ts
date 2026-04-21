@@ -9,6 +9,7 @@ import {
 import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 import { PhaseInsertData } from './exercisePhaseService';
+import type { ExecutionLogDetail } from './workoutExecutionLogService';
 
 // ============================================================================
 // Programs CRUD
@@ -745,4 +746,178 @@ export async function materializeProgramSession(input: {
 		return { data: null, error: 'materialize_program_session returned no workout id' };
 	}
 	return { data: { workout_id: data as string }, error: null };
+}
+
+// ============================================================================
+// Progression view — per-program + per-exercise session timeline
+// ============================================================================
+
+export interface ProgramProgressionSessionRow {
+	session: ProgramSession;
+	/** Prescribed exercise from the program plan, matched case-insensitively. */
+	prescribed: ProgramExercise | null;
+	/**
+	 * Most-recent execution log for the tracked exercise in this session's
+	 * workout, if the user has executed the workout. Null when the session was
+	 * only materialized (or not materialized) but never executed.
+	 */
+	performedLog: ExecutionLogDetail | null;
+	/** Materialized workout id, if the session has been materialized. */
+	workoutId: string | null;
+}
+
+export interface ProgramProgressionData {
+	program: Program;
+	sessions: ProgramProgressionSessionRow[];
+	programRms: ProgramRepetitionMaximum[];
+}
+
+function normalizeExerciseName(name: string): string {
+	return name.trim().toLowerCase();
+}
+
+/**
+ * Fetch everything the progression view needs for one (program, exercise):
+ * all sessions ordered chronologically, each row joined to its prescribed
+ * exercise (matching `exerciseName` case-insensitively) and any performed
+ * phase from a materialized workout. Sessions that neither prescribe nor
+ * perform the target exercise are filtered out.
+ */
+export async function fetchProgramProgressionData(
+	programId: string,
+	exerciseName: string,
+): Promise<ServiceResult<ProgramProgressionData>> {
+	const supabase = getSupabaseClient();
+	const needle = normalizeExerciseName(exerciseName);
+
+	const { data: program, error: pErr } = await supabase
+		.from('programs')
+		.select('*')
+		.eq('id', programId)
+		.maybeSingle();
+	if (pErr) {
+		return { data: null, error: pErr.message };
+	}
+	if (!program) {
+		return { data: null, error: 'Program not found' };
+	}
+
+	const { data: sessions, error: sErr } = await supabase
+		.from('program_sessions')
+		.select('*')
+		.eq('program_id', programId)
+		.order('week_offset', { ascending: true })
+		.order('day_of_week', { ascending: true });
+	if (sErr) {
+		return { data: null, error: sErr.message };
+	}
+	const sessionList = (sessions ?? []) as ProgramSession[];
+	if (sessionList.length === 0) {
+		return {
+			data: { program: program as Program, sessions: [], programRms: [] },
+			error: null,
+		};
+	}
+
+	const sessionIds = sessionList.map(s => s.id);
+
+	const [prescribedRes, workoutsRes, rmsRes] = await Promise.all([
+		supabase
+			.from('program_exercises')
+			.select('*')
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('workouts')
+			.select(`
+				id,
+				program_session_id,
+				exercises (
+					id,
+					name,
+					workout_execution_logs (*)
+				)
+			`)
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('program_repetition_maximums')
+			.select('*')
+			.eq('program_id', programId),
+	]);
+
+	if (prescribedRes.error) {
+		return { data: null, error: prescribedRes.error.message };
+	}
+	if (workoutsRes.error) {
+		return { data: null, error: workoutsRes.error.message };
+	}
+	if (rmsRes.error) {
+		return { data: null, error: rmsRes.error.message };
+	}
+
+	const prescribedBySession = new Map<string, ProgramExercise>();
+	for (const ex of (prescribedRes.data ?? []) as ProgramExercise[]) {
+		if (normalizeExerciseName(ex.name) !== needle) {
+			continue;
+		}
+		const existing = prescribedBySession.get(ex.program_session_id);
+		if (!existing || ex.order_index < existing.order_index) {
+			prescribedBySession.set(ex.program_session_id, ex);
+		}
+	}
+
+	type WorkoutNested = {
+		id: string;
+		program_session_id: string | null;
+		exercises: Array<{
+			id: string;
+			name: string;
+			workout_execution_logs: ExecutionLogDetail[];
+		}>;
+	};
+	const performedBySession = new Map<
+		string,
+		{ workoutId: string; log: ExecutionLogDetail | null }
+	>();
+	for (const w of (workoutsRes.data ?? []) as WorkoutNested[]) {
+		if (!w.program_session_id) {
+			continue;
+		}
+		const match = w.exercises.find(
+			e => normalizeExerciseName(e.name) === needle,
+		);
+		// Pick the most recent execution log for the matched exercise, if any.
+		// A session is only "performed" when a log exists — materialized-but-not-
+		// executed workouts have phases matching prescription but no logs.
+		const logs = match?.workout_execution_logs ?? [];
+		const log =
+			logs.length === 0
+				? null
+				: logs.slice().sort((a, b) => (a.executed_at < b.executed_at ? 1 : -1))[0] ?? null;
+		performedBySession.set(w.program_session_id, { workoutId: w.id, log });
+	}
+
+	const rows: ProgramProgressionSessionRow[] = [];
+	for (const session of sessionList) {
+		const prescribed = prescribedBySession.get(session.id) ?? null;
+		const performed = performedBySession.get(session.id);
+		const performedLog = performed?.log ?? null;
+		if (!prescribed && !performedLog) {
+			continue;
+		}
+		rows.push({
+			session,
+			prescribed,
+			performedLog,
+			workoutId: performed?.workoutId ?? null,
+		});
+	}
+
+	return {
+		data: {
+			program: program as Program,
+			sessions: rows,
+			programRms: (rmsRes.data ?? []) as ProgramRepetitionMaximum[],
+		},
+		error: null,
+	};
 }

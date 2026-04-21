@@ -29,6 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { colors } from '../styles/common';
 import { Button } from '../components/Button';
+import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
 import {
 	exerciseNeedsRmSnapshot,
@@ -160,6 +161,44 @@ export default function ProgramDetail() {
 		);
 	};
 
+	const uniqueExerciseNames = useMemo(() => {
+		const seen = new Set<string>();
+		const names: string[] = [];
+		for (const ex of exercises) {
+			const key = ex.name.trim().toLowerCase();
+			if (!seen.has(key)) {
+				seen.add(key);
+				names.push(ex.name);
+			}
+		}
+		return names;
+	}, [exercises]);
+
+	const handleViewProgression = () => {
+		if (!program || uniqueExerciseNames.length === 0) {
+			return;
+		}
+		const navigateTo = (name: string) =>
+			router.push({
+				pathname: '/program-progression',
+				params: { programId: program.id, exerciseName: name },
+			});
+		if (uniqueExerciseNames.length === 1) {
+			const first = uniqueExerciseNames[0];
+			if (first) {
+				navigateTo(first);
+			}
+			return;
+		}
+		Alert.alert('View progression', 'Pick an exercise', [
+			...uniqueExerciseNames.map(name => ({
+				text: name,
+				onPress: () => navigateTo(name),
+			})),
+			{ text: 'Cancel', style: 'cancel' as const },
+		]);
+	};
+
 	const handleArchive = async () => {
 		if (!programId || !program) {
 			return;
@@ -178,7 +217,12 @@ export default function ProgramDetail() {
 	};
 
 	if (loading || !program) {
-		return <LoadScreen />;
+		return (
+			<View style={styles.flex}>
+				<LoadScreen />
+				<NavigationBar />
+			</View>
+		);
 	}
 
 	const isActive = program.status === 'active';
@@ -215,17 +259,30 @@ export default function ProgramDetail() {
 						<Text style={styles.description}>{program.description}</Text>
 					) : null}
 
-					<Pressable
-						onPress={() =>
-							router.push({ pathname: '/program-edit', params: { programId: program.id } })
-						}
-						style={styles.editBtn}
-						accessibilityRole="button"
-						accessibilityLabel="Edit plan"
-					>
-						<Ionicons name="pencil-outline" size={16} color={colors.primary} />
-						<Text style={styles.editBtnText}>Edit plan</Text>
-					</Pressable>
+					<View style={styles.topActionsRow}>
+						<Pressable
+							onPress={() =>
+								router.push({ pathname: '/program-edit', params: { programId: program.id } })
+							}
+							style={styles.editBtn}
+							accessibilityRole="button"
+							accessibilityLabel="Edit plan"
+						>
+							<Ionicons name="pencil-outline" size={16} color={colors.primary} />
+							<Text style={styles.editBtnText}>Edit plan</Text>
+						</Pressable>
+						{uniqueExerciseNames.length > 0 ? (
+							<Pressable
+								onPress={handleViewProgression}
+								style={styles.editBtn}
+								accessibilityRole="button"
+								accessibilityLabel="View progression"
+							>
+								<Ionicons name="trending-up-outline" size={16} color={colors.primary} />
+								<Text style={styles.editBtnText}>View progression</Text>
+							</Pressable>
+						) : null}
+					</View>
 
 					{hasSessions ? (
 						<View style={styles.planSection}>
@@ -329,6 +386,7 @@ export default function ProgramDetail() {
 					</View>
 				</View>
 			</ScrollView>
+			<NavigationBar />
 		</View>
 	);
 }
@@ -367,6 +425,12 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		marginBottom: 8,
 	},
+	topActionsRow: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		marginTop: 12,
+	},
 	editBtn: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -374,11 +438,9 @@ const styles = StyleSheet.create({
 		gap: 6,
 		paddingVertical: 10,
 		paddingHorizontal: 14,
-		marginTop: 12,
 		borderWidth: 1,
 		borderColor: colors.primary,
 		borderRadius: 6,
-		alignSelf: 'flex-start',
 	},
 	editBtnText: {
 		color: colors.primary,
