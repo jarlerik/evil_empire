@@ -339,6 +339,52 @@ Desc:   JYM. Karis – Bangatan 63, 10300 Karis. Telefon, e-post och
         vägbeskrivning. Raseborg, Nyland.
 ```
 
+## English Metadata Package
+
+Every page above needs an `/en/...` equivalent with separately-written English metadata.
+
+```
+/en — Homepage
+Title:  JYM. – Gym, Group Classes & Sports Simulator in Karis, Finland
+Desc:   JYM. in Karis: gym, group classes and a sports simulator for
+        ice hockey and disc golf with camera analysis. Move better,
+        feel stronger.
+
+/en/pages/opening-hours
+Title:  Opening Hours | JYM. Gym Karis
+Desc:   JYM. Karis opening hours – gym, group classes and simulator.
+        See weekday and weekend hours.
+
+/en/pages/prices
+Title:  Prices and Memberships | JYM. Karis
+Desc:   JYM. Karis prices: memberships, single visits, group class
+        passes and simulator rental. Transparent pricing, no long
+        commitments.
+
+/en/pages/group-classes
+Title:  Group Classes and Schedule | JYM. Karis
+Desc:   Group classes at JYM. in Karis – yoga, pilates, kickboxing,
+        HIIT, functional, barre, tabata and mobility. See the schedule
+        and book your spot.
+
+/en/pages/seeste
+Title:  Seeste – Wellbeing Space in Central Karis | JYM.
+Desc:   Seeste is a calm wellbeing space in central Karis, next to the
+        train station. Treatments, therapy and coaching – also available
+        for rental by practitioners.
+
+/en/pages/simulator
+Title:  Simulator – Ice Hockey & Disc Golf | JYM. Karis
+Desc:   JYM. Karis sports simulator for ice hockey and disc golf.
+        Camera-based technique analysis with real-time feedback.
+        Book a session.
+
+/en/pages/contact
+Title:  Contact and Location | JYM. Karis
+Desc:   JYM. Karis – Bangatan 63, 10300 Karis, Finland. Phone, email
+        and directions. Raseborg, Uusimaa.
+```
+
 ---
 
 ## Technical Implementation
@@ -719,12 +765,12 @@ Tasks are ordered by ROI — highest-leverage first. Effort estimates are rough.
 
 ### Tier 1: Immediate wins (do first, ~1 day of work)
 
-- [ ] **Set SEO title and meta description for every Finnish page** (Shopify admin → Online Store → Pages). Copy is provided in this document. Covers homepage + 6 subpages. *30 min.*
-- [ ] **Set SEO title and meta description for every Swedish page**. Copy is provided. *30 min.*
-- [ ] **Set store-level title and social sharing image** in Shopify admin → Online Store → Preferences. Upload a proper 1200×630 lifestyle image (not the logo). *15 min.*
-- [ ] **Fix the empty `theme-color` meta tag** or remove it. *5 min.*
-- [ ] **Add `og:locale` = `fi_FI` / `sv_FI` / `en_US`** in the theme head. *15 min.*
-- [ ] **Verify the `<html lang="...">` attribute** is set correctly per language. *5 min.*
+- [x] **Set SEO title and meta description for every Finnish page** (Shopify admin → Online Store → Pages). Copy is provided in this document. Covers homepage + 6 subpages. *30 min.*
+- [x] **Set SEO title and meta description for every Swedish page**. Copy is provided. *30 min.*
+- [ ] **Set store-level title and social sharing image** in Shopify admin → Online Store → Preferences. Upload a proper 1200×630 lifestyle image (not the logo). *15 min.* BLOCKED need an image›
+- [x] **Fix the empty `theme-color` meta tag** or remove it. *5 min.*
+- [x] **Add `og:locale` = `fi_FI` / `sv_FI` / `en_US`** in the theme head. *15 min.*
+- [x] **Verify the `<html lang="...">` attribute** is set correctly per language. *5 min.*
 
 ### Tier 1.5: Tourist-season preparation (time-sensitive — complete before mid-May)
 
