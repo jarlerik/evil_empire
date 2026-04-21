@@ -612,48 +612,49 @@ export async function fetchProgramSessionsForDateRange(
 
 	const sessionIds = allSessions.map(s => s.id);
 
-	// 3. Exercises for those sessions
-	const { data: exercises, error: eErr } = await supabase
-		.from('program_exercises')
-		.select('*')
-		.in('program_session_id', sessionIds)
-		.order('order_index', { ascending: true });
+	// 3-5. Exercises, materialized workout links, and RM snapshots can all
+	// fetch in parallel — they depend only on sessionIds / activeProgramIds
+	// already resolved above.
+	const [exercisesRes, materializedRes, rmsRes] = await Promise.all([
+		supabase
+			.from('program_exercises')
+			.select('*')
+			.in('program_session_id', sessionIds)
+			.order('order_index', { ascending: true }),
+		supabase
+			.from('workouts')
+			.select('id, program_session_id')
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('program_repetition_maximums')
+			.select('*')
+			.in('program_id', activeProgramIds),
+	]);
 
-	if (eErr) {
-		return { data: null, error: eErr.message };
+	if (exercisesRes.error) {
+		return { data: null, error: exercisesRes.error.message };
 	}
+	if (materializedRes.error) {
+		return { data: null, error: materializedRes.error.message };
+	}
+	if (rmsRes.error) {
+		return { data: null, error: rmsRes.error.message };
+	}
+
 	const exercisesBySession = new Map<string, ProgramExercise[]>();
-	for (const ex of (exercises ?? []) as ProgramExercise[]) {
+	for (const ex of (exercisesRes.data ?? []) as ProgramExercise[]) {
 		const list = exercisesBySession.get(ex.program_session_id) ?? [];
 		list.push(ex);
 		exercisesBySession.set(ex.program_session_id, list);
 	}
 
-	// 4. Materialized workout links
-	const { data: materialized, error: mErr } = await supabase
-		.from('workouts')
-		.select('id, program_session_id')
-		.in('program_session_id', sessionIds);
-
-	if (mErr) {
-		return { data: null, error: mErr.message };
-	}
 	const materializedBySession = new Map<string, string>();
-	for (const m of (materialized ?? []) as Array<{ id: string; program_session_id: string }>) {
+	for (const m of (materializedRes.data ?? []) as Array<{ id: string; program_session_id: string }>) {
 		materializedBySession.set(m.program_session_id, m.id);
 	}
 
-	// 5. RM snapshots
-	const { data: rms, error: rErr } = await supabase
-		.from('program_repetition_maximums')
-		.select('*')
-		.in('program_id', activeProgramIds);
-
-	if (rErr) {
-		return { data: null, error: rErr.message };
-	}
 	const rmsByProgram = new Map<string, ProgramRepetitionMaximum[]>();
-	for (const r of (rms ?? []) as ProgramRepetitionMaximum[]) {
+	for (const r of (rmsRes.data ?? []) as ProgramRepetitionMaximum[]) {
 		const list = rmsByProgram.get(r.program_id) ?? [];
 		list.push(r);
 		rmsByProgram.set(r.program_id, list);

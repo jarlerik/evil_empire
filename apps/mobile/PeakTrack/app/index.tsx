@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutId, createExercise, fetchPhasesByExerciseId, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
+import { fetchWorkoutsByUserId, createWorkout, deleteWorkout, updateWorkoutDate, fetchExercisesByWorkoutIds, createExercise, fetchPhasesByExerciseIds, fetchCompletedWorkoutIds } from '@evil-empire/peaktrack-services';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { addDays, startOfWeek, format, getISOWeek, subDays, isBefore, startOfDay } from 'date-fns';
 import { useFocusEffect } from '@react-navigation/native';
@@ -72,50 +72,68 @@ export default function Index() {
 		setPendingMove(null);
 	};
 
-	const fetchExercisePhasesForList = async (exerciseList: Exercise[]) => {
-		const phasesMap: Record<string, ExercisePhase[]> = {};
-		for (const exercise of exerciseList) {
-			const { data, error } = await fetchPhasesByExerciseId(exercise.id);
-			if (!error && data) {
-				phasesMap[exercise.id] = data;
-			}
-		}
-		return phasesMap;
-	};
-
 	const loadData = useCallback(async (opts?: { showLoader?: boolean }) => {
 		if (!user) {return;}
 		const showLoader = opts?.showLoader ?? true;
 		if (showLoader) {setIsFetchingWorkouts(true);}
-		const { data, error } = await fetchWorkoutsByUserId(user.id);
-		if (!error && data) {
-			setWorkouts(data);
 
+		const t0 = performance.now();
+		const rangeEnd = addDays(selectedWeekStart, 6);
+
+		// Wave 1: workouts fetch runs in parallel with program sessions fetch
+		// (programs don't depend on the user's workouts).
+		const tWave1 = performance.now();
+		const [workoutsRes, sessionsRes] = await Promise.all([
+			fetchWorkoutsByUserId(user.id),
+			fetchSessionsForRange(selectedWeekStart, rangeEnd),
+		]);
+		if (__DEV__) {console.log(`[loadData] wave 1 (workouts + sessions): ${(performance.now() - tWave1).toFixed(1)}ms`);}
+
+		setProgramSessions(sessionsRes);
+
+		if (!workoutsRes.error && workoutsRes.data) {
+			const workoutsData = workoutsRes.data;
+			setWorkouts(workoutsData);
+
+			const workoutIds = workoutsData.map(w => w.id);
+
+			// Wave 2: exercises and completion logs both keyed by workout ids.
+			const tWave2 = performance.now();
+			const [exercisesRes, completedRes] = await Promise.all([
+				fetchExercisesByWorkoutIds(workoutIds),
+				fetchCompletedWorkoutIds(workoutIds),
+			]);
+			if (__DEV__) {console.log(`[loadData] wave 2 (exercises + completed): ${(performance.now() - tWave2).toFixed(1)}ms`);}
+
+			const allExercises = exercisesRes.data ?? [];
 			const exercisesMap: Record<string, Exercise[]> = {};
-			const allPhasesMap: Record<string, ExercisePhase[]> = {};
-
-			for (const workout of data) {
-				const { data: exData, error: exError } = await fetchExercisesByWorkoutId(workout.id);
-				if (!exError && exData) {
-					exercisesMap[workout.id] = exData;
-					const phases = await fetchExercisePhasesForList(exData);
-					Object.assign(allPhasesMap, phases);
-				}
+			for (const ex of allExercises) {
+				const list = exercisesMap[ex.workout_id] ?? [];
+				list.push(ex);
+				exercisesMap[ex.workout_id] = list;
 			}
-
 			setExercises(exercisesMap);
-			setExercisePhases(allPhasesMap);
 
-			const ids = data.map((w) => w.id);
-			const { data: completed } = await fetchCompletedWorkoutIds(ids);
-			if (completed) {
-				setCompletedWorkoutIds(new Set(completed));
+			if (completedRes.data) {
+				setCompletedWorkoutIds(new Set(completedRes.data));
 			}
+
+			// Wave 3: phases keyed by exercise ids.
+			const tWave3 = performance.now();
+			const exerciseIds = allExercises.map(e => e.id);
+			const phasesRes = await fetchPhasesByExerciseIds(exerciseIds);
+			if (__DEV__) {console.log(`[loadData] wave 3 (phases): ${(performance.now() - tWave3).toFixed(1)}ms (${phasesRes.data?.length ?? 0} rows)`);}
+
+			const phasesMap: Record<string, ExercisePhase[]> = {};
+			for (const phase of phasesRes.data ?? []) {
+				const list = phasesMap[phase.exercise_id] ?? [];
+				list.push(phase);
+				phasesMap[phase.exercise_id] = list;
+			}
+			setExercisePhases(phasesMap);
 		}
 
-		const rangeEnd = addDays(selectedWeekStart, 6);
-		const psessions = await fetchSessionsForRange(selectedWeekStart, rangeEnd);
-		setProgramSessions(psessions);
+		if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
 
 		if (showLoader) {setIsFetchingWorkouts(false);}
 	}, [user, selectedWeekStart, fetchSessionsForRange]);
