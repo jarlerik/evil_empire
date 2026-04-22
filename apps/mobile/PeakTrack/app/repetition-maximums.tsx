@@ -148,7 +148,7 @@ export default function RepetitionMaximums() {
 				keyboardShouldPersistTaps="handled"
 			>
 				<View style={commonStyles.container}>
-					<Text style={commonStyles.title}>Max reps</Text>
+					<Text style={[commonStyles.title, styles.title]}>Max reps</Text>
 
 					<Pressable
 						style={styles.addButton}
@@ -218,6 +218,11 @@ export default function RepetitionMaximums() {
 }
 
 const styles = StyleSheet.create({
+	title: {
+		fontSize: 26,
+		textAlign: 'center',
+		marginBottom: 20,
+	},
 	addButton: {
 		flexDirection: 'row',
 		alignItems: 'center',
