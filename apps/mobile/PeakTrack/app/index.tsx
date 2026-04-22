@@ -225,9 +225,12 @@ export default function Index() {
 	};
 
 	const handleDeleteWorkout = (workout: Workout) => {
+		const hasExercises = (exercises[workout.id] || []).length > 0;
 		Alert.alert(
 			'Delete workout',
-			'Are you sure you want to delete this workout and all its exercises?',
+			hasExercises
+				? 'Are you sure you want to delete this workout and all its exercises?'
+				: 'Are you sure you want to delete this workout?',
 			[
 				{ text: 'Cancel', style: 'cancel' },
 				{
@@ -466,7 +469,7 @@ export default function Index() {
 																<Ionicons name="stopwatch-outline" size={22} color="#fff" />
 															</Pressable>
 														)}
-														{workoutHasExercises && !workoutCompleted && (
+														{!workoutCompleted && (
 															<Pressable
 																onPress={() => handleDeleteWorkout(workout)}
 																style={styles.iconButton}
