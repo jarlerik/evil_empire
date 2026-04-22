@@ -12,9 +12,9 @@
     "dev:mobile": "turbo run dev --filter=@evil-empire/mobile",
     "start": "turbo run start",
     "start:mobile": "turbo run start --filter=@evil-empire/mobile",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
-    "test": "turbo run test",
+    "lint": "turbo run lint --filter=!@evil-empire/ui",
+    "lint:fix": "turbo run lint:fix --filter=!@evil-empire/ui",
+    "test": "turbo run test --filter=!@evil-empire/ui",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules"
   },

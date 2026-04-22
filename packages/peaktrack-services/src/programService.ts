@@ -9,6 +9,7 @@ import {
 import { getSupabaseClient } from './client';
 import { ServiceResult } from './types';
 import { PhaseInsertData } from './exercisePhaseService';
+import type { ExecutionLogDetail } from './workoutExecutionLogService';
 
 // ============================================================================
 // Programs CRUD
@@ -533,10 +534,16 @@ export async function deleteProgramRm(
  * Returns one entry per (session, calendar_date) tuple, joined with exercises
  * and per-program RM snapshots.
  *
- * Bounded 5-query shape: programs, sessions, exercises, materialized-links, rms.
+ * Bounded query shape: [optional programs], sessions, then (exercises ∥
+ * materialized-links ∥ rms) in parallel.
  *
  * Date math happens client-side to keep SQL simple and predictable; mobile
  * date-fns is the canonical ISO week oracle.
+ *
+ * If `preloadedPrograms` is supplied, the programs query is skipped — the
+ * caller should pass the cached program list from context when available.
+ * Any status filtering is applied here, so the caller can pass the full
+ * list without pre-filtering.
  */
 export async function fetchProgramSessionsForDateRange(
 	userId: string,
@@ -550,20 +557,29 @@ export async function fetchProgramSessionsForDateRange(
 		) => Array<{ date: Date; week_offset: number; day_of_week: number }>;
 		formatDate: (d: Date) => string; // yyyy-MM-dd
 	},
+	preloadedPrograms?: Program[],
 ): Promise<ServiceResult<ProgramSessionForDate[]>> {
 	const supabase = getSupabaseClient();
 
-	// 1. Active programs for the user
-	const { data: programs, error: pErr } = await supabase
-		.from('programs')
-		.select('*')
-		.eq('user_id', userId)
-		.eq('status', 'active');
+	// 1. Active programs for the user. Skip the query entirely when the
+	// caller already has them cached (e.g. from ProgramsContext state).
+	let programs: Program[];
+	if (preloadedPrograms !== undefined) {
+		programs = preloadedPrograms.filter(p => p.status === 'active');
+	} else {
+		const { data: fetchedPrograms, error: pErr } = await supabase
+			.from('programs')
+			.select('*')
+			.eq('user_id', userId)
+			.eq('status', 'active');
 
-	if (pErr) {
-		return { data: null, error: pErr.message };
+		if (pErr) {
+			return { data: null, error: pErr.message };
+		}
+		programs = (fetchedPrograms ?? []) as Program[];
 	}
-	if (!programs || programs.length === 0) {
+
+	if (programs.length === 0) {
 		return { data: [], error: null };
 	}
 
@@ -573,7 +589,7 @@ export async function fetchProgramSessionsForDateRange(
 		string,
 		Array<{ date: Date; week_offset: number; day_of_week: number }>
 	>();
-	for (const p of programs as Program[]) {
+	for (const p of programs) {
 		const tuples = scheduling.resolveSessionsInRange(p, startDate, endDate);
 		if (tuples.length > 0) {
 			tuplesByProgram.set(p.id, tuples);
@@ -612,48 +628,49 @@ export async function fetchProgramSessionsForDateRange(
 
 	const sessionIds = allSessions.map(s => s.id);
 
-	// 3. Exercises for those sessions
-	const { data: exercises, error: eErr } = await supabase
-		.from('program_exercises')
-		.select('*')
-		.in('program_session_id', sessionIds)
-		.order('order_index', { ascending: true });
+	// 3-5. Exercises, materialized workout links, and RM snapshots can all
+	// fetch in parallel — they depend only on sessionIds / activeProgramIds
+	// already resolved above.
+	const [exercisesRes, materializedRes, rmsRes] = await Promise.all([
+		supabase
+			.from('program_exercises')
+			.select('*')
+			.in('program_session_id', sessionIds)
+			.order('order_index', { ascending: true }),
+		supabase
+			.from('workouts')
+			.select('id, program_session_id')
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('program_repetition_maximums')
+			.select('*')
+			.in('program_id', activeProgramIds),
+	]);
 
-	if (eErr) {
-		return { data: null, error: eErr.message };
+	if (exercisesRes.error) {
+		return { data: null, error: exercisesRes.error.message };
 	}
+	if (materializedRes.error) {
+		return { data: null, error: materializedRes.error.message };
+	}
+	if (rmsRes.error) {
+		return { data: null, error: rmsRes.error.message };
+	}
+
 	const exercisesBySession = new Map<string, ProgramExercise[]>();
-	for (const ex of (exercises ?? []) as ProgramExercise[]) {
+	for (const ex of (exercisesRes.data ?? []) as ProgramExercise[]) {
 		const list = exercisesBySession.get(ex.program_session_id) ?? [];
 		list.push(ex);
 		exercisesBySession.set(ex.program_session_id, list);
 	}
 
-	// 4. Materialized workout links
-	const { data: materialized, error: mErr } = await supabase
-		.from('workouts')
-		.select('id, program_session_id')
-		.in('program_session_id', sessionIds);
-
-	if (mErr) {
-		return { data: null, error: mErr.message };
-	}
 	const materializedBySession = new Map<string, string>();
-	for (const m of (materialized ?? []) as Array<{ id: string; program_session_id: string }>) {
+	for (const m of (materializedRes.data ?? []) as Array<{ id: string; program_session_id: string }>) {
 		materializedBySession.set(m.program_session_id, m.id);
 	}
 
-	// 5. RM snapshots
-	const { data: rms, error: rErr } = await supabase
-		.from('program_repetition_maximums')
-		.select('*')
-		.in('program_id', activeProgramIds);
-
-	if (rErr) {
-		return { data: null, error: rErr.message };
-	}
 	const rmsByProgram = new Map<string, ProgramRepetitionMaximum[]>();
-	for (const r of (rms ?? []) as ProgramRepetitionMaximum[]) {
+	for (const r of (rmsRes.data ?? []) as ProgramRepetitionMaximum[]) {
 		const list = rmsByProgram.get(r.program_id) ?? [];
 		list.push(r);
 		rmsByProgram.set(r.program_id, list);
@@ -661,7 +678,7 @@ export async function fetchProgramSessionsForDateRange(
 
 	// Merge: for each tuple under each program, find the matching session row (if any).
 	const programById = new Map<string, Program>();
-	for (const p of programs as Program[]) {
+	for (const p of programs) {
 		programById.set(p.id, p);
 	}
 	const sessionByKey = new Map<string, ProgramSession>();
@@ -729,4 +746,178 @@ export async function materializeProgramSession(input: {
 		return { data: null, error: 'materialize_program_session returned no workout id' };
 	}
 	return { data: { workout_id: data as string }, error: null };
+}
+
+// ============================================================================
+// Progression view — per-program + per-exercise session timeline
+// ============================================================================
+
+export interface ProgramProgressionSessionRow {
+	session: ProgramSession;
+	/** Prescribed exercise from the program plan, matched case-insensitively. */
+	prescribed: ProgramExercise | null;
+	/**
+	 * Most-recent execution log for the tracked exercise in this session's
+	 * workout, if the user has executed the workout. Null when the session was
+	 * only materialized (or not materialized) but never executed.
+	 */
+	performedLog: ExecutionLogDetail | null;
+	/** Materialized workout id, if the session has been materialized. */
+	workoutId: string | null;
+}
+
+export interface ProgramProgressionData {
+	program: Program;
+	sessions: ProgramProgressionSessionRow[];
+	programRms: ProgramRepetitionMaximum[];
+}
+
+function normalizeExerciseName(name: string): string {
+	return name.trim().toLowerCase();
+}
+
+/**
+ * Fetch everything the progression view needs for one (program, exercise):
+ * all sessions ordered chronologically, each row joined to its prescribed
+ * exercise (matching `exerciseName` case-insensitively) and any performed
+ * phase from a materialized workout. Sessions that neither prescribe nor
+ * perform the target exercise are filtered out.
+ */
+export async function fetchProgramProgressionData(
+	programId: string,
+	exerciseName: string,
+): Promise<ServiceResult<ProgramProgressionData>> {
+	const supabase = getSupabaseClient();
+	const needle = normalizeExerciseName(exerciseName);
+
+	const { data: program, error: pErr } = await supabase
+		.from('programs')
+		.select('*')
+		.eq('id', programId)
+		.maybeSingle();
+	if (pErr) {
+		return { data: null, error: pErr.message };
+	}
+	if (!program) {
+		return { data: null, error: 'Program not found' };
+	}
+
+	const { data: sessions, error: sErr } = await supabase
+		.from('program_sessions')
+		.select('*')
+		.eq('program_id', programId)
+		.order('week_offset', { ascending: true })
+		.order('day_of_week', { ascending: true });
+	if (sErr) {
+		return { data: null, error: sErr.message };
+	}
+	const sessionList = (sessions ?? []) as ProgramSession[];
+	if (sessionList.length === 0) {
+		return {
+			data: { program: program as Program, sessions: [], programRms: [] },
+			error: null,
+		};
+	}
+
+	const sessionIds = sessionList.map(s => s.id);
+
+	const [prescribedRes, workoutsRes, rmsRes] = await Promise.all([
+		supabase
+			.from('program_exercises')
+			.select('*')
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('workouts')
+			.select(`
+				id,
+				program_session_id,
+				exercises (
+					id,
+					name,
+					workout_execution_logs (*)
+				)
+			`)
+			.in('program_session_id', sessionIds),
+		supabase
+			.from('program_repetition_maximums')
+			.select('*')
+			.eq('program_id', programId),
+	]);
+
+	if (prescribedRes.error) {
+		return { data: null, error: prescribedRes.error.message };
+	}
+	if (workoutsRes.error) {
+		return { data: null, error: workoutsRes.error.message };
+	}
+	if (rmsRes.error) {
+		return { data: null, error: rmsRes.error.message };
+	}
+
+	const prescribedBySession = new Map<string, ProgramExercise>();
+	for (const ex of (prescribedRes.data ?? []) as ProgramExercise[]) {
+		if (normalizeExerciseName(ex.name) !== needle) {
+			continue;
+		}
+		const existing = prescribedBySession.get(ex.program_session_id);
+		if (!existing || ex.order_index < existing.order_index) {
+			prescribedBySession.set(ex.program_session_id, ex);
+		}
+	}
+
+	type WorkoutNested = {
+		id: string;
+		program_session_id: string | null;
+		exercises: Array<{
+			id: string;
+			name: string;
+			workout_execution_logs: ExecutionLogDetail[];
+		}>;
+	};
+	const performedBySession = new Map<
+		string,
+		{ workoutId: string; log: ExecutionLogDetail | null }
+	>();
+	for (const w of (workoutsRes.data ?? []) as WorkoutNested[]) {
+		if (!w.program_session_id) {
+			continue;
+		}
+		const match = w.exercises.find(
+			e => normalizeExerciseName(e.name) === needle,
+		);
+		// Pick the most recent execution log for the matched exercise, if any.
+		// A session is only "performed" when a log exists — materialized-but-not-
+		// executed workouts have phases matching prescription but no logs.
+		const logs = match?.workout_execution_logs ?? [];
+		const log =
+			logs.length === 0
+				? null
+				: logs.slice().sort((a, b) => (a.executed_at < b.executed_at ? 1 : -1))[0] ?? null;
+		performedBySession.set(w.program_session_id, { workoutId: w.id, log });
+	}
+
+	const rows: ProgramProgressionSessionRow[] = [];
+	for (const session of sessionList) {
+		const prescribed = prescribedBySession.get(session.id) ?? null;
+		const performed = performedBySession.get(session.id);
+		const performedLog = performed?.log ?? null;
+		if (!prescribed && !performedLog) {
+			continue;
+		}
+		rows.push({
+			session,
+			prescribed,
+			performedLog,
+			workoutId: performed?.workoutId ?? null,
+		});
+	}
+
+	return {
+		data: {
+			program: program as Program,
+			sessions: rows,
+			programRms: (rmsRes.data ?? []) as ProgramRepetitionMaximum[],
+		},
+		error: null,
+	};
 }
