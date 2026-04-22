@@ -46,4 +46,23 @@ describe('NavigationBar', () => {
 
 		expect(pushMock).toHaveBeenCalledWith('/programs');
 	});
+
+	it.each([
+		'/programs',
+		'/program-detail',
+		'/program-edit',
+		'/program-assign',
+		'/program-progression',
+		'/create-program',
+	])('should mark Programs tab active on %s', async (path) => {
+		usePathnameMock.mockReturnValue(path);
+		const { getByText } = render(<NavigationBar />, { wrapper });
+
+		await waitFor(() => {
+			expect(getByText('Programs')).toBeTruthy();
+		});
+
+		const programsTab = getByText('Programs').parent?.parent;
+		expect(programsTab?.props.accessibilityState).toEqual({ selected: true });
+	});
 });

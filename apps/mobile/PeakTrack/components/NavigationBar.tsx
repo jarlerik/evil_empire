@@ -13,13 +13,20 @@ interface NavigationItem {
 	icon: IconName;
 	activeIcon: IconName;
 	iconFamily?: 'ionicons' | 'material-community';
+	matchPrefixes?: string[];
 }
 
 const navigationItems: NavigationItem[] = [
 	{ label: 'Home', href: '/', icon: 'home-outline', activeIcon: 'home' },
 	{ label: 'History', href: '/history', icon: 'time-outline', activeIcon: 'time' },
 	{ label: 'RMs', href: '/repetition-maximums', icon: 'podium-gold', activeIcon: 'podium-gold', iconFamily: 'material-community' },
-	{ label: 'Programs', href: '/programs', icon: 'barbell-outline', activeIcon: 'barbell' },
+	{
+		label: 'Programs',
+		href: '/programs',
+		icon: 'barbell-outline',
+		activeIcon: 'barbell',
+		matchPrefixes: ['/programs', '/program-', '/create-program'],
+	},
 ];
 
 export function NavigationBar() {
@@ -29,7 +36,9 @@ export function NavigationBar() {
 	return (
 		<View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
 			{navigationItems.map((item) => {
-				const isActive = pathname === item.href;
+				const isActive = item.matchPrefixes
+					? item.matchPrefixes.some((prefix) => pathname.startsWith(prefix))
+					: pathname === item.href;
 				const iconName = isActive ? item.activeIcon : item.icon;
 				const iconColor = isActive ? colors.primary : colors.text;
 

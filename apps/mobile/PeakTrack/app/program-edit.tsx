@@ -32,6 +32,7 @@ import {
 } from '@evil-empire/peaktrack-services';
 import { colors } from '../styles/common';
 import { LoadScreen } from './components/LoadScreen';
+import { NavigationBar } from '../components/NavigationBar';
 import { ProgramPlanEditor } from '../components/ProgramPlanEditor';
 import {
 	parseProgramText,
@@ -241,53 +242,61 @@ export default function ProgramEdit() {
 	};
 
 	if (loading || !program) {
-		return <LoadScreen />;
+		return (
+			<View style={styles.flex}>
+				<LoadScreen />
+				<NavigationBar />
+			</View>
+		);
 	}
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.flex}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-				<View style={styles.container}>
-					<View style={styles.headerRow}>
-						<Pressable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Back">
-							<Ionicons name="chevron-back" size={24} color={colors.text} />
-						</Pressable>
-						<Text style={styles.title} numberOfLines={2}>
-							Edit plan
+		<View style={styles.flex}>
+			<KeyboardAvoidingView
+				style={styles.flex}
+				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+			>
+				<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+					<View style={styles.container}>
+						<View style={styles.headerRow}>
+							<Pressable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Back">
+								<Ionicons name="chevron-back" size={24} color={colors.text} />
+							</Pressable>
+							<Text style={styles.title} numberOfLines={2}>
+								Edit plan
+							</Text>
+						</View>
+						<Text style={styles.subtitle} numberOfLines={1}>
+							{program.name}
 						</Text>
-					</View>
-					<Text style={styles.subtitle} numberOfLines={1}>
-						{program.name}
-					</Text>
 
-					<View style={styles.daysSection}>
-						<DayPicker
-							label="Session days"
-							value={selectedDays}
-							onChange={next => {
-								setSelectedDays(next);
-								setDaysTouched(true);
-							}}
+						<View style={styles.daysSection}>
+							<DayPicker
+								label="Session days"
+								value={selectedDays}
+								onChange={next => {
+									setSelectedDays(next);
+									setDaysTouched(true);
+								}}
+							/>
+							<Text style={styles.daysHint}>
+								{selectedDays.length === 0
+									? 'Pick which days sessions land on. If left empty, a default split is used (2 → Mon/Thu, 3 → Mon/Wed/Fri, …).'
+									: `Session order matches the order of picks: first session → ${DAY_SHORT[selectedDays[0] - 1]}${selectedDays.length > 1 ? `, second → ${DAY_SHORT[selectedDays[1] - 1]}` : ''}${selectedDays.length > 2 ? ', …' : ''}.`}
+							</Text>
+						</View>
+
+						<ProgramPlanEditor
+							key={initialPlanText}
+							initialText={initialPlanText}
+							isSaving={saving}
+							onSave={handleSavePlan}
 						/>
-						<Text style={styles.daysHint}>
-							{selectedDays.length === 0
-								? 'Pick which days sessions land on. If left empty, a default split is used (2 → Mon/Thu, 3 → Mon/Wed/Fri, …).'
-								: `Session order matches the order of picks: first session → ${DAY_SHORT[selectedDays[0] - 1]}${selectedDays.length > 1 ? `, second → ${DAY_SHORT[selectedDays[1] - 1]}` : ''}${selectedDays.length > 2 ? ', …' : ''}.`}
-						</Text>
 					</View>
-
-					<ProgramPlanEditor
-						key={initialPlanText}
-						initialText={initialPlanText}
-						isSaving={saving}
-						onSave={handleSavePlan}
-					/>
-				</View>
-			</ScrollView>
-		</KeyboardAvoidingView>
+				</ScrollView>
+			</KeyboardAvoidingView>
+			<NavigationBar />
+		</View>
 	);
 }
 
