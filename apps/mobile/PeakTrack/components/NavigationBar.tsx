@@ -19,7 +19,14 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
 	{ label: 'Home', href: '/', icon: 'home-outline', activeIcon: 'home' },
 	{ label: 'History', href: '/history', icon: 'time-outline', activeIcon: 'time' },
-	{ label: 'RMs', href: '/repetition-maximums', icon: 'podium-gold', activeIcon: 'podium-gold', iconFamily: 'material-community' },
+	{
+		label: 'RMs',
+		href: '/repetition-maximums',
+		icon: 'podium-gold',
+		activeIcon: 'podium-gold',
+		iconFamily: 'material-community',
+		matchPrefixes: ['/repetition-maximums', '/exercise-progression'],
+	},
 	{
 		label: 'Programs',
 		href: '/programs',

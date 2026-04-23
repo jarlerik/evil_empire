@@ -1,15 +1,16 @@
 import { View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import React, { useState, useCallback } from 'react';
+import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { commonStyles } from '../styles/common';
+import { colors, commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
-import { RepetitionMaximum, fetchRepetitionMaximums, createRepetitionMaximum, updateRepetitionMaximum, deleteRepetitionMaximum } from '@evil-empire/peaktrack-services';
+import { RepetitionMaximum, fetchRepetitionMaximums, createRepetitionMaximum, updateRepetitionMaximum, deleteRepetitionMaximum, fetchCompletedExerciseNameSet } from '@evil-empire/peaktrack-services';
 
 export default function RepetitionMaximums() {
 	const { user } = useAuth();
@@ -21,11 +22,13 @@ export default function RepetitionMaximums() {
 	const [isModalVisible, setIsModalVisible] = useState(false);
 	const [editingRm, setEditingRm] = useState<RepetitionMaximum | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [completedNames, setCompletedNames] = useState<Set<string>>(new Set());
 
 	useFocusEffect(
 		useCallback(() => {
 			if (user) {
 				fetchRms();
+				fetchCompletedNames();
 			}
 		}, [user]),
 	);
@@ -39,6 +42,14 @@ export default function RepetitionMaximums() {
 			setRms(data);
 		}
 		setIsFetching(false);
+	};
+
+	const fetchCompletedNames = async () => {
+		if (!user) {return;}
+		const { data } = await fetchCompletedExerciseNameSet(user.id);
+		if (data) {
+			setCompletedNames(data);
+		}
 	};
 
 	const handleOpenModal = (rm?: RepetitionMaximum) => {
@@ -165,9 +176,29 @@ export default function RepetitionMaximums() {
 						</View>
 					) : (
 						<View style={styles.listContainer}>
-							{groupedRmsArray.map(({ exerciseName, rms: exerciseRms }) => (
+							{groupedRmsArray.map(({ exerciseName, rms: exerciseRms }) => {
+								const hasLogs = completedNames.has(exerciseName.trim().toLowerCase());
+								return (
 								<View key={exerciseName} style={styles.exerciseGroup}>
-									<Text style={styles.exerciseName}>{exerciseName}</Text>
+									<View style={styles.exerciseHeader}>
+										<Text style={styles.exerciseName}>{exerciseName}</Text>
+										{hasLogs ? (
+											<Pressable
+												onPress={() =>
+													router.push({
+														pathname: '/exercise-progression',
+														params: { exerciseName },
+													})
+												}
+												style={[styles.progressionBtn, styles.progressionBtnPrimary]}
+												accessibilityRole="button"
+												accessibilityLabel="View progression"
+											>
+												<Ionicons name="trending-up-outline" size={16} color="#fff" />
+												<Text style={styles.progressionBtnText}>View progression</Text>
+											</Pressable>
+										) : null}
+									</View>
 									{exerciseRms.map((rm) => (
 										<View key={rm.id} style={styles.rmItem}>
 											<View style={styles.rmInfo}>
@@ -196,7 +227,8 @@ export default function RepetitionMaximums() {
 										</View>
 									))}
 								</View>
-							))}
+								);
+							})}
 						</View>
 					)}
 				</View>
@@ -260,11 +292,37 @@ const styles = StyleSheet.create({
 	exerciseGroup: {
 		marginBottom: 30,
 	},
+	exerciseHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 12,
+		gap: 8,
+	},
 	exerciseName: {
 		color: '#fff',
 		fontSize: 24,
 		fontWeight: 'bold',
-		marginBottom: 12,
+		flexShrink: 1,
+	},
+	progressionBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		borderWidth: 1,
+		borderColor: colors.primary,
+		borderRadius: 6,
+	},
+	progressionBtnPrimary: {
+		backgroundColor: colors.primary,
+	},
+	progressionBtnText: {
+		color: '#fff',
+		fontSize: 12,
+		fontWeight: '600',
 	},
 	rmItem: {
 		flexDirection: 'row',

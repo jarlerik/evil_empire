@@ -3,38 +3,26 @@ import type {
 	ProgramExercise,
 	ProgramRepetitionMaximum,
 } from '@evil-empire/types';
-
-/**
- * Minimal shape shared by `ExercisePhase` and `ExecutionLogDetail`. The
- * progression view only needs the set/rep/weight dimensions to render tiles
- * and compute volume, so we type the performed input loosely to accept either.
- */
-export interface PerformedShape {
-	sets: number;
-	repetitions: number;
-	weight: number;
-	weights?: number[] | null;
-	compound_reps?: number[] | null;
-}
+import {
+	buildColumnTiles,
+	formatKg,
+	isWaveWeights,
+	normalizePerformed,
+	sum,
+	uniqueWeights,
+	volumeOf,
+	type ColumnLayout,
+	type NormalizedSpec,
+	type PerformedShape,
+} from './progressionLayoutCore';
 import {
 	exerciseNeedsRmSnapshot,
 	resolveWeightsFromSnapshot,
 } from './resolveProgramWeights';
 
-export type TileColor =
-	| 'bright'
-	| 'faded-bright'
-	| 'dark'
-	| 'faded-dark'
-	| 'dim'
-	| 'neutral';
-
-export interface ColumnLayout {
-	/** Tiles bottom-to-top. */
-	tiles: TileColor[];
-	/** Weight label shown under the column (waves only). */
-	weightLabel?: string;
-}
+// Re-export types so existing imports from './progressionLayout' keep working.
+export type { ColumnLayout, PerformedShape, TileColor } from './progressionLayoutCore';
+export { normalizePerformed } from './progressionLayoutCore';
 
 export interface SessionLayout {
 	sessionId: string;
@@ -63,31 +51,6 @@ const DAY_LABELS: Record<number, string> = {
 	6: 'Sat',
 	7: 'Sun',
 };
-
-interface NormalizedSpec {
-	/** Number of set columns. */
-	setCount: number;
-	/** Reps per set column (length == setCount). */
-	repsPerSet: number[];
-	/** Weight per set column (length == setCount). */
-	weightPerSet: number[];
-	/** True when the spec is a wave (per-set weights differ). */
-	isWave: boolean;
-	/** Compound segment boundaries within a set, e.g. [2, 2] for `2 + 2`. */
-	compoundSegments?: number[];
-}
-
-function sum(xs: number[]): number {
-	let total = 0;
-	for (const x of xs) {
-		total += x;
-	}
-	return total;
-}
-
-function isWaveWeights(weights: number[] | undefined): weights is number[] {
-	return Array.isArray(weights) && weights.length > 1;
-}
 
 /**
  * Turn a parsed prescribed exercise into a uniform shape the renderer can
@@ -164,115 +127,6 @@ function normalizeFromParsed(
 		weightPerSet: new Array(sets).fill(resolvedWeight),
 		isWave: false,
 	};
-}
-
-/**
- * Turn a performed `PerformedShape` (execution log or phase) into the same
- * shape as a prescribed spec. This lets the renderer compare like-with-like.
- */
-export function normalizePerformed(performed: PerformedShape): NormalizedSpec | null {
-	const compound = performed.compound_reps ?? undefined;
-	const weights = performed.weights ?? undefined;
-
-	if (isWaveWeights(weights) && compound && compound.length === weights.length) {
-		return {
-			setCount: compound.length,
-			repsPerSet: compound,
-			weightPerSet: weights,
-			isWave: true,
-		};
-	}
-
-	if (isWaveWeights(weights) && !compound) {
-		const reps = performed.repetitions > 0 ? performed.repetitions : 0;
-		return {
-			setCount: weights.length,
-			repsPerSet: new Array(weights.length).fill(reps),
-			weightPerSet: weights,
-			isWave: true,
-		};
-	}
-
-	if (compound && compound.length > 0 && !isWaveWeights(weights)) {
-		const repsTotal = sum(compound);
-		const sets = performed.sets > 0 ? performed.sets : 1;
-		return {
-			setCount: sets,
-			repsPerSet: new Array(sets).fill(repsTotal),
-			weightPerSet: new Array(sets).fill(performed.weight),
-			isWave: false,
-			compoundSegments: compound,
-		};
-	}
-
-	const sets = performed.sets > 0 ? performed.sets : 1;
-	const reps = performed.repetitions > 0 ? performed.repetitions : 0;
-	return {
-		setCount: sets,
-		repsPerSet: new Array(sets).fill(reps),
-		weightPerSet: new Array(sets).fill(performed.weight),
-		isWave: false,
-	};
-}
-
-function volumeOf(spec: NormalizedSpec): number {
-	let v = 0;
-	for (let i = 0; i < spec.setCount; i += 1) {
-		v += (spec.repsPerSet[i] ?? 0) * (spec.weightPerSet[i] ?? 0);
-	}
-	return v;
-}
-
-function formatKg(kg: number): string {
-	if (Number.isInteger(kg)) {
-		return `${kg}kg`;
-	}
-	return `${kg.toFixed(1)}kg`;
-}
-
-function uniqueWeights(spec: NormalizedSpec): number[] {
-	return Array.from(new Set(spec.weightPerSet));
-}
-
-function buildColumnTiles(
-	repsInColumn: number,
-	baseColor: 'bright' | 'dark' | 'dim' | 'neutral',
-	compoundSegments: number[] | undefined,
-): TileColor[] {
-	if (repsInColumn <= 0) {
-		return [];
-	}
-	const fadedBase: TileColor =
-		baseColor === 'bright'
-			? 'faded-bright'
-			: baseColor === 'dark'
-				? 'faded-dark'
-				: baseColor;
-	const full: TileColor = baseColor;
-
-	// Compound: first segment full, subsequent segments faded. `tiles` is
-	// ordered bottom-to-top to match the visual stack.
-	if (compoundSegments && compoundSegments.length > 1) {
-		const tiles: TileColor[] = [];
-		for (let i = 0; i < compoundSegments.length; i += 1) {
-			const segmentReps = compoundSegments[i] ?? 0;
-			const color = i === 0 ? full : fadedBase;
-			for (let r = 0; r < segmentReps; r += 1) {
-				tiles.push(color);
-			}
-		}
-		// Trim/pad to match actual repsInColumn — performed can fall short.
-		while (tiles.length > repsInColumn) {
-			tiles.pop();
-		}
-		return tiles;
-	}
-
-	const tiles: TileColor[] = [];
-	for (let r = 0; r < repsInColumn; r += 1) {
-		tiles.push(full);
-	}
-	return tiles;
 }
 
 /**
