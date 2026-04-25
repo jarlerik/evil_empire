@@ -8,6 +8,7 @@
   "exports": {
     "./base.json": "./base.json",
     "./react-native.json": "./react-native.json",
-    "./node.json": "./node.json"
+    "./node.json": "./node.json",
+    "./web.json": "./web.json"
   }
 }

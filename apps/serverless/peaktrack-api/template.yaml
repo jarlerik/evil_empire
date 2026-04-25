@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PeakTrack API — Hono on Lambda Function URL (RESPONSE_STREAM)
+
+Parameters:
+  Stage:
+    Type: String
+    Description: Deployment environment label propagated to Lambda env (NODE_ENV)
+    Default: staging
+    AllowedValues:
+      - staging
+      - prod
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL (https://xxx.supabase.co). Used to derive the JWKS discovery URL for asymmetric JWT verification.
+    AllowedPattern: ^https://[a-zA-Z0-9-]+\.supabase\.co$
+  CorsAllowedOrigins:
+    Type: String
+    Description: Comma-separated CORS allowlist (production web origin + LAN dev IPs)
+    Default: ''
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Description: AI provider secret used by /api/coach/prompt (PR 7 fills in the body)
+    Default: ''
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures:
+      - arm64
+    MemorySize: 512
+    Timeout: 30
+    Tracing: Active
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    # We bundle the Lambda payload ourselves via scripts/bundle.mjs (run by
+    # `pnpm bundle` before `sam build`). SAM's NodejsNpmEsbuildBuilder runs
+    # `npm install` against package.json, which fails on pnpm's `workspace:*`
+    # protocol references — so we own the bundling and point CodeUri at the
+    # prebuilt output instead. Output already contains a minimal
+    # `package.json` with `"type": "module"` so the Node 22 runtime treats
+    # `index.js` as ESM.
+    Properties:
+      FunctionName: !Sub 'peaktrack-api-${Stage}'
+      CodeUri: dist/
+      Handler: index.handler
+      Environment:
+        Variables:
+          NODE_ENV: !Ref Stage
+          SUPABASE_URL: !Ref SupabaseUrl
+          CORS_ALLOWED_ORIGINS: !Ref CorsAllowedOrigins
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+      # SAM's L2 sugar — expands to AWS::Lambda::Url + AWS::Lambda::Permission.
+      # Browser CORS preflight is handled in code (middleware/cors.ts); the
+      # Function URL's own CORS layer is permissive (the JWT middleware is the
+      # security boundary, not the URL config).
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: RESPONSE_STREAM
+        Cors:
+          AllowOrigins:
+            - '*'
+          # Function URL CORS handles OPTIONS preflight automatically — only
+          # the actual request methods belong here, and the schema rejects
+          # OPTIONS as a value (caught by sam validate --lint).
+          AllowMethods:
+            - GET
+            - POST
+          AllowHeaders:
+            - authorization
+            - content-type
+
+Outputs:
+  FunctionUrl:
+    Description: Public Function URL (RESPONSE_STREAM invoke mode)
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl
+  FunctionName:
+    Description: Lambda function name
+    Value: !Ref ApiFunction
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ApiFunction.Arn

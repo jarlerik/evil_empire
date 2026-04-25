@@ -1,0 +1,19 @@
+{
+  "extends": "@evil-empire/typescript-config/web.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "paths": {
+      "@/*": ["./app/*"]
+    }
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "tailwind.config.js",
+    "postcss.config.js"
+  ],
+  "exclude": ["node_modules", "dist", ".turbo"]
+}

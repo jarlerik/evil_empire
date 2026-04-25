@@ -1,0 +1,15 @@
+{
+  "name": "@peaktrack/app-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:web": "pnpm --filter @evil-empire/web-app build",
+    "build:infra": "sam build",
+    "build": "pnpm build:web && pnpm build:infra",
+    "deploy:staging": "./deploy.sh staging",
+    "deploy:prod": "./deploy.sh prod",
+    "deploy:app:staging": "./deploy-app.sh staging",
+    "deploy:app:prod": "./deploy-app.sh prod",
+    "validate": "sam validate --lint"
+  }
+}

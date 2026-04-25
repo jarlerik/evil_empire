@@ -1,0 +1,5 @@
+.aws-sam
+.turbo
+node_modules
+*.log
+samconfig.toml.local

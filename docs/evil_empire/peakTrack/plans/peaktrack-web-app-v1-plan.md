@@ -81,12 +81,13 @@ Same pattern as `apps/serverless/getpeaktrack-site` and `apps/serverless/vaikia-
 
 ### API layer (shared backend for AI coach + future server-side features)
 
-**New package:** `apps/serverless/peaktrack-api` — introduces a runtime flavor to the serverless folder. The two existing siblings are static-site wrappers; this one provisions an `AWS::Serverless::Function` + API Gateway (or a Function URL for simplicity) via the same SAM tooling.
+**New package:** `apps/serverless/peaktrack-api` — introduces a runtime flavor to the serverless folder. The two existing siblings are static-site wrappers; this one provisions an `AWS::Serverless::Function` + **Lambda Function URL with `RESPONSE_STREAM` invoke mode** via the same SAM tooling. (Earlier draft said "API Gateway or Function URL"; review committed to Function URL because API Gateway can't stream Lambda responses, and PR 7's coach endpoint needs SSE streaming. Function URL with `RESPONSE_STREAM` is the only clean Lambda streaming path on AWS today. Custom domain comes via CloudFront in front of the Function URL when we wire production DNS in PR 8.)
 
 **This service is consumed by both web and mobile.** The coach is a single feature from one product; both clients carry the same Supabase JWT, so the auth model is identical for both. See the *Coach service architecture* section below for why it's one service and not two.
 
 - **Runtime:** Node.js 22 on Lambda.
-- **Framework inside the handler:** Hono. Small, fast, native Fetch API handler that adapts cleanly to API Gateway / Function URLs / local dev via `@hono/node-server`. Alternative Express if you have a preference.
+- **Framework inside the handler:** Hono. Small, fast, native Fetch API handler that adapts cleanly to Function URLs and local dev via `@hono/node-server`. Alternative Express if you have a preference.
+- **Bundling:** SAM `BuildMethod: esbuild` so the Lambda artifact is a single bundled file. The default "copy `node_modules`" SAM behaviour breaks workspace symlinks for `@evil-empire/peaktrack-services` and `@evil-empire/types`; esbuild bundles them inline. Specified explicitly because picking this up only after the first deploy fails wastes time.
 - **Endpoints v1:**
   - `POST /api/coach/prompt` — placeholder endpoint that validates a Supabase JWT, forwards to the AI provider using a server-held secret (`ANTHROPIC_API_KEY` or similar in SAM parameters), and streams the response back. v1 ships the plumbing + a stub response so we can prove end-to-end secret handling works.
   - `GET /health` — liveness check.
@@ -94,7 +95,7 @@ Same pattern as `apps/serverless/getpeaktrack-site` and `apps/serverless/vaikia-
 - **Secrets:** stored as SAM parameters / AWS SSM parameters, injected as Lambda env vars. Never committed, never shipped to either client.
 - **Code reuse:** the Lambda imports `@evil-empire/peaktrack-services` and `@evil-empire/types` (which now includes a `coach.ts` module for the request/response/streaming types) directly from the monorepo (tsup-bundled).
 - **CORS:** the production web app origin is a fixed entry; additional dev origins are read from a comma-separated `CORS_ALLOWED_ORIGINS` env var so a developer running Expo Go on a physical phone can add their machine's LAN IP (e.g., `http://192.168.1.42:8081`) without a code change. `localhost`, `null`, and `capacitor://localhost` are always allowed in dev. Mobile in production uses native fetch (no CORS check) so it doesn't need an origin entry. CORS is browser hygiene; the actual security boundary is JWT verification. (Earlier draft only listed `localhost`/`null`/`capacitor://localhost`, which silently breaks Expo Go on a real phone — the original IP-based dev origin would never match.)
-- **Local dev:** `sam local start-api` or `hono dev` against `@hono/node-server`. Web's `VITE_API_BASE_URL` and mobile's `EXPO_PUBLIC_API_BASE_URL` both point at `http://localhost:3001` in dev, at the API Gateway domain in prod.
+- **Local dev:** **`@hono/node-server` is the inner-loop tool** (fast reload, real Node, accurate Hono behaviour); `pnpm dev:api` runs it. `sam local start-invoke` is reserved for pre-deploy smoke testing of the actual Lambda packaging — too slow for the inner loop. Web's `VITE_API_BASE_URL` and mobile's `EXPO_PUBLIC_API_BASE_URL` both point at `http://localhost:3001` in dev, at the Function URL (or its CloudFront alias) in prod.
 
 ### Coach service architecture (shared, not split)
 
@@ -131,6 +132,10 @@ Same pattern as `apps/serverless/getpeaktrack-site` and `apps/serverless/vaikia-
 | `CORS_ALLOWED_ORIGINS` | Lambda | Comma-separated origins allowed by CORS (web app prod URL + dev/LAN origins) |
 | `ANTHROPIC_API_KEY` | Lambda | AI provider secret (example) |
 
+### Environments
+
+Two environments: `staging` and `prod`. Both use the **same Supabase project** in v1 — there's only one Supabase project today and standing up a separate staging project (with its own RLS, its own seed data, its own auth users) is out of scope for v1. Implication: internal testers on the staging web URL are operating on real production data. This is an explicit, documented trade-off, not an oversight; the alternative (separate Supabase staging project) lands in a follow-up PR if internal testing turns out to corrupt real data often enough to matter. Each Lambda env (`peaktrack-api-staging`, `peaktrack-api-prod`) has its own SAM stack with its own secrets and CORS allowlist.
+
 ---
 
 ## Repository layout (new additions only)
@@ -160,7 +165,7 @@ evil_empire/
 │           │   └── routes/
 │           │       ├── coach.ts
 │           │       └── health.ts
-│           ├── template.yaml                # Lambda + API Gateway
+│           ├── template.yaml                # Lambda Function URL (RESPONSE_STREAM), esbuild bundling
 │           ├── samconfig.toml
 │           └── package.json                 # @evil-empire/peaktrack-api
 └── packages/
@@ -291,36 +296,60 @@ Each milestone below corresponds to **one pull request**, sized so it can be rev
 
 Wires up the two new packages and the deploy wrappers. No product features.
 
+**Before starting** (cheap checks that prevent mid-PR surprises):
+
+- [ ] **Supabase RLS audit.** Confirm the policies on `workouts`, `exercises`, `programs`, `repetition_maximums`, `user_settings`, and `exercise_phases` only check `auth.uid() = …user_id` (or equivalent) and don't carry any client-platform conditions. A web client uses the same anon key + JWT as mobile; if a policy ever assumed mobile, web is silently blocked. 5-minute check, almost certainly fine.
+- [ ] **evil_ui RN-Web smoke.** Throwaway 30-minute exercise: spin up a tiny Vite app with the same alias config and try to mount each evil_ui component the auth shell will need (`Button`, `Input`, `Card`, `SidebarNav`, `TerminalBlock`, plus form layouts). The showcase only exercises a curated set; if any of these uses `Animated.Value`, `onLayout` measurement, or hover-state quirks that misbehave under RN-Web, you want to know now, not in PR 2. Components that fail get a `Component.web.tsx` sibling — note in the PR description which (if any) need it before PR 2 starts.
+
+**Web app:**
+
 - [ ] Create `apps/web/peaktrack-app/` with React 19, Vite, `@tanstack/react-router` + `@tanstack/router-plugin/vite` for file-based routing. Vite config aliases `react-native → react-native-web` and resolves `.web.tsx` first (copy verbatim from `apps/evil_ui/vite.config.ts`).
 - [ ] `tailwind.config.js` extends `@evil-empire/ui/tailwind-preset`; PostCSS wired.
 - [ ] Root route renders a single `@evil-empire/ui` component (e.g. `Button`, `Card`) to prove RN-Web consumption works.
 - [ ] `package.json` declares deps on `@evil-empire/ui`, `@evil-empire/parsers`, `@evil-empire/types`, `@evil-empire/peaktrack-services`; workspace protocol `workspace:*` used throughout.
-- [ ] Create `apps/serverless/peaktrack-api/` with Hono app, Lambda adapter, `GET /health`, **`POST /api/coach/prompt` skeleton that returns `401` without a valid JWT** (full coach logic comes in PR 7), local dev via `@hono/node-server`.
+- [ ] **Vitest + React Testing Library** wired with a passing placeholder test, so PR 2's storage-adapter tests have a home.
+
+**API:**
+
+- [ ] Create `apps/serverless/peaktrack-api/` with Hono app, **Lambda Function URL** adapter (`hono/aws-lambda` or `awslambda.streamifyResponse` for the eventual streaming path), `GET /health`, **`POST /api/coach/prompt` skeleton that returns `401` without a valid JWT** (full coach logic comes in PR 7), local dev via `@hono/node-server`.
 - [ ] **JWT verification middleware** in place — HS256 against `SUPABASE_JWT_SECRET`, wired to the coach route so the 401 path is real, not aspirational.
 - [ ] **CORS middleware** reading `CORS_ALLOWED_ORIGINS` env var, with `localhost`/`null`/`capacitor://localhost` defaults in dev.
-- [ ] `template.yaml` provisions `AWS::Serverless::Function` + API Gateway (or Function URL); `samconfig.toml` with `dev` env. `SUPABASE_JWT_SECRET` and `CORS_ALLOWED_ORIGINS` as `NoEcho` SAM parameters.
+- [ ] `template.yaml` provisions `AWS::Serverless::Function` with **`FunctionUrlConfig` (`AuthType: NONE`, `InvokeMode: RESPONSE_STREAM`)** and **`BuildMethod: esbuild`** so workspace deps bundle inline. `samconfig.toml` with `staging` and `prod` envs. `SUPABASE_JWT_SECRET`, `SUPABASE_URL`, and `CORS_ALLOWED_ORIGINS` as `NoEcho` SAM parameters.
+- [ ] `pnpm dev:api` runs `@hono/node-server` (fast inner loop). `pnpm smoke:api` runs `sam local start-invoke` for pre-deploy parity check (slow, only invoked manually).
+
+**Static site wrapper:**
+
 - [ ] Create `apps/serverless/peaktrack-app-site/` as a near-verbatim clone of `getpeaktrack-site` (SAM template for S3 + CloudFront, `vite.config.js` points at `../../web/peaktrack-app`, `deploy.sh`, `deploy-app.sh`). With TanStack Router instead of TanStack Start, this is genuinely a copy.
-- [ ] `turbo.json` updated so `build`, `dev`, `lint`, `typecheck`, `test` all fan out to the new packages.
+
+**Wiring:**
+
+- [ ] `turbo.json` updated so `build`, `dev`, `lint`, `typecheck`, `test` all fan out to the new packages, with `"build": { "dependsOn": ["^build"] }` so `peaktrack-services` and `@evil-empire/types` build before `peaktrack-app` and `peaktrack-api` consume them.
 - [ ] Root `package.json` scripts: `dev:web`, `dev:api`, `deploy:web`, `deploy:api`.
 - [ ] `.env.example` files added to `peaktrack-app` and `peaktrack-api` listing every var from the Environment variables table.
 - [ ] README.md in each new package with dev/deploy commands.
+- [ ] **CI** (if the repo has CI today): pipeline updated to run `pnpm build`/`typecheck`/`lint`/`test` against the new packages on PR. If the repo has no CI, note explicitly that v1 ships without one and PR 8 picks it up if needed.
 - [ ] **First-build bundle baseline captured** in the PR description (initial JS gzipped, RN-Web overhead). This is the number the bundle budget in PR 8 gets set against — picking a number up front (the earlier "300 KB gzipped" target) before knowing the baseline was guessing.
-- [ ] **Merge checklist:** `pnpm build` clean · `pnpm typecheck` clean · `pnpm lint` clean · staging deploy of `peaktrack-app-site` renders the placeholder UI · staging deploy of `peaktrack-api` returns `200` on `/health`, `401` on `POST /api/coach/prompt` with no `Authorization` header, correct `Access-Control-Allow-Origin` from an allowed origin and rejection from a disallowed origin · bundle baseline recorded in the PR description.
+
+**Domain:** v1 staging deploys to the default CloudFront distribution domain (e.g., `dxxx.cloudfront.net`). Custom subdomain (`app.getpeaktrack.com` or whatever) + ACM cert + Route 53 lands in PR 8 alongside the production cutover. (Earlier draft required staging to deploy to a confirmed subdomain in PR 1; that decision was open and would have blocked the PR. Decoupled here.)
+
+- [ ] **Merge checklist:** `pnpm build` clean · `pnpm typecheck` clean · `pnpm lint` clean · staging deploy of `peaktrack-app-site` renders the placeholder UI on the default CloudFront domain · staging deploy of `peaktrack-api` returns `200` on `/health`, `401` on `POST /api/coach/prompt` with no `Authorization` header, correct `Access-Control-Allow-Origin` from an allowed origin and rejection from a disallowed origin · bundle baseline recorded in the PR description · pre-PR-1 RLS audit and evil_ui smoke results documented in the PR description.
 
 ### PR 2 — `feat(web): auth + protected layout shell`
 
 Ships sign-in / sign-up / sign-out and the authenticated app shell. No workout features yet.
 
-- [ ] Port `contexts/AuthContext.tsx` from mobile. Swap `AsyncStorage` → `localStorage` in the storage adapter only; keep signatures identical so mobile isn't affected.
+**Before starting:** read `apps/mobile/PeakTrack/contexts/AuthContext.tsx` and the auth screens to confirm the actual auth surface. If mobile is **email/password only**, this PR is the straight port below. If mobile uses **OAuth providers** (Apple / Google via `expo-web-browser`), web's flow is materially different — it uses Supabase's `signInWithOAuth` with a redirect back to a `/auth/callback` route on the web origin. Document what mobile actually has in the PR description and adjust scope accordingly. (Earlier draft assumed email/password without checking; that assumption is the kind of thing that turns a 3-day PR into a 5-day PR if wrong.)
+
+- [ ] Port `contexts/AuthContext.tsx` from mobile. Swap `AsyncStorage` → `localStorage` in the storage adapter only; keep signatures identical so mobile isn't affected. Wrap `localStorage` in a Promise-returning adapter so the interface matches `AsyncStorage` (Supabase v2 accepts either, but symmetry makes the swap a one-line diff).
 - [ ] Port `contexts/UserSettingsContext.tsx` the same way.
 - [ ] `lib/supabase.ts` — web Supabase client, reads `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 - [ ] `lib/query-client.ts` — shared React Query client instance.
-- [ ] `app/routes/__root.tsx` — provider stack (QueryClientProvider, AuthProvider, UserSettingsProvider) + NotFound.
-- [ ] `app/routes/sign-in.tsx`, `app/routes/sign-up.tsx` — public routes using evil_ui `Input` / `Button`.
+- [ ] `app/routes/__root.tsx` — provider stack (QueryClientProvider, AuthProvider, UserSettingsProvider) + `notFoundComponent` for 404s.
+- [ ] `app/routes/sign-in.tsx`, `app/routes/sign-up.tsx` — public routes using evil_ui `Input` / `Button`. **If mobile uses OAuth, also add `app/routes/auth/callback.tsx`** to handle the Supabase redirect.
 - [ ] `app/routes/_app.tsx` — protected layout route with `beforeLoad` that redirects to `/sign-in` when no session. Renders `SidebarNav` + outlet.
 - [ ] `app/routes/_app/index.tsx` — placeholder home showing signed-in email and a sign-out button.
 - [ ] Unit tests for the storage adapter swap and for the `beforeLoad` redirect.
-- [ ] **Merge checklist:** sign-up → email verified (or stubbed) → sign-in → lands on home · sign-out clears session and redirects · unauthenticated access to any `_app` route redirects · tests pass.
+- [ ] **Merge checklist:** sign-up → email verified (or stubbed) → sign-in → lands on home · sign-out clears session and redirects · unauthenticated access to any `_app` route redirects · all auth providers mobile supports also work on web · tests pass.
 
 ### PR 3 — `refactor(services): lift program & exercise logic from mobile into shared package`
 
@@ -333,7 +362,8 @@ This PR is mobile-only at the file level — no web product code lands here.
 - [ ] Move or create tests for the lifted modules in the destination package.
 - [ ] `pnpm test --filter=@evil-empire/peaktrack-services` (or the new package) passes with the new tests.
 - [ ] Mobile app starts and runs unchanged from a user's perspective — visual smoke test on iOS sim.
-- [ ] **Merge checklist:** no behavior change on mobile · 296 parser tests still pass · new tests cover the lifted modules · typecheck clean across monorepo · web app (which imports from `peaktrack-services` since PR 1) still builds clean.
+- [ ] **End-to-end program flow on mobile:** paste a known program text → materialize it → verify the produced exercises, sets, and weights match expected. The lifted modules (`parseProgramText`, `programScheduling`, `resolveProgramWeights`, `prepareMaterializeInputs`) power program creation; a render-only smoke test won't catch a regression in their interaction. Automate this if the test infra supports it; otherwise document it as a manual checklist with the expected output captured. (Earlier draft only required a visual smoke test, which is too thin for a refactor of this depth.)
+- [ ] **Merge checklist:** no behavior change on mobile · 296 parser tests still pass · new tests cover the lifted modules · end-to-end program flow on mobile produces identical output before and after · typecheck clean across monorepo · web app (which imports from `peaktrack-services` since PR 1) still builds clean.
 
 ### PR 4 — `feat(web): workout management + history + RMs`
 
@@ -346,6 +376,7 @@ First real product PR. Gives the user a usable planning surface. Depends on PR 3
 - [ ] `app/routes/_app/workouts/import.tsx` — import from pasted text (reuses parser logic).
 - [ ] `app/routes/_app/history.tsx` — 90-day scrollback, read-only, with copy-workout action.
 - [ ] `app/routes/_app/rms.tsx` — repetition maximums CRUD; 1RMs drive percentage-based weights in the parser.
+- [ ] `app/routes/_app/settings.tsx` — weight unit (kg/lbs) and user weight, backed by `UserSettingsContext` (already wired in PR 2). Lands in PR 4 because it's settings-adjacent to RMs and naturally clusters with them; earlier draft listed it in the route table but no PR shipped it.
 - [ ] React Query hooks (`hooks/use-workouts.ts`, `hooks/use-exercises.ts`, `hooks/use-rms.ts`) wrapping `@evil-empire/peaktrack-services`.
 - [ ] Copy-workout action: creates a new workout on a target date using the same exercises/phases as the source.
 - [ ] No new logic in the web app that isn't in `peaktrack-services` — anything that would need porting from mobile's `lib/` should already be in the shared package thanks to PR 3.
@@ -388,6 +419,7 @@ Proves the server can hold secrets end-to-end and finalises the types that mobil
 - [ ] SAM template updates: `ANTHROPIC_API_KEY` (or equivalent) as a `NoEcho` parameter, wired to the Lambda env.
 - [ ] Hidden / feature-flagged coach surface in the web app that exercises the endpoint, importing types from `@evil-empire/types`.
 - [ ] **Schema:** v1 ships no schema changes (coach is stub-only, no conversation persistence). Document this in the PR description so it's a recorded decision rather than an oversight; the first PR after v1 that adds conversation history will own its own migration.
+- [ ] **Observability:** CloudWatch metrics for the Lambda — request count, error rate, p99 latency. CloudWatch alarm on a spike in 401s (a JWT-spray attack would show as a sudden cliff in the auth-failure metric). One dashboard widget per metric; no fancy infra. Without this, the first sign of trouble is users complaining.
 - [ ] Integration test: web app hits deployed API with a valid JWT, gets a streamed response, secret is never present in any client-side bundle (verify by grepping the built assets).
 - [ ] **Merge checklist:** deployed staging round-trip works from web · secret absent from client bundle · CORS passes from allowed origins, fails from others · `@evil-empire/types/coach` importable from both clients and the Lambda · tests pass.
 
