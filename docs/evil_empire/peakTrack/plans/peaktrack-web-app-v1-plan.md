@@ -14,7 +14,7 @@ tags:
 # Plan — PeakTrack Web App v1
 
 ## Status
-Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below).
+Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below). **PR 2 shipped 2026-04-25 directly on `develop` (commit `0fae577`)** — full delta list under PR 2 below.
 
 Original draft chose TanStack Start (anticipating eventual SSR). On review, the SSR premise didn't hold for v1: the AI coach's server-side requirement is satisfied by the separate `peaktrack-api` Lambda that mobile already needs, so the web app has nothing it must render server-side. This revision swaps **TanStack Start → TanStack Router on plain Vite** (static SPA), folds the coach contract types into the existing `@evil-empire/types` package rather than minting `peaktrack-coach-contract`, commits to **HS256 + shared-secret JWT verification** (matching Supabase's actual default), tightens **CORS handling for Expo Go on physical devices** (env-driven allowlist), fixes a stale row in the routing table (`create-workout.tsx` doesn't exist on mobile), reorders PRs so the **shared-package refactor lands before any web product code that depends on it**, and softens the time and bundle-size estimates so they're set against real numbers rather than guessed up front. Reasoning is preserved inline at each affected section so future readers don't have to dig back through chat history.
 
@@ -346,22 +346,40 @@ Wires up the two new packages and the deploy wrappers. No product features.
 
 - [x] **Merge checklist:** `pnpm build` clean · `pnpm typecheck` clean · `pnpm lint` clean (PR-1 packages clean; pre-existing warnings in `peaktrack-services`/`parsers`/`mobile` deferred to a separate chore PR) · staging deploy of `peaktrack-app-site` renders the placeholder UI on the default CloudFront domain · staging deploy of `peaktrack-api` returns `200` on `/health`, `401` on `POST /api/coach/prompt` (both no-auth and bad-token paths verified locally + remote), `vary: Origin` header set with no `Access-Control-Allow-Origin` echoed for a disallowed origin · bundle baseline recorded above · pre-PR-1 RLS audit, evil_ui smoke, and mobile-auth-surface results documented above.
 
-### PR 2 — `feat(web): auth + protected layout shell`
+### PR 2 — `feat(web): auth + protected layout shell` ✅
+
+**Status:** Shipped 2026-04-25 directly on `develop` (commit `0fae577`). Browser-verified locally against the shared Supabase project: sign-up → email verify → sign-in → home → sign-out works; unauthenticated `/` redirects to `/sign-in`; authed users hitting `/sign-in` bounce to `/`.
 
 Ships sign-in / sign-up / sign-out and the authenticated app shell. No workout features yet.
 
 **Before starting:** read `apps/mobile/PeakTrack/contexts/AuthContext.tsx` and the auth screens to confirm the actual auth surface. If mobile is **email/password only**, this PR is the straight port below. If mobile uses **OAuth providers** (Apple / Google via `expo-web-browser`), web's flow is materially different — it uses Supabase's `signInWithOAuth` with a redirect back to a `/auth/callback` route on the web origin. Document what mobile actually has in the PR description and adjust scope accordingly. (Earlier draft assumed email/password without checking; that assumption is the kind of thing that turns a 3-day PR into a 5-day PR if wrong.)
 
-- [ ] Port `contexts/AuthContext.tsx` from mobile. Swap `AsyncStorage` → `localStorage` in the storage adapter only; keep signatures identical so mobile isn't affected. Wrap `localStorage` in a Promise-returning adapter so the interface matches `AsyncStorage` (Supabase v2 accepts either, but symmetry makes the swap a one-line diff).
-- [ ] Port `contexts/UserSettingsContext.tsx` the same way.
-- [ ] `lib/supabase.ts` — web Supabase client, reads `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
-- [ ] `lib/query-client.ts` — shared React Query client instance.
-- [ ] `app/routes/__root.tsx` — provider stack (QueryClientProvider, AuthProvider, UserSettingsProvider) + `notFoundComponent` for 404s.
-- [ ] `app/routes/sign-in.tsx`, `app/routes/sign-up.tsx` — public routes using evil_ui `Input` / `Button`. **If mobile uses OAuth, also add `app/routes/auth/callback.tsx`** to handle the Supabase redirect.
-- [ ] `app/routes/_app.tsx` — protected layout route with `beforeLoad` that redirects to `/sign-in` when no session. Renders `SidebarNav` + outlet.
-- [ ] `app/routes/_app/index.tsx` — placeholder home showing signed-in email and a sign-out button.
-- [ ] Unit tests for the storage adapter swap and for the `beforeLoad` redirect.
-- [ ] **Merge checklist:** sign-up → email verified (or stubbed) → sign-in → lands on home · sign-out clears session and redirects · unauthenticated access to any `_app` route redirects · all auth providers mobile supports also work on web · tests pass.
+→ Confirmed in PR 1 pre-flight: mobile is email/password only. PR 2 took the straight port path, no `/auth/callback` route.
+
+**Deltas from plan worth knowing for PR 3+:**
+
+- **Auth guards extracted to `lib/auth-guards.ts`.** Original plan put `beforeLoad` logic inline on the `_app` / `sign-in` / `sign-up` routes. Pulled `requireSession()` / `redirectIfAuthed()` into a shared module so they're directly testable without spinning up a router context — and so the redirect-target string lives in one place when PR 4+ adds more guarded routes. Pattern PR 3+ should follow: any route-level guard goes here, not inline.
+- **Supabase `detectSessionInUrl` flipped to `true`.** Original plan said web is SPA-only with no magic-link flow, so the flag stayed at `false`. Browser smoke caught the gap: after email verification, Supabase redirects to `/sign-in#access_token=…&refresh_token=…` and with the flag off, the user has to type their password again to actually get in. With the flag on, the client parses the hash on init, the auth state listener fires, and the user lands signed in straight from the email link.
+- **Supabase Redirect URL allowlist required dashboard edit.** Supabase silently substitutes the project's Site URL (was `peaktrack://sign-in`) for any `emailRedirectTo` not in the project's Redirect URL allowlist — verification emails were pointing at the mobile deep link instead of the web URL. Resolution is dashboard-side (Authentication → URL Configuration → Redirect URLs): add `http://localhost:5173/**`, the staging CloudFront URL, and (when PR 8 wires it) `https://app.getpeaktrack.com/**`. Site URL stays as `peaktrack://sign-in` so mobile signups still deep-link. Documented in `docs/evil_empire/peakTrack/known-caveats.md` (TODO if not already).
+- **TanStack `redirect()` returns a `Response` with options nested under `.options`.** Tests asserting `toMatchObject({ to: '/sign-in' })` on the thrown value fail; the correct matcher is `{ options: { to: '/sign-in' } }` (or use `isRedirect()` from `@tanstack/react-router`). Caught by the auth-guards test suite — note for PR 4+ tests on routes with `beforeLoad`.
+- **`#root` made a flex column in `styles.css`.** PR 1 set `html, body, #root { height: 100% }` but `#root` itself wasn't a flex container, so `_app`'s `flex: 1` chain stopped one level short of the viewport and the sidebar didn't stretch full height. Added `#root { display: flex; flex-direction: column }`. Rule of thumb for PR 4+ layouts: any top-level flex container that needs to fill the viewport assumes `#root` is now flex.
+- **`@evil-empire/ui` SidebarNav active text bug fixed.** Active text was using `colors.primary` over a `colors.primary` background — orange-on-orange, label invisible. Swapped active text to `colors['primary-foreground']` to match the `Button` convention. Library bug, not consumer; benefits future tabs/active-state UI in evil_ui.
+- **Bundle size now 587 KB raw / 176 KB gzipped initial JS** (up from PR 1's 117.79 KB). The ~58 KB gzipped growth is React Query, AuthContext, UserSettingsContext, and the slice of `peaktrack-services` they pull in (date-fns, Supabase auth surface). No code-splitting yet — PR 8 owns the bundle-budget conversation against this baseline.
+- **`localStorage` wrapped in a Promise-returning adapter** even though Supabase v2 accepts sync storage. Plan called this out; keeping the note here so PR 3+ doesn't "simplify" by removing the wrapper — symmetry with mobile's `AsyncStorage` shape is the goal, not raw simplicity.
+- **Routes use TanStack flat naming convention `_app.index.tsx`** rather than the directory variant `_app/index.tsx` the plan listed. Both work; flat is what landed.
+- **Placeholder smoke test removed.** PR 1 left a `__tests__/smoke.test.tsx` placeholder; PR 2's storage-adapter and auth-guards tests cover real behavior, so the placeholder is gone.
+
+- [x] Port `contexts/AuthContext.tsx` from mobile. Swap `AsyncStorage` → `localStorage` in the storage adapter only; keep signatures identical so mobile isn't affected. Wrap `localStorage` in a Promise-returning adapter so the interface matches `AsyncStorage` (Supabase v2 accepts either, but symmetry makes the swap a one-line diff).
+- [x] Port `contexts/UserSettingsContext.tsx` the same way.
+- [x] `lib/supabase.ts` — web Supabase client, reads `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. **`detectSessionInUrl: true`** so post-verify hash redirects auto-sign-in (see deltas).
+- [x] `lib/query-client.ts` — shared React Query client instance.
+- [x] `lib/auth-guards.ts` — extracted `requireSession()` / `redirectIfAuthed()` (see deltas — not in original plan, added for testability).
+- [x] `app/routes/__root.tsx` — provider stack (QueryClientProvider, AuthProvider, UserSettingsProvider) + `notFoundComponent` for 404s.
+- [x] `app/routes/sign-in.tsx`, `app/routes/sign-up.tsx` — public routes using evil_ui `Input` / `Button` / `Card`. Mobile is email/password only; no `/auth/callback` route.
+- [x] `app/routes/_app.tsx` — protected layout route with `beforeLoad: requireSession`. Renders `SidebarNav` + outlet.
+- [x] `app/routes/_app.index.tsx` — placeholder home showing signed-in email and a sign-out button. (Flat naming, see deltas.)
+- [x] Unit tests for the storage adapter (4 tests) and the auth guards (5 tests) — 9/9 pass.
+- [x] **Merge checklist:** sign-up → email verified → sign-in → lands on home · sign-out clears session and redirects · unauthenticated access to `/` redirects · authed user hitting `/sign-in` bounces to `/` · `pnpm typecheck`/`pnpm lint`/`pnpm test`/`pnpm build` clean across monorepo · all 9 tests pass.
 
 ### PR 3 — `refactor(services): lift program & exercise logic from mobile into shared package`
 
