@@ -59,8 +59,8 @@ app-example
 samconfig.toml
 .mcp.json
 
-docs/
 .cache/
 
 # Obsidian
 public_docs/.obsidian/
+docs/.obsidian/
