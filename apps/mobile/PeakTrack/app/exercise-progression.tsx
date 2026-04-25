@@ -20,11 +20,13 @@ import { useUserSettings } from '../contexts/UserSettingsContext';
 import { colors } from '../styles/common';
 import { LoadScreen } from './components/LoadScreen';
 import { NavigationBar } from '../components/NavigationBar';
+import { VolumeStatCardRow } from '../components/VolumeStatCardRow';
 import {
 	buildExerciseSessionLayout,
 	ExerciseSessionLayout,
 } from '../lib/exerciseProgressionLayout';
 import type { TileColor } from '../lib/progressionLayoutCore';
+import { bucketByDate, type VolumePoint } from '../lib/volumeStats';
 
 const MIN_SESSION_WIDTH = 44;
 const COLUMN_GAP = 8;
@@ -166,6 +168,14 @@ export default function ExerciseProgression() {
 		[layouts],
 	);
 
+	const volumePoints = useMemo<VolumePoint[]>(
+		() =>
+			bucketByDate(
+				layouts.map(l => ({ date: l.workoutDate, volume: l.volume })),
+			),
+		[layouts],
+	);
+
 	if (loading) {
 		return (
 			<View style={styles.flex}>
@@ -230,6 +240,8 @@ export default function ExerciseProgression() {
 					</Text>
 				</View>
 			) : (
+				<>
+				<VolumeStatCardRow points={volumePoints} unit={weightUnit} />
 				<ScrollView
 					horizontal
 					style={styles.chartScroll}
@@ -299,6 +311,7 @@ export default function ExerciseProgression() {
 						</View>
 					</View>
 				</ScrollView>
+				</>
 			)}
 
 			{hasAnyCompound ? (

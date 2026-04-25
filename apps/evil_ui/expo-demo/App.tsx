@@ -127,6 +127,12 @@ export function App() {
             <StatCard value={990} label="Shadownet Tracking" trend="+12%" />
             <View style={{ height: 8 }} />
             <StatCard value={290} label="Field" />
+            <View style={{ height: 8 }} />
+            <StatCard value="1,240 kg" label="Volume · 7d" trend="+12%" />
+            <View style={{ height: 8 }} />
+            <StatCard value="980 kg" label="Volume · 30d" trend="-8%" />
+            <View style={{ height: 8 }} />
+            <StatCard value="0 kg" label="Volume · 7d" trend="—" />
           </Section>
 
           {/* Stat Rows */}
