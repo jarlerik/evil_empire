@@ -21,7 +21,7 @@ export type { IconProps } from './primitives/Icon';
 export { Card } from './components/card';
 export type { CardProps } from './components/card';
 export { StatCard } from './components/stat-card';
-export type { StatCardProps } from './components/stat-card';
+export type { StatCardProps, StatCardTrendDirection } from './components/stat-card';
 export { StatRow } from './components/stat-row';
 export type { StatRowProps } from './components/stat-row';
 export { Badge } from './components/badge';

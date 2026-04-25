@@ -24,7 +24,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { useRmLookup, RmMatch } from '../hooks/useRmLookup';
-import { buildPhaseData } from '../lib/buildPhaseData';
+import { buildPhaseData } from '@evil-empire/peaktrack-services';
 import { Button } from '../components/Button';
 import { RmFormModal, RmFormData } from '../components/RmFormModal';
 import { RmSelectModal } from '../components/RmSelectModal';

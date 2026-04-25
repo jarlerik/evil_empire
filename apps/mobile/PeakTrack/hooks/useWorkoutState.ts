@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { LayoutAnimation } from 'react-native';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 
 export type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 

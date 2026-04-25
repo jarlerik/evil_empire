@@ -29,7 +29,7 @@ import { usePrograms } from '../contexts/ProgramsContext';
 import { commonStyles, colors } from '../styles/common';
 import { Button } from '../components/Button';
 import { LoadScreen } from './components/LoadScreen';
-import { exerciseNeedsRmSnapshot, findProgramRm } from '../lib/resolveProgramWeights';
+import { exerciseNeedsRmSnapshot, findProgramRm } from '@evil-empire/peaktrack-services';
 
 interface NameEntry {
 	name: string;

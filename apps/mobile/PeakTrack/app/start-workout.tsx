@@ -4,7 +4,7 @@ import { commonStyles } from '../styles/common';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutionModal';
 import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
 import { WorkoutTimerDisplay } from '../components/WorkoutTimerDisplay';
@@ -39,6 +39,9 @@ export default function StartWorkout() {
 	// Edit execution modal state
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 	const [currentExerciseSaved, setCurrentExerciseSaved] = useState(false);
+	// When set, the modal renders these (truncated) phases for the early-end flow
+	// instead of the full plan, and Save/Skip/Close all advance to the next exercise.
+	const [endEarlyPhases, setEndEarlyPhases] = useState<ExercisePhase[] | null>(null);
 
 	// Rating modal state
 	const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
@@ -373,6 +376,112 @@ export default function StartWorkout() {
 		}
 	};
 
+	const buildTruncatedPhases = (allPhases: ExercisePhase[], completedSets: number): ExercisePhase[] => {
+		const result: ExercisePhase[] = [];
+		let remaining = completedSets;
+		for (const phase of allPhases) {
+			if (remaining <= 0) {break;}
+			const setsToInclude = Math.min(remaining, phase.sets);
+			result.push({ ...phase, sets: setsToInclude });
+			remaining -= setsToInclude;
+		}
+		return result;
+	};
+
+	const advanceToNextExerciseOrFinish = () => {
+		clearRestTimer();
+		setRestTimeRemaining(0);
+
+		if (isLastExercise()) {
+			setWorkoutState('workout_done');
+			setCurrentExerciseSaved(false);
+			return;
+		}
+
+		const nextIndex = currentExerciseIndex + 1;
+		setCurrentExerciseIndex(nextIndex);
+		setCurrentSetNumber(1);
+		setWorkoutState('work');
+		setCurrentExerciseSaved(false);
+
+		const nextExercise = exercises[nextIndex];
+		if (nextExercise) {
+			const nextPhases = exercisePhases[nextExercise.id] || [];
+			if (nextPhases.length > 0 && nextPhases[0].emom_interval_seconds) {
+				startEmomTimer(nextPhases[0].emom_interval_seconds);
+			}
+		}
+	};
+
+	const handleSkipCurrentExercise = () => {
+		const currentEx = exercises[currentExerciseIndex];
+		if (!currentEx) {return;}
+
+		Alert.alert(
+			`Skip ${currentEx.name}?`,
+			"It won't be logged.",
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Skip', style: 'destructive', onPress: () => advanceToNextExerciseOrFinish() },
+			],
+		);
+	};
+
+	const handleEndExerciseEarly = () => {
+		const currentEx = exercises[currentExerciseIndex];
+		if (!currentEx) {return;}
+
+		let completed = 0;
+		if (workoutState === 'rest') {
+			completed = currentSetNumber;
+		} else if (workoutState === 'work') {
+			completed = currentSetNumber - 1;
+		}
+
+		if (completed <= 0) {
+			handleSkipCurrentExercise();
+			return;
+		}
+
+		Alert.alert(
+			`End ${currentEx.name} after set ${completed}?`,
+			`Review the ${completed} completed set${completed === 1 ? '' : 's'} on the next screen.`,
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'End',
+					style: 'destructive',
+					onPress: () => {
+						clearRestTimer();
+						const truncated = buildTruncatedPhases(exercisePhases[currentEx.id] || [], completed);
+						setEndEarlyPhases(truncated);
+						setIsEditModalVisible(true);
+					},
+				},
+			],
+		);
+	};
+
+	const handleSkipUpcomingExercise = (exerciseId: string) => {
+		const ex = exercises.find(e => e.id === exerciseId);
+		if (!ex) {return;}
+
+		Alert.alert(
+			`Remove ${ex.name}?`,
+			'It will not appear in this session.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Remove',
+					style: 'destructive',
+					onPress: () => {
+						setExercises(prev => prev.filter(e => e.id !== exerciseId));
+					},
+				},
+			],
+		);
+	};
+
 	const handleButtonPress = async () => {
 		switch (workoutState) {
 			case 'idle':
@@ -455,10 +564,29 @@ export default function StartWorkout() {
 
 		setCurrentExerciseSaved(true);
 		setIsEditModalVisible(false);
+
+		if (endEarlyPhases !== null) {
+			setEndEarlyPhases(null);
+			advanceToNextExerciseOrFinish();
+		}
 	};
 
 	const handleSkipExecution = () => {
 		setIsEditModalVisible(false);
+
+		if (endEarlyPhases !== null) {
+			setEndEarlyPhases(null);
+			advanceToNextExerciseOrFinish();
+		}
+	};
+
+	const handleCloseExecutionModal = () => {
+		setIsEditModalVisible(false);
+
+		if (endEarlyPhases !== null) {
+			setEndEarlyPhases(null);
+			advanceToNextExerciseOrFinish();
+		}
 	};
 
 	const handleRatingSave = async (rating: number) => {
@@ -480,8 +608,6 @@ export default function StartWorkout() {
 	const nextPhase = getNextPhase();
 	const showNextPhase = workoutState === 'rest' && isLastSetOfCurrentPhase() && nextPhase !== null;
 	const currentSetInPhase = getCurrentSetInPhase();
-	// During rest, show the next set's info so the user can prepare
-	const displaySetInPhase = workoutState === 'rest' && !showNextPhase ? currentSetInPhase + 1 : currentSetInPhase;
 
 	return (
 		<KeyboardAvoidingView
@@ -506,18 +632,25 @@ export default function StartWorkout() {
 						contentContainerStyle={styles.exercisesContent}
 						keyboardShouldPersistTaps="handled"
 					>
-						{exercises.map((exercise, index) => (
-							<WorkoutExerciseItem
-								key={exercise.id}
-								exercise={exercise}
-								phases={exercisePhases[exercise.id] || []}
-								isActive={currentExerciseIndex === index && workoutState !== 'idle'}
-								unit={weightUnit}
-								onLayout={(y) => {
-									exercisePositions.current[index] = y;
-								}}
-							/>
-						))}
+						{exercises.map((exercise, index) => {
+							const canRemove =
+								workoutState !== 'idle'
+								&& workoutState !== 'workout_done'
+								&& index > currentExerciseIndex;
+							return (
+								<WorkoutExerciseItem
+									key={exercise.id}
+									exercise={exercise}
+									phases={exercisePhases[exercise.id] || []}
+									isActive={currentExerciseIndex === index && workoutState !== 'idle'}
+									unit={weightUnit}
+									onLayout={(y) => {
+										exercisePositions.current[index] = y;
+									}}
+									onRemove={canRemove ? () => handleSkipUpcomingExercise(exercise.id) : undefined}
+								/>
+							);
+						})}
 					</ScrollView>
 						<WorkoutTimerDisplay
 							workoutState={workoutState}
@@ -525,10 +658,12 @@ export default function StartWorkout() {
 							exercisePhase={currentPhase}
 							allPhases={currentExercise ? exercisePhases[currentExercise.id] || [] : []}
 							nextPhase={showNextPhase ? nextPhase : null}
-							currentSetInPhase={displaySetInPhase}
+							currentSetInPhase={currentSetInPhase}
 							restTimeRemaining={restTimeRemaining}
 							blinkOpacity={blinkOpacity}
 							onEditFinishedExercise={handleEditFinishedExercise}
+							onEndEarly={currentExercise ? handleEndExerciseEarly : undefined}
+							onSkipCurrent={currentExercise ? handleSkipCurrentExercise : undefined}
 							unit={weightUnit}
 						/>
 				</View>
@@ -545,12 +680,12 @@ export default function StartWorkout() {
 			{currentExercise && (
 				<EditExecutionModal
 					visible={isEditModalVisible}
-					onClose={() => setIsEditModalVisible(false)}
+					onClose={handleCloseExecutionModal}
 					onSave={handleSaveExecution}
 					onSkip={handleSkipExecution}
 					exerciseName={currentExercise.name}
 					exerciseId={currentExercise.id}
-					phases={exercisePhases[currentExercise.id] || []}
+					phases={endEarlyPhases ?? (exercisePhases[currentExercise.id] || [])}
 					unit={weightUnit}
 				/>
 			)}

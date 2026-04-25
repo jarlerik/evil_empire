@@ -6,23 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Turborepo monorepo containing a React Native/Expo workout tracking app called "PeakTrack". Users can create workouts, add exercises with various set/rep/weight formats, track repetition maximums (RMs), and execute workouts with timers.
+This is a Turborepo monorepo for "PeakTrack" — originally a React Native/Expo
+workout tracking app, now expanding to include a web management surface. Users
+create workouts, add exercises with various set/rep/weight formats, track
+repetition maximums (RMs), execute workouts with timers (mobile only), and
+manage programs / view progression (mobile + web).
 
 ## Monorepo Structure
 
 ```
 evil_empire/
 ├── apps/
-│   └── mobile/
-│       └── PeakTrack/       # React Native/Expo mobile app (@evil-empire/mobile)
+│   ├── mobile/
+│   │   └── PeakTrack/             # React Native/Expo mobile app (@evil-empire/mobile)
+│   ├── web/
+│   │   ├── getpeaktrack/          # Static landing site source (no package.json)
+│   │   └── peaktrack-app/         # Web app — TanStack Router + Vite SPA (@evil-empire/web-app)
+│   ├── evil_ui/                   # Shared UI component library (@evil-empire/ui, RN + RN-Web)
+│   └── serverless/
+│       ├── getpeaktrack-site/     # SAM wrapper for the marketing site
+│       ├── peaktrack-app-site/    # SAM wrapper for the web app (S3 + CloudFront SPA)
+│       └── peaktrack-api/         # Hono on Lambda Function URL (@evil-empire/peaktrack-api)
 ├── packages/
-│   ├── parsers/             # Shared parser logic (@evil-empire/parsers)
-│   ├── types/               # Shared TypeScript types (@evil-empire/types)
-│   ├── eslint-config/       # Shared ESLint config (@evil-empire/eslint-config)
-│   └── typescript-config/   # Shared TS configs (@evil-empire/typescript-config)
-├── supabase/                # Database migrations
-├── turbo.json               # Turborepo configuration
-└── pnpm-workspace.yaml      # pnpm workspace config
+│   ├── parsers/                   # Shared parser logic (@evil-empire/parsers)
+│   ├── types/                     # Shared TypeScript types (@evil-empire/types)
+│   ├── peaktrack-services/        # Platform-agnostic Supabase services (@evil-empire/peaktrack-services)
+│   ├── eslint-config/             # Shared ESLint config (@evil-empire/eslint-config)
+│   └── typescript-config/         # Shared TS configs (@evil-empire/typescript-config)
+├── supabase/                      # Database migrations + RLS policies
+├── turbo.json                     # Turborepo configuration
+└── pnpm-workspace.yaml            # pnpm workspace config
 ```
 
 ## Commands
@@ -31,8 +44,10 @@ All commands should be run from the repository root directory.
 
 ```bash
 # Development
-pnpm dev:mobile           # Start Expo dev server for mobile app
-pnpm start:mobile         # Alternative start command
+pnpm dev:mobile           # Start Expo dev server for the mobile app
+pnpm dev:web              # Start Vite dev server for the web app
+pnpm dev:api              # Start the peaktrack-api Lambda locally (tsx watch)
+pnpm start:mobile         # Alternative mobile start command
 pnpm build                # Build all packages
 
 # From apps/mobile/PeakTrack directory
@@ -40,6 +55,12 @@ cd apps/mobile/PeakTrack
 pnpm start                # Start Expo dev server
 pnpm ios                  # Start on iOS simulator
 pnpm android              # Start on Android emulator
+
+# Deploy
+pnpm deploy:web:staging   # Build + deploy peaktrack-app-site to staging
+pnpm deploy:web:prod      # Build + deploy peaktrack-app-site to prod
+pnpm deploy:api:staging   # SAM build + deploy peaktrack-api to staging
+pnpm deploy:api:prod      # SAM build + deploy peaktrack-api to prod
 
 # Testing
 pnpm test                 # Run all tests across monorepo
@@ -103,6 +124,23 @@ Shared TypeScript configurations:
 - `@evil-empire/typescript-config/base.json` - Base strict config
 - `@evil-empire/typescript-config/react-native.json` - For Expo apps
 - `@evil-empire/typescript-config/node.json` - For Node.js packages
+- `@evil-empire/typescript-config/web.json` - For browser-targeted apps (DOM lib + JSX)
+
+### Web App (apps/web/peaktrack-app)
+
+TanStack Router on plain Vite, React 19, consuming `@evil-empire/ui` via
+`react-native-web`. v1 is a management + analytics surface — workout
+execution stays mobile-only. Routes live under `app/routes/` and are
+discovered by `@tanstack/router-plugin/vite`, which generates
+`app/routeTree.gen.ts`.
+
+### API (apps/serverless/peaktrack-api)
+
+Hono on Lambda Function URL with `RESPONSE_STREAM` invoke mode. Both the web
+app and (after PR 7's mobile follow-up) the mobile app call this service.
+JWT verification (asymmetric, against Supabase's JWKS endpoint derived from
+`SUPABASE_URL`) is the security boundary; CORS is browser hygiene only.
+Local dev: `pnpm dev:api` runs it via `@hono/node-server` on port 3001.
 
 ## Code Style
 

@@ -12,7 +12,7 @@ import { ExerciseItem } from '../components/ExerciseItem';
 import { WeekDaySelector } from '../components/WeekDaySelector';
 import { commonStyles } from '../styles/common';
 import { Exercise, Workout } from '../types/workout';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
 import { CoachMark } from '../components/CoachMark';
@@ -20,7 +20,7 @@ import { useCoachMark } from '../hooks/useCoachMark';
 import { ProgramSessionCard } from '../components/ProgramSessionCard';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { ProgramSessionForDate } from '@evil-empire/types';
-import { prepareMaterializeInputs, sessionLabel } from '../lib/prepareMaterializeInputs';
+import { prepareMaterializeInputs, sessionLabel } from '@evil-empire/peaktrack-services';
 
 type PendingMove =
 	| { kind: 'workout'; id: string }
@@ -45,6 +45,7 @@ export default function Index() {
 	const [exercises, setExercises] = useState<Record<string, Exercise[]>>({});
 	const [exercisePhases, setExercisePhases] = useState<Record<string, ExercisePhase[]>>({});
 	const [completedWorkoutIds, setCompletedWorkoutIds] = useState<Set<string>>(new Set());
+	const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(new Set());
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 	const [programSessions, setProgramSessions] = useState<ProgramSessionForDate[]>([]);
@@ -114,12 +115,16 @@ export default function Index() {
 				const exercisesMap: Record<string, Exercise[]> = {};
 				const phasesMap: Record<string, ExercisePhase[]> = {};
 				const completedIds = new Set<string>();
+				const completedExIds = new Set<string>();
 
 				for (const w of workoutsData) {
 					const { exercises: nestedExercises, workout_execution_logs: logs, ...workout } = w;
 					flatWorkouts.push(workout);
 					if (logs && logs.length > 0) {
 						completedIds.add(workout.id);
+						for (const log of logs) {
+							completedExIds.add(log.exercise_id);
+						}
 					}
 					const exerciseList: Exercise[] = [];
 					for (const ex of nestedExercises ?? []) {
@@ -136,6 +141,7 @@ export default function Index() {
 				setExercises(exercisesMap);
 				setExercisePhases(phasesMap);
 				setCompletedWorkoutIds(completedIds);
+				setCompletedExerciseIds(completedExIds);
 			}
 
 			if (__DEV__) {console.log(`[loadData] TOTAL: ${(performance.now() - t0).toFixed(1)}ms`);}
@@ -504,7 +510,7 @@ export default function Index() {
 															exercise={exercise}
 															phases={exercisePhases[exercise.id] || []}
 															onEdit={() => router.push({ pathname: '/edit-exercise', params: { exerciseId: exercise.id, exerciseName: exercise.name } })}
-															isCompleted={workoutCompleted}
+															isCompleted={completedExerciseIds.has(exercise.id)}
 														unit={weightUnit}
 														/>
 													))

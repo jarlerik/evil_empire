@@ -34,7 +34,7 @@ import { LoadScreen } from './components/LoadScreen';
 import {
 	exerciseNeedsRmSnapshot,
 	resolveWeightsFromSnapshot,
-} from '../lib/resolveProgramWeights';
+} from '@evil-empire/peaktrack-services';
 
 const DAY_LABELS: Record<number, string> = {
 	1: 'Mon',

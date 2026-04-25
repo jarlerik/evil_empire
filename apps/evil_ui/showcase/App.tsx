@@ -185,6 +185,18 @@ export function App() {
               <StatCard value={290} label="Field" />
             </View>
           </Row>
+          <View style={{ height: 12 }} />
+          <Row>
+            <View style={{ width: 200 }}>
+              <StatCard value="1,240 kg" label="Volume · 7d" trend="+12%" />
+            </View>
+            <View style={{ width: 200 }}>
+              <StatCard value="980 kg" label="Volume · 30d" trend="-8%" />
+            </View>
+            <View style={{ width: 200 }}>
+              <StatCard value="0 kg" label="Volume · 7d" trend="—" />
+            </View>
+          </Row>
         </Section>
 
         {/* Stat Rows */}

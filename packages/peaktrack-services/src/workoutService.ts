@@ -8,7 +8,7 @@ import { fetchPhasesByExerciseIds, insertPhase, PhaseInsertData } from './exerci
 
 export interface WorkoutWithNested extends Workout {
 	exercises: Array<Exercise & { exercise_phases: ExercisePhase[] }>;
-	workout_execution_logs: Array<{ id: string }>;
+	workout_execution_logs: Array<{ id: string; exercise_id: string }>;
 }
 
 export async function fetchWorkoutsByUserId(
@@ -81,7 +81,7 @@ export async function fetchWorkoutsWithNestedForDateRange(
 				*,
 				exercise_phases (*)
 			),
-			workout_execution_logs ( id )
+			workout_execution_logs ( id, exercise_id )
 		`)
 		.eq('user_id', userId)
 		.gte('workout_date', startDate)

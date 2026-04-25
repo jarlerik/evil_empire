@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useWorkoutState } from '../useWorkoutState';
-import { ExercisePhase } from '../../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { LayoutAnimation } from 'react-native';
 
 // Mock LayoutAnimation

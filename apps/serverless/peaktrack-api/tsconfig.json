@@ -1,0 +1,17 @@
+{
+  "extends": "@evil-empire/typescript-config/node.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "types": ["node", "aws-lambda"],
+    "noEmit": true,
+    // peaktrack-api is an app bundle (esbuild produces the Lambda artifact),
+    // not a library that publishes declarations — turn off declaration emit
+    // so TS2742 doesn't fire on inferred types whose only nameable path goes
+    // through deep node_modules (e.g., the streamHandle return in src/index.ts).
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".aws-sam", ".turbo"]
+}

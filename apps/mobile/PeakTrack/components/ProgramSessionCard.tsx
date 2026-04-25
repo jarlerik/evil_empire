@@ -8,8 +8,8 @@ import {
 	exerciseNeedsRmSnapshot,
 	resolveWeightsFromSnapshot,
 	findProgramRm,
-} from '../lib/resolveProgramWeights';
-import { prepareMaterializeInputs, sessionLabel as buildSessionLabel } from '../lib/prepareMaterializeInputs';
+} from '@evil-empire/peaktrack-services';
+import { prepareMaterializeInputs, sessionLabel as buildSessionLabel } from '@evil-empire/peaktrack-services';
 import { colors } from '../styles/common';
 import { usePrograms } from '../contexts/ProgramsContext';
 
