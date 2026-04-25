@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Pressable, Alert, AlertButton } from 'react-native';
 import { Button } from './Button';
 import { ExercisePhase } from '@/lib/formatExercisePhase';
 import { interpolateWeight } from '@/lib/interpolateWeight';
@@ -16,6 +16,8 @@ interface WorkoutTimerDisplayProps {
 	restTimeRemaining: number;
 	blinkOpacity: Animated.Value;
 	onEditFinishedExercise: () => void;
+	onEndEarly?: () => void;
+	onSkipCurrent?: () => void;
 	unit: string;
 }
 
@@ -142,6 +144,8 @@ export function WorkoutTimerDisplay({
 	restTimeRemaining,
 	blinkOpacity,
 	onEditFinishedExercise,
+	onEndEarly,
+	onSkipCurrent,
 	unit,
 }: WorkoutTimerDisplayProps) {
 
@@ -149,12 +153,34 @@ export function WorkoutTimerDisplay({
 	const displayPhase = nextPhase || exercisePhase;
 	const circuitExercises = parseCircuitExercises(displayPhase);
 	const isCircuit = circuitExercises && circuitExercises.length > 0;
-	const reps = parseReps(displayPhase, nextPhase ? 1 : currentSetInPhase);
 
-	// Set info: if showing next phase, show "1 of X", otherwise show current set
+	// Count text reflects the current/most-recent set (no rest-time increment).
 	const setNumber = nextPhase ? 1 : currentSetInPhase;
 	const totalSets = displayPhase?.sets || 0;
-	const weight = parseWeight(displayPhase, setNumber, totalSets, unit);
+
+	// During rest (within the same phase), preview the next set's reps/weight
+	// so the user can prepare. The count text above stays on the just-completed set.
+	const previewSet = workoutState === 'rest' && !nextPhase && setNumber < totalSets
+		? setNumber + 1
+		: setNumber;
+	const reps = parseReps(displayPhase, nextPhase ? 1 : previewSet);
+	const weight = parseWeight(displayPhase, previewSet, totalSets, unit);
+
+	const showMenuButton =
+		(workoutState === 'work' || workoutState === 'rest' || workoutState === 'idle')
+		&& (!!onEndEarly || !!onSkipCurrent);
+
+	const handleMenuPress = () => {
+		const buttons: AlertButton[] = [];
+		if (onEndEarly && (workoutState === 'work' || workoutState === 'rest')) {
+			buttons.push({ text: 'End exercise early', style: 'destructive', onPress: onEndEarly });
+		}
+		if (onSkipCurrent) {
+			buttons.push({ text: 'Skip exercise', style: 'destructive', onPress: onSkipCurrent });
+		}
+		buttons.push({ text: 'Cancel', style: 'cancel' });
+		Alert.alert(exerciseName || 'Exercise', undefined, buttons);
+	};
 
 	// Render exercise done state with all phases
 	if (workoutState === 'exercise_done') {
@@ -193,6 +219,17 @@ export function WorkoutTimerDisplay({
 
 	return (
 		<View style={styles.timerContainer}>
+			{showMenuButton && (
+				<Pressable
+					onPress={handleMenuPress}
+					style={styles.menuButton}
+					hitSlop={8}
+					accessibilityLabel="Exercise actions"
+					accessibilityRole="button"
+				>
+					<Text style={styles.menuButtonText}>⋮</Text>
+				</Pressable>
+			)}
 			{/* Exercise name pinned at top */}
 			<Text
 				style={styles.exerciseName}
@@ -206,7 +243,7 @@ export function WorkoutTimerDisplay({
 			<View style={styles.timerTopSection}>
 				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
 					<Text style={styles.setInfo}>
-						{setNumber} of {totalSets} {isCircuit ? 'rounds' : 'sets'}
+						{isCircuit ? 'Round' : 'Set'} {setNumber} of {totalSets}
 					</Text>
 				)}
 
@@ -385,5 +422,19 @@ const styles = StyleSheet.create({
 		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
+	},
+	menuButton: {
+		position: 'absolute',
+		top: 4,
+		right: 8,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		zIndex: 1,
+	},
+	menuButtonText: {
+		color: '#fff',
+		fontSize: 28,
+		fontWeight: 'bold',
+		lineHeight: 28,
 	},
 });

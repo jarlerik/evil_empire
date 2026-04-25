@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
 
 interface ExerciseDB {
@@ -15,6 +15,7 @@ interface WorkoutExerciseItemProps {
 	isActive: boolean;
 	onLayout?: (y: number) => void;
 	unit?: 'kg' | 'lbs';
+	onRemove?: () => void;
 }
 
 export function WorkoutExerciseItem({
@@ -23,7 +24,9 @@ export function WorkoutExerciseItem({
 	isActive,
 	onLayout,
 	unit = 'kg',
+	onRemove,
 }: WorkoutExerciseItemProps) {
+	const showRemove = !!onRemove && !isActive;
 	return (
 		<View
 			style={[
@@ -40,6 +43,17 @@ export function WorkoutExerciseItem({
 				<View style={styles.exerciseNameContainer}>
 					<Text style={styles.exerciseName}>{exercise.name}</Text>
 				</View>
+				{showRemove && (
+					<Pressable
+						onPress={onRemove}
+						style={styles.removeButton}
+						hitSlop={8}
+						accessibilityLabel={`Remove ${exercise.name}`}
+						accessibilityRole="button"
+					>
+						<Text style={styles.removeButtonText}>×</Text>
+					</Pressable>
+				)}
 			</View>
 			{phases.length > 0 && (
 				<View style={styles.phasesContainer}>
@@ -93,5 +107,16 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 12,
 		marginTop: 2,
+	},
+	removeButton: {
+		paddingHorizontal: 8,
+		paddingVertical: 0,
+		marginLeft: 8,
+	},
+	removeButtonText: {
+		color: '#fff',
+		fontSize: 24,
+		lineHeight: 24,
+		fontWeight: 'bold',
 	},
 });
