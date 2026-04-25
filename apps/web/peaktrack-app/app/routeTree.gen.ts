@@ -13,6 +13,12 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppRmsRouteImport } from './routes/_app.rms'
+import { Route as AppHistoryRouteImport } from './routes/_app.history'
+import { Route as AppWorkoutsImportRouteImport } from './routes/_app.workouts.import'
+import { Route as AppWorkoutsDateRouteImport } from './routes/_app.workouts.$date'
+import { Route as AppExercisesIdEditRouteImport } from './routes/_app.exercises.$id.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -33,30 +39,107 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRmsRoute = AppRmsRouteImport.update({
+  id: '/rms',
+  path: '/rms',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWorkoutsImportRoute = AppWorkoutsImportRouteImport.update({
+  id: '/workouts/import',
+  path: '/workouts/import',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWorkoutsDateRoute = AppWorkoutsDateRouteImport.update({
+  id: '/workouts/$date',
+  path: '/workouts/$date',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExercisesIdEditRoute = AppExercisesIdEditRouteImport.update({
+  id: '/exercises/$id/edit',
+  path: '/exercises/$id/edit',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/history': typeof AppHistoryRoute
+  '/rms': typeof AppRmsRoute
+  '/settings': typeof AppSettingsRoute
+  '/workouts/$date': typeof AppWorkoutsDateRoute
+  '/workouts/import': typeof AppWorkoutsImportRoute
+  '/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/history': typeof AppHistoryRoute
+  '/rms': typeof AppRmsRoute
+  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/workouts/$date': typeof AppWorkoutsDateRoute
+  '/workouts/import': typeof AppWorkoutsImportRoute
+  '/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/_app/history': typeof AppHistoryRoute
+  '/_app/rms': typeof AppRmsRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/workouts/$date': typeof AppWorkoutsDateRoute
+  '/_app/workouts/import': typeof AppWorkoutsImportRoute
+  '/_app/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/sign-up'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/history'
+    | '/rms'
+    | '/settings'
+    | '/workouts/$date'
+    | '/workouts/import'
+    | '/exercises/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/sign-up' | '/'
-  id: '__root__' | '/_app' | '/sign-in' | '/sign-up' | '/_app/'
+  to:
+    | '/sign-in'
+    | '/sign-up'
+    | '/history'
+    | '/rms'
+    | '/settings'
+    | '/'
+    | '/workouts/$date'
+    | '/workouts/import'
+    | '/exercises/$id/edit'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/sign-in'
+    | '/sign-up'
+    | '/_app/history'
+    | '/_app/rms'
+    | '/_app/settings'
+    | '/_app/'
+    | '/_app/workouts/$date'
+    | '/_app/workouts/import'
+    | '/_app/exercises/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +178,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rms': {
+      id: '/_app/rms'
+      path: '/rms'
+      fullPath: '/rms'
+      preLoaderRoute: typeof AppRmsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/history': {
+      id: '/_app/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/workouts/import': {
+      id: '/_app/workouts/import'
+      path: '/workouts/import'
+      fullPath: '/workouts/import'
+      preLoaderRoute: typeof AppWorkoutsImportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/workouts/$date': {
+      id: '/_app/workouts/$date'
+      path: '/workouts/$date'
+      fullPath: '/workouts/$date'
+      preLoaderRoute: typeof AppWorkoutsDateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/exercises/$id/edit': {
+      id: '/_app/exercises/$id/edit'
+      path: '/exercises/$id/edit'
+      fullPath: '/exercises/$id/edit'
+      preLoaderRoute: typeof AppExercisesIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppHistoryRoute: typeof AppHistoryRoute
+  AppRmsRoute: typeof AppRmsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppWorkoutsDateRoute: typeof AppWorkoutsDateRoute
+  AppWorkoutsImportRoute: typeof AppWorkoutsImportRoute
+  AppExercisesIdEditRoute: typeof AppExercisesIdEditRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppHistoryRoute: AppHistoryRoute,
+  AppRmsRoute: AppRmsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppWorkoutsDateRoute: AppWorkoutsDateRoute,
+  AppWorkoutsImportRoute: AppWorkoutsImportRoute,
+  AppExercisesIdEditRoute: AppExercisesIdEditRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

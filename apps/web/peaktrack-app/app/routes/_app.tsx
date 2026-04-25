@@ -1,17 +1,30 @@
-import { Outlet, createFileRoute, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
+import {
+  Outlet,
+  createFileRoute,
+  useRouter,
+  useRouterState,
+} from '@tanstack/react-router';
+import { useMemo } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { SidebarNav, Text, type NavItem } from '@evil-empire/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { requireSession } from '../lib/auth-guards';
 
-const NAV_ITEMS: NavItem[] = [
-  { key: 'home', label: 'Home' },
-  { key: 'history', label: 'History' },
-  { key: 'programs', label: 'Programs' },
-  { key: 'rms', label: 'Rep maxes' },
-  { key: 'settings', label: 'Settings' },
+interface NavTarget {
+  key: string;
+  label: string;
+  to: string;
+  match: (path: string) => boolean;
+}
+
+const NAV: NavTarget[] = [
+  { key: 'home', label: 'Home', to: '/', match: (p) => p === '/' || p.startsWith('/workouts/') },
+  { key: 'history', label: 'History', to: '/history', match: (p) => p.startsWith('/history') },
+  { key: 'rms', label: 'Rep maxes', to: '/rms', match: (p) => p.startsWith('/rms') },
+  { key: 'settings', label: 'Settings', to: '/settings', match: (p) => p.startsWith('/settings') },
 ];
+
+const NAV_ITEMS: NavItem[] = NAV.map(({ key, label }) => ({ key, label }));
 
 export const Route = createFileRoute('/_app')({
   component: AppShell,
@@ -21,7 +34,11 @@ export const Route = createFileRoute('/_app')({
 function AppShell() {
   const { loading } = useAuth();
   const router = useRouter();
-  const [activeKey, setActiveKey] = useState('home');
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const activeKey = useMemo(() => {
+    return NAV.find((n) => n.match(pathname))?.key ?? 'home';
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -37,13 +54,12 @@ function AppShell() {
         items={NAV_ITEMS}
         activeKey={activeKey}
         onSelect={(key) => {
-          setActiveKey(key);
-          // Real targets land in PR 4–6; for now only home is wired.
-          if (key === 'home') router.navigate({ to: '/' });
+          const target = NAV.find((n) => n.key === key);
+          if (target) router.navigate({ to: target.to });
         }}
         header={<Text variant="heading-sm">PeakTrack</Text>}
       />
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, overflow: 'hidden' }}>
         <Outlet />
       </View>
     </View>

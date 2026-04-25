@@ -1,29 +1,11 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { View } from 'react-native';
-import { Button, Card, Text } from '@evil-empire/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { createFileRoute, redirect } from '@tanstack/react-router';
+import { format } from 'date-fns';
 
 export const Route = createFileRoute('/_app/')({
-  component: Home,
+  beforeLoad: () => {
+    throw redirect({
+      to: '/workouts/$date',
+      params: { date: format(new Date(), 'yyyy-MM-dd') },
+    });
+  },
 });
-
-function Home() {
-  const { user, signOut } = useAuth();
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.navigate({ to: '/sign-in' });
-  };
-
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <Card variant="bordered" style={{ maxWidth: 480, gap: 16 }}>
-        <Text variant="display">PeakTrack</Text>
-        <Text variant="body">Signed in as {user?.email ?? 'unknown'}.</Text>
-        <Text variant="caption">Workout management lands in PR 4.</Text>
-        <Button title="Sign out" variant="outline" onPress={handleSignOut} />
-      </Card>
-    </View>
-  );
-}
