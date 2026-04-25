@@ -15,10 +15,13 @@ import {
 	ProgramProgressionData,
 } from '@evil-empire/peaktrack-services';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 import { colors } from '../styles/common';
 import { LoadScreen } from './components/LoadScreen';
 import { NavigationBar } from '../components/NavigationBar';
+import { VolumeStatCardRow } from '../components/VolumeStatCardRow';
 import { buildSessionLayout, SessionLayout, TileColor } from '../lib/progressionLayout';
+import { toLocalDateString, type VolumePoint } from '../lib/volumeStats';
 
 const MIN_SESSION_WIDTH = 44;
 const COLUMN_GAP = 8;
@@ -90,6 +93,8 @@ function layoutGeometry(layouts: SessionLayout[]): {
 
 export default function ProgramProgression() {
 	const { user } = useAuth();
+	const { settings } = useUserSettings();
+	const weightUnit: 'kg' | 'lbs' = settings?.weight_unit || 'kg';
 	const params = useLocalSearchParams<{
 		programId: string;
 		exerciseName: string;
@@ -153,6 +158,26 @@ export default function ProgramProgression() {
 		}
 		return max;
 	}, [layouts]);
+
+	const volumePoints = useMemo<VolumePoint[]>(() => {
+		if (!data) {
+			return [];
+		}
+		const out: VolumePoint[] = [];
+		for (let i = 0; i < data.sessions.length; i += 1) {
+			const row = data.sessions[i];
+			const layout = layouts[i];
+			const executedAt = row?.performedLog?.executed_at;
+			if (!layout || layout.performedVolume == null || !executedAt) {
+				continue;
+			}
+			out.push({
+				date: toLocalDateString(new Date(executedAt)),
+				volume: layout.performedVolume,
+			});
+		}
+		return out;
+	}, [data, layouts]);
 
 	if (loading) {
 		return (
@@ -218,6 +243,8 @@ export default function ProgramProgression() {
 					<Text style={styles.emptyText}>No sessions for this exercise yet.</Text>
 				</View>
 			) : (
+				<>
+				<VolumeStatCardRow points={volumePoints} unit={weightUnit} />
 				<ScrollView
 					horizontal
 					style={styles.chartScroll}
@@ -302,6 +329,7 @@ export default function ProgramProgression() {
 						</View>
 					</View>
 				</ScrollView>
+				</>
 			)}
 
 			<View style={styles.legend}>
