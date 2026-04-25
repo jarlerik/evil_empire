@@ -16,8 +16,14 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppRmsRouteImport } from './routes/_app.rms'
 import { Route as AppHistoryRouteImport } from './routes/_app.history'
+import { Route as AppProgramsIndexRouteImport } from './routes/_app.programs.index'
 import { Route as AppWorkoutsImportRouteImport } from './routes/_app.workouts.import'
 import { Route as AppWorkoutsDateRouteImport } from './routes/_app.workouts.$date'
+import { Route as AppProgramsNewRouteImport } from './routes/_app.programs.new'
+import { Route as AppProgramsIdRouteImport } from './routes/_app.programs.$id'
+import { Route as AppHelpInputFormatRouteImport } from './routes/_app.help.input-format'
+import { Route as AppProgramsIdEditRouteImport } from './routes/_app.programs.$id.edit'
+import { Route as AppProgramsIdAssignRouteImport } from './routes/_app.programs.$id.assign'
 import { Route as AppExercisesIdEditRouteImport } from './routes/_app.exercises.$id.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -54,6 +60,11 @@ const AppHistoryRoute = AppHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProgramsIndexRoute = AppProgramsIndexRouteImport.update({
+  id: '/programs/',
+  path: '/programs/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWorkoutsImportRoute = AppWorkoutsImportRouteImport.update({
   id: '/workouts/import',
   path: '/workouts/import',
@@ -63,6 +74,31 @@ const AppWorkoutsDateRoute = AppWorkoutsDateRouteImport.update({
   id: '/workouts/$date',
   path: '/workouts/$date',
   getParentRoute: () => AppRoute,
+} as any)
+const AppProgramsNewRoute = AppProgramsNewRouteImport.update({
+  id: '/programs/new',
+  path: '/programs/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgramsIdRoute = AppProgramsIdRouteImport.update({
+  id: '/programs/$id',
+  path: '/programs/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHelpInputFormatRoute = AppHelpInputFormatRouteImport.update({
+  id: '/help/input-format',
+  path: '/help/input-format',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgramsIdEditRoute = AppProgramsIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AppProgramsIdRoute,
+} as any)
+const AppProgramsIdAssignRoute = AppProgramsIdAssignRouteImport.update({
+  id: '/assign',
+  path: '/assign',
+  getParentRoute: () => AppProgramsIdRoute,
 } as any)
 const AppExercisesIdEditRoute = AppExercisesIdEditRouteImport.update({
   id: '/exercises/$id/edit',
@@ -77,9 +113,15 @@ export interface FileRoutesByFullPath {
   '/history': typeof AppHistoryRoute
   '/rms': typeof AppRmsRoute
   '/settings': typeof AppSettingsRoute
+  '/help/input-format': typeof AppHelpInputFormatRoute
+  '/programs/$id': typeof AppProgramsIdRouteWithChildren
+  '/programs/new': typeof AppProgramsNewRoute
   '/workouts/$date': typeof AppWorkoutsDateRoute
   '/workouts/import': typeof AppWorkoutsImportRoute
+  '/programs/': typeof AppProgramsIndexRoute
   '/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/programs/$id/assign': typeof AppProgramsIdAssignRoute
+  '/programs/$id/edit': typeof AppProgramsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
@@ -88,9 +130,15 @@ export interface FileRoutesByTo {
   '/rms': typeof AppRmsRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/help/input-format': typeof AppHelpInputFormatRoute
+  '/programs/$id': typeof AppProgramsIdRouteWithChildren
+  '/programs/new': typeof AppProgramsNewRoute
   '/workouts/$date': typeof AppWorkoutsDateRoute
   '/workouts/import': typeof AppWorkoutsImportRoute
+  '/programs': typeof AppProgramsIndexRoute
   '/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/programs/$id/assign': typeof AppProgramsIdAssignRoute
+  '/programs/$id/edit': typeof AppProgramsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,9 +149,15 @@ export interface FileRoutesById {
   '/_app/rms': typeof AppRmsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/help/input-format': typeof AppHelpInputFormatRoute
+  '/_app/programs/$id': typeof AppProgramsIdRouteWithChildren
+  '/_app/programs/new': typeof AppProgramsNewRoute
   '/_app/workouts/$date': typeof AppWorkoutsDateRoute
   '/_app/workouts/import': typeof AppWorkoutsImportRoute
+  '/_app/programs/': typeof AppProgramsIndexRoute
   '/_app/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/_app/programs/$id/assign': typeof AppProgramsIdAssignRoute
+  '/_app/programs/$id/edit': typeof AppProgramsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,9 +168,15 @@ export interface FileRouteTypes {
     | '/history'
     | '/rms'
     | '/settings'
+    | '/help/input-format'
+    | '/programs/$id'
+    | '/programs/new'
     | '/workouts/$date'
     | '/workouts/import'
+    | '/programs/'
     | '/exercises/$id/edit'
+    | '/programs/$id/assign'
+    | '/programs/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -125,9 +185,15 @@ export interface FileRouteTypes {
     | '/rms'
     | '/settings'
     | '/'
+    | '/help/input-format'
+    | '/programs/$id'
+    | '/programs/new'
     | '/workouts/$date'
     | '/workouts/import'
+    | '/programs'
     | '/exercises/$id/edit'
+    | '/programs/$id/assign'
+    | '/programs/$id/edit'
   id:
     | '__root__'
     | '/_app'
@@ -137,9 +203,15 @@ export interface FileRouteTypes {
     | '/_app/rms'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/help/input-format'
+    | '/_app/programs/$id'
+    | '/_app/programs/new'
     | '/_app/workouts/$date'
     | '/_app/workouts/import'
+    | '/_app/programs/'
     | '/_app/exercises/$id/edit'
+    | '/_app/programs/$id/assign'
+    | '/_app/programs/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHistoryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/programs/': {
+      id: '/_app/programs/'
+      path: '/programs'
+      fullPath: '/programs/'
+      preLoaderRoute: typeof AppProgramsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/workouts/import': {
       id: '/_app/workouts/import'
       path: '/workouts/import'
@@ -213,6 +292,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkoutsDateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/programs/new': {
+      id: '/_app/programs/new'
+      path: '/programs/new'
+      fullPath: '/programs/new'
+      preLoaderRoute: typeof AppProgramsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/programs/$id': {
+      id: '/_app/programs/$id'
+      path: '/programs/$id'
+      fullPath: '/programs/$id'
+      preLoaderRoute: typeof AppProgramsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/help/input-format': {
+      id: '/_app/help/input-format'
+      path: '/help/input-format'
+      fullPath: '/help/input-format'
+      preLoaderRoute: typeof AppHelpInputFormatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/programs/$id/edit': {
+      id: '/_app/programs/$id/edit'
+      path: '/edit'
+      fullPath: '/programs/$id/edit'
+      preLoaderRoute: typeof AppProgramsIdEditRouteImport
+      parentRoute: typeof AppProgramsIdRoute
+    }
+    '/_app/programs/$id/assign': {
+      id: '/_app/programs/$id/assign'
+      path: '/assign'
+      fullPath: '/programs/$id/assign'
+      preLoaderRoute: typeof AppProgramsIdAssignRouteImport
+      parentRoute: typeof AppProgramsIdRoute
+    }
     '/_app/exercises/$id/edit': {
       id: '/_app/exercises/$id/edit'
       path: '/exercises/$id/edit'
@@ -223,13 +337,31 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppProgramsIdRouteChildren {
+  AppProgramsIdAssignRoute: typeof AppProgramsIdAssignRoute
+  AppProgramsIdEditRoute: typeof AppProgramsIdEditRoute
+}
+
+const AppProgramsIdRouteChildren: AppProgramsIdRouteChildren = {
+  AppProgramsIdAssignRoute: AppProgramsIdAssignRoute,
+  AppProgramsIdEditRoute: AppProgramsIdEditRoute,
+}
+
+const AppProgramsIdRouteWithChildren = AppProgramsIdRoute._addFileChildren(
+  AppProgramsIdRouteChildren,
+)
+
 interface AppRouteChildren {
   AppHistoryRoute: typeof AppHistoryRoute
   AppRmsRoute: typeof AppRmsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppHelpInputFormatRoute: typeof AppHelpInputFormatRoute
+  AppProgramsIdRoute: typeof AppProgramsIdRouteWithChildren
+  AppProgramsNewRoute: typeof AppProgramsNewRoute
   AppWorkoutsDateRoute: typeof AppWorkoutsDateRoute
   AppWorkoutsImportRoute: typeof AppWorkoutsImportRoute
+  AppProgramsIndexRoute: typeof AppProgramsIndexRoute
   AppExercisesIdEditRoute: typeof AppExercisesIdEditRoute
 }
 
@@ -238,8 +370,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppRmsRoute: AppRmsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppHelpInputFormatRoute: AppHelpInputFormatRoute,
+  AppProgramsIdRoute: AppProgramsIdRouteWithChildren,
+  AppProgramsNewRoute: AppProgramsNewRoute,
   AppWorkoutsDateRoute: AppWorkoutsDateRoute,
   AppWorkoutsImportRoute: AppWorkoutsImportRoute,
+  AppProgramsIndexRoute: AppProgramsIndexRoute,
   AppExercisesIdEditRoute: AppExercisesIdEditRoute,
 }
 
