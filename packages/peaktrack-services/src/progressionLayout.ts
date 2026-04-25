@@ -20,10 +20,6 @@ import {
 	resolveWeightsFromSnapshot,
 } from './resolveProgramWeights';
 
-// Re-export types so existing imports from './progressionLayout' keep working.
-export type { ColumnLayout, PerformedShape, TileColor } from './progressionLayoutCore';
-export { normalizePerformed } from './progressionLayoutCore';
-
 export interface SessionLayout {
 	sessionId: string;
 	dayLabel: string;

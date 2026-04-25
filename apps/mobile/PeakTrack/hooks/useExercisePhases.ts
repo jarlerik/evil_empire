@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ExercisePhase } from '../lib/formatExercisePhase';
-import { ParsedSetData } from '../lib/parseSetInput';
-import { buildPhaseData } from '../lib/buildPhaseData';
+import { ExercisePhase } from '@evil-empire/parsers';
+import { ParsedSetData } from '@evil-empire/parsers';
+import { buildPhaseData } from '@evil-empire/peaktrack-services';
 import { fetchPhasesByExerciseId, insertPhase, updatePhase as updatePhaseService, deletePhase as deletePhaseService } from '@evil-empire/peaktrack-services';
 
 interface UseExercisePhasesProps {

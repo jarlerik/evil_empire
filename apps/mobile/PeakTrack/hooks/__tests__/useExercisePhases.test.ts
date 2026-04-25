@@ -1,6 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useExercisePhases } from '../useExercisePhases';
-import { ParsedSetData } from '../../lib/parseSetInput';
+import { ParsedSetData } from '@evil-empire/parsers';
 
 // Mock exercise phase service
 const mockFetchPhasesByExerciseId = jest.fn();
@@ -9,6 +9,7 @@ const mockUpdatePhase = jest.fn();
 const mockDeletePhase = jest.fn();
 
 jest.mock('@evil-empire/peaktrack-services', () => ({
+	...jest.requireActual('@evil-empire/peaktrack-services'),
 	fetchPhasesByExerciseId: (...args: unknown[]) => mockFetchPhasesByExerciseId(...args),
 	insertPhase: (...args: unknown[]) => mockInsertPhase(...args),
 	updatePhase: (...args: unknown[]) => mockUpdatePhase(...args),

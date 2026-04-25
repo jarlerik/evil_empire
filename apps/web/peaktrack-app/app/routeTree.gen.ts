@@ -9,50 +9,246 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppRmsRouteImport } from './routes/_app.rms'
+import { Route as AppHistoryRouteImport } from './routes/_app.history'
+import { Route as AppWorkoutsImportRouteImport } from './routes/_app.workouts.import'
+import { Route as AppWorkoutsDateRouteImport } from './routes/_app.workouts.$date'
+import { Route as AppExercisesIdEditRouteImport } from './routes/_app.exercises.$id.edit'
 
-const IndexRoute = IndexRouteImport.update({
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRmsRoute = AppRmsRouteImport.update({
+  id: '/rms',
+  path: '/rms',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWorkoutsImportRoute = AppWorkoutsImportRouteImport.update({
+  id: '/workouts/import',
+  path: '/workouts/import',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWorkoutsDateRoute = AppWorkoutsDateRouteImport.update({
+  id: '/workouts/$date',
+  path: '/workouts/$date',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExercisesIdEditRoute = AppExercisesIdEditRouteImport.update({
+  id: '/exercises/$id/edit',
+  path: '/exercises/$id/edit',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/history': typeof AppHistoryRoute
+  '/rms': typeof AppRmsRoute
+  '/settings': typeof AppSettingsRoute
+  '/workouts/$date': typeof AppWorkoutsDateRoute
+  '/workouts/import': typeof AppWorkoutsImportRoute
+  '/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/history': typeof AppHistoryRoute
+  '/rms': typeof AppRmsRoute
+  '/settings': typeof AppSettingsRoute
+  '/': typeof AppIndexRoute
+  '/workouts/$date': typeof AppWorkoutsDateRoute
+  '/workouts/import': typeof AppWorkoutsImportRoute
+  '/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/_app/history': typeof AppHistoryRoute
+  '/_app/rms': typeof AppRmsRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/workouts/$date': typeof AppWorkoutsDateRoute
+  '/_app/workouts/import': typeof AppWorkoutsImportRoute
+  '/_app/exercises/$id/edit': typeof AppExercisesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/history'
+    | '/rms'
+    | '/settings'
+    | '/workouts/$date'
+    | '/workouts/import'
+    | '/exercises/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/sign-in'
+    | '/sign-up'
+    | '/history'
+    | '/rms'
+    | '/settings'
+    | '/'
+    | '/workouts/$date'
+    | '/workouts/import'
+    | '/exercises/$id/edit'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/sign-in'
+    | '/sign-up'
+    | '/_app/history'
+    | '/_app/rms'
+    | '/_app/settings'
+    | '/_app/'
+    | '/_app/workouts/$date'
+    | '/_app/workouts/import'
+    | '/_app/exercises/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rms': {
+      id: '/_app/rms'
+      path: '/rms'
+      fullPath: '/rms'
+      preLoaderRoute: typeof AppRmsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/history': {
+      id: '/_app/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/workouts/import': {
+      id: '/_app/workouts/import'
+      path: '/workouts/import'
+      fullPath: '/workouts/import'
+      preLoaderRoute: typeof AppWorkoutsImportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/workouts/$date': {
+      id: '/_app/workouts/$date'
+      path: '/workouts/$date'
+      fullPath: '/workouts/$date'
+      preLoaderRoute: typeof AppWorkoutsDateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/exercises/$id/edit': {
+      id: '/_app/exercises/$id/edit'
+      path: '/exercises/$id/edit'
+      fullPath: '/exercises/$id/edit'
+      preLoaderRoute: typeof AppExercisesIdEditRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppHistoryRoute: typeof AppHistoryRoute
+  AppRmsRoute: typeof AppRmsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppWorkoutsDateRoute: typeof AppWorkoutsDateRoute
+  AppWorkoutsImportRoute: typeof AppWorkoutsImportRoute
+  AppExercisesIdEditRoute: typeof AppExercisesIdEditRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppHistoryRoute: AppHistoryRoute,
+  AppRmsRoute: AppRmsRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppWorkoutsDateRoute: AppWorkoutsDateRoute,
+  AppWorkoutsImportRoute: AppWorkoutsImportRoute,
+  AppExercisesIdEditRoute: AppExercisesIdEditRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -4,7 +4,7 @@ import { commonStyles } from '../styles/common';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { EditExecutionModal, ExecutionLogData } from '../components/EditExecutionModal';
 import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
 import { WorkoutTimerDisplay } from '../components/WorkoutTimerDisplay';

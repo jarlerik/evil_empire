@@ -3,7 +3,7 @@ import type {
 	ProgramExercise,
 	ProgramRepetitionMaximum,
 } from '@evil-empire/types';
-import { buildSessionLayout } from '../progressionLayout';
+import { buildSessionLayout } from '../src/progressionLayout';
 
 function makeRm(name: string, weight: number): ProgramRepetitionMaximum {
 	return {

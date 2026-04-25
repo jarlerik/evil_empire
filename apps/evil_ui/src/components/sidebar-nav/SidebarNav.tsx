@@ -30,7 +30,7 @@ export function SidebarNav({ items, activeKey, onSelect, collapsed, header, foot
             <View style={[styles.item, active && styles.activeItem]}>
               {item.icon && <View style={styles.icon}>{item.icon}</View>}
               {!collapsed && (
-                <Text variant="body" color={active ? colors.primary : colors['text-secondary']}>
+                <Text variant="body" color={active ? colors['primary-foreground'] : colors['text-secondary']}>
                   {item.label}
                 </Text>
               )}

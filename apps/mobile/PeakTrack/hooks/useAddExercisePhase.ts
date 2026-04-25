@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { parseSetInput } from '../lib/parseSetInput';
+import { parseSetInput } from '@evil-empire/parsers';
 import { useExercisePhases } from './useExercisePhases';
 import { useRmLookup, RmMatch } from './useRmLookup';
 

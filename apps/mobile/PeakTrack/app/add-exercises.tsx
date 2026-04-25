@@ -4,7 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { ExerciseItem } from '../components/ExerciseItem';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles } from '../styles/common';
 import { Exercise } from '../types/workout';

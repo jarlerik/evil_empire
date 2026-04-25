@@ -1,6 +1,9 @@
 packages:
   - "apps/mobile/*"
-  - "apps/serverless/**"
+  # Direct children only — `**` would also match bundle outputs like
+  # apps/serverless/peaktrack-api/dist/package.json and SAM's
+  # .aws-sam/build/ApiFunction/package.json copies, which collide on `name`.
+  - "apps/serverless/*"
   - "apps/agent"
   - "apps/warrior_trading"
   - "apps/web/peaktrack-app"

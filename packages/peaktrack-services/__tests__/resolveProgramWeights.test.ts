@@ -4,7 +4,7 @@ import {
 	exerciseNeedsRmSnapshot,
 	resolveWeightsFromSnapshot,
 	findProgramRm,
-} from '../resolveProgramWeights';
+} from '../src/resolveProgramWeights';
 
 function makeRm(name: string, weight: number): ProgramRepetitionMaximum {
 	return {

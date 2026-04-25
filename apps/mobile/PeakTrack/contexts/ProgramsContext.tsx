@@ -8,7 +8,7 @@ import {
 	MaterializeExerciseInput,
 } from '@evil-empire/peaktrack-services';
 import { useAuth } from './AuthContext';
-import { resolveSessionsInRange } from '../lib/programScheduling';
+import { resolveSessionsInRange } from '@evil-empire/peaktrack-services';
 
 interface ProgramsContextType {
 	programs: Program[];

@@ -24,8 +24,8 @@ import { VolumeStatCardRow } from '../components/VolumeStatCardRow';
 import {
 	buildExerciseSessionLayout,
 	ExerciseSessionLayout,
-} from '../lib/exerciseProgressionLayout';
-import type { TileColor } from '../lib/progressionLayoutCore';
+} from '@evil-empire/peaktrack-services';
+import type { TileColor } from '@evil-empire/peaktrack-services';
 import { bucketByDate, type VolumePoint } from '../lib/volumeStats';
 
 const MIN_SESSION_WIDTH = 44;

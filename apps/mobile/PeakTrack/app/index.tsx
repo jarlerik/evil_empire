@@ -12,7 +12,7 @@ import { ExerciseItem } from '../components/ExerciseItem';
 import { WeekDaySelector } from '../components/WeekDaySelector';
 import { commonStyles } from '../styles/common';
 import { Exercise, Workout } from '../types/workout';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
 import { CoachMark } from '../components/CoachMark';
@@ -20,7 +20,7 @@ import { useCoachMark } from '../hooks/useCoachMark';
 import { ProgramSessionCard } from '../components/ProgramSessionCard';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { ProgramSessionForDate } from '@evil-empire/types';
-import { prepareMaterializeInputs, sessionLabel } from '../lib/prepareMaterializeInputs';
+import { prepareMaterializeInputs, sessionLabel } from '@evil-empire/peaktrack-services';
 
 type PendingMove =
 	| { kind: 'workout'; id: string }

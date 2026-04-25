@@ -1,5 +1,5 @@
-import { ParsedSetData } from './parseSetInput';
-import { PhaseInsertData } from '@evil-empire/peaktrack-services';
+import type { ParsedSetData } from '@evil-empire/parsers';
+import type { PhaseInsertData } from './exercisePhaseService';
 
 /**
  * Translate a `ParsedSetData` (from `@evil-empire/parsers`) plus the resolved

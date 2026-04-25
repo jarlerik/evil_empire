@@ -2,9 +2,9 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { reverseParsePhase } from '../lib/parseSetInput';
+import { reverseParsePhase } from '@evil-empire/parsers';
 import { deleteExercise, updateExerciseName, createRepetitionMaximum } from '@evil-empire/peaktrack-services';
-import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { formatExercisePhase, ExercisePhase } from '@evil-empire/parsers';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
