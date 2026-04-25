@@ -33,4 +33,10 @@ The five corresponding test files moved into a new `packages/peaktrack-services/
 
 Mobile import surface updated across 25 files. One sharp edge: two files used the `@/lib/...` path alias rather than `../lib/...`, which the first sed pass missed — `WorkoutTimerDisplay.tsx` failed typecheck until I caught the alias form. Two test mocks needed updating: `EditExecutionModal.test.tsx`'s three `jest.mock('../../lib/...')` calls became single mocks against `@evil-empire/parsers` (parseSetInput + formatExercisePhase) and `@evil-empire/peaktrack-services` (interpolateWeight); `useExercisePhases.test.ts` mocked the four phase-service functions but left the mock empty, which broke the now-co-located `buildPhaseData` import — fixed with `jest.requireActual` spread to keep the real `buildPhaseData` while overriding only the four service calls.
 
-Web app inherits the lifted modules with zero changes — it already imported from `@evil-empire/peaktrack-services` and the package's `index.ts` re-exports the new modules via `export *`. Removed the dead `export type { ... } from './progressionLayoutCore'` re-export block that `progressionLayout.ts` carried for legacy local-import compat — it would have caused `export *` ambiguity at the package barrel. Tests / typecheck / lint / build all clean across the monorepo (the `peaktrack-api` test step still errors with "no test files" — pre-existing, not a regression).
+Web app inherits the lifted modules with zero changes — it already imported from `@evil-empire/peaktrack-services` and the package's `index.ts` re-exports the new modules via `export *`. Removed the dead `export type { ... } from './progressionLayoutCore'` re-export block that `progressionLayout.ts` carried for legacy local-import compat — it would have caused `export *` ambiguity at the package barrel. Tests / typecheck / lint / build all clean across the monorepo.
+
+Shipped as `2e93be1` on `develop`.
+
+## Bonus: pnpm test no longer fails on packages without tests
+
+`peaktrack-api` had no test files yet, so `pnpm test` was failing the whole turbo run on its `vitest run` exit code 1. Switched its test script to `vitest run --passWithNoTests` so empty-test packages exit clean. `pnpm test` now passes 11/11 across the monorepo.
