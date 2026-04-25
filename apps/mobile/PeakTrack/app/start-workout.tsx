@@ -88,6 +88,11 @@ export default function StartWorkout() {
 		}
 	}, [currentExerciseIndex, currentSetNumber, exercises, exercisePhases]);
 
+	// Non-EMOM rest auto-advance: switch from RESTING to WORKING when rest timer reaches 0
+	const handleRestTimerZero = useCallback(() => {
+		work();
+	}, [currentExerciseIndex, currentSetNumber, exercises, exercisePhases]);
+
 	const {
 		restTimeRemaining,
 		blinkOpacity,
@@ -100,6 +105,7 @@ export default function StartWorkout() {
 		workoutState,
 		isEmom: isEmomPhase(),
 		onEmomTimerZero: handleEmomTimerZero,
+		onRestTimerZero: handleRestTimerZero,
 	});
 
 	const getNextPhase = (): ExercisePhase | null => {

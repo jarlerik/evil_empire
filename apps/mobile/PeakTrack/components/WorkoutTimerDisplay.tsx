@@ -204,15 +204,15 @@ export function WorkoutTimerDisplay({
 
 			{/* Middle section: Exercise info */}
 			<View style={styles.timerTopSection}>
-				{nextPhase ? (
-					<Text style={styles.nextPhaseLabel}>Next phase:</Text>
-				) : workoutState === 'rest' ? (
-					<Text style={styles.nextPhaseLabel}>Next set:</Text>
-				) : null}
-
 				{workoutState !== 'idle' && workoutState !== 'workout_done' && (
 					<Text style={styles.setInfo}>
 						{setNumber} of {totalSets} {isCircuit ? 'rounds' : 'sets'}
+					</Text>
+				)}
+
+				{(nextPhase || workoutState === 'rest') && (
+					<Text style={styles.nextPhaseLabel}>
+						{nextPhase ? 'Next phase:' : 'Next set:'}
 					</Text>
 				)}
 
@@ -243,7 +243,7 @@ export function WorkoutTimerDisplay({
 				)}
 				{workoutState === 'work' && (
 					<>
-						<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]}>WORKING</Animated.Text>
+						<Animated.Text style={[styles.stateWork, { opacity: blinkOpacity }]} adjustsFontSizeToFit numberOfLines={1}>WORKING</Animated.Text>
 						{exercisePhase?.emom_interval_seconds && restTimeRemaining > 0 && (
 							<Animated.Text style={[styles.countdown, { opacity: blinkOpacity }]}>
 								{formatTime(restTimeRemaining)}
@@ -283,19 +283,16 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: '#fff',
 		borderRadius: 8,
-		justifyContent: 'center',
+		justifyContent: 'space-around',
 		alignItems: 'center',
-		padding: 20,
+		padding: 16,
 		overflow: 'hidden',
 	},
 	timerTopSection: {
-		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
 	},
 	timerBottomSection: {
-		flex: 1,
-		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
 	},
@@ -312,10 +309,9 @@ const styles = StyleSheet.create({
 	},
 	exerciseName: {
 		color: '#fff',
-		fontSize: 24,
+		fontSize: 22,
 		fontWeight: 'bold',
 		textAlign: 'center',
-		marginBottom: 8,
 	},
 	phasesList: {
 		alignItems: 'center',
@@ -330,16 +326,16 @@ const styles = StyleSheet.create({
 	},
 	nextPhaseLabel: {
 		color: '#C65D24',
-		fontSize: 18,
+		fontSize: 16,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	setInfo: {
 		color: '#fff',
-		fontSize: 20,
+		fontSize: 18,
 		fontWeight: 'bold',
 		textAlign: 'center',
-		marginBottom: 4,
+		marginBottom: 2,
 	},
 	circuitExercise: {
 		color: '#C65D24',
@@ -350,43 +346,43 @@ const styles = StyleSheet.create({
 	},
 	reps: {
 		color: '#C65D24',
-		fontSize: 32,
+		fontSize: 28,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	weight: {
 		color: '#C65D24',
-		fontSize: 32,
+		fontSize: 28,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	stateIdle: {
 		color: '#fff',
-		fontSize: 48,
+		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	stateWork: {
-		color: '#fff',
-		fontSize: 48,
+		color: '#ef4444',
+		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	stateRest: {
-		color: '#fff',
-		fontSize: 48,
+		color: '#22c55e',
+		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	stateDone: {
 		color: '#C65D24',
-		fontSize: 48,
+		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	countdown: {
 		color: '#fff',
-		fontSize: 48,
+		fontSize: 42,
 		fontWeight: 'bold',
 		textAlign: 'center',
 	},

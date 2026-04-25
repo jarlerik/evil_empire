@@ -22,6 +22,7 @@ interface UseWorkoutTimerProps {
 	workoutState: WorkoutState;
 	isEmom: boolean;
 	onEmomTimerZero?: () => void;
+	onRestTimerZero?: () => void;
 }
 
 interface UseWorkoutTimerReturn {
@@ -35,7 +36,7 @@ interface UseWorkoutTimerReturn {
 	setRestTimeRemaining: (time: number) => void;
 }
 
-export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWorkoutTimerProps): UseWorkoutTimerReturn {
+export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero, onRestTimerZero }: UseWorkoutTimerProps): UseWorkoutTimerReturn {
 	const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 	const restTimerIntervalRef = useRef<number | null>(null);
 	const blinkOpacity = useRef(new Animated.Value(1)).current;
@@ -46,6 +47,8 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 	// Store callback in ref to avoid stale closures in effects
 	const onEmomTimerZeroRef = useRef(onEmomTimerZero);
 	onEmomTimerZeroRef.current = onEmomTimerZero;
+	const onRestTimerZeroRef = useRef(onRestTimerZero);
+	onRestTimerZeroRef.current = onRestTimerZero;
 
 	const formatTime = (seconds: number): string => {
 		const mins = Math.floor(seconds / 60);
@@ -153,6 +156,11 @@ export function useWorkoutTimer({ workoutState, isEmom, onEmomTimerZero }: UseWo
 		// EMOM auto-advance when timer hits 0
 		if (isEmom && (workoutState === 'rest' || workoutState === 'work') && restTimeRemaining === 0) {
 			onEmomTimerZeroRef.current?.();
+		}
+
+		// Non-EMOM rest auto-advance: switch to work when rest timer hits 0
+		if (!isEmom && workoutState === 'rest' && restTimeRemaining === 0) {
+			onRestTimerZeroRef.current?.();
 		}
 	}, [restTimeRemaining, workoutState, isEmom]);
 
