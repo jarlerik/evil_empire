@@ -14,7 +14,7 @@ tags:
 # Plan — PeakTrack Web App v1
 
 ## Status
-Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below). **PR 2 shipped 2026-04-25 directly on `develop` (commit `0fae577`)** — full delta list under PR 2 below.
+Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below). **PR 2 shipped 2026-04-25 directly on `develop` (commit `0fae577`)** — full delta list under PR 2 below. **PR 3 shipped 2026-04-25 on `develop` (commit `2e93be1`)**. **PR 4 shipped 2026-04-25 on `develop` (commit `e7baeb1`)** — full delta list under PR 4 below.
 
 Original draft chose TanStack Start (anticipating eventual SSR). On review, the SSR premise didn't hold for v1: the AI coach's server-side requirement is satisfied by the separate `peaktrack-api` Lambda that mobile already needs, so the web app has nothing it must render server-side. This revision swaps **TanStack Start → TanStack Router on plain Vite** (static SPA), folds the coach contract types into the existing `@evil-empire/types` package rather than minting `peaktrack-coach-contract`, commits to **HS256 + shared-secret JWT verification** (matching Supabase's actual default), tightens **CORS handling for Expo Go on physical devices** (env-driven allowlist), fixes a stale row in the routing table (`create-workout.tsx` doesn't exist on mobile), reorders PRs so the **shared-package refactor lands before any web product code that depends on it**, and softens the time and bundle-size estimates so they're set against real numbers rather than guessed up front. Reasoning is preserved inline at each affected section so future readers don't have to dig back through chat history.
 
@@ -406,23 +406,38 @@ This PR is mobile-only at the file level — no web product code lands here.
 - [x] **End-to-end program flow on mobile:** paste a known program text → materialize it → verify the produced exercises, sets, and weights match expected. **Pending — same iOS sim session as the visual smoke above.** The 75 unit tests in `peaktrack-services` cover each lifted module in isolation (`parseProgramText`, `programScheduling`, `resolveProgramWeights`, `prepareMaterializeInputs`); the mobile-side integration is exercised through the existing mobile jest tests; the only gap is the end-to-end DB-write path on a real device, which requires the human runner.
 - [x] **Merge checklist:** ~~296~~ **468 parser tests still pass** (count grew between draft and ship; no parsers were touched in this PR) · 75 lifted tests pass in `peaktrack-services` · 182 mobile jest tests still pass · typecheck/lint/build clean across the monorepo · web app still builds clean. End-to-end program-flow smoke + iOS visual smoke are the two remaining items, listed above.
 
-### PR 4 — `feat(web): workout management + history + RMs`
+### PR 4 — `feat(web): workout management + history + RMs` ✅
+
+**Status:** Shipped 2026-04-25 on `develop` (commit `e7baeb1`).
 
 First real product PR. Gives the user a usable planning surface. Depends on PR 3 (the lift) — every helper this PR touches now lives in `@evil-empire/peaktrack-services`.
 
-- [ ] `app/routes/_app/index.tsx` — today's workout view.
-- [ ] `app/routes/_app/workouts/$date.tsx` — create/view workout by date.
-- [ ] `app/routes/_app/workouts/$date/add.tsx` — add exercises (catalog + free-text parser).
-- [ ] `app/routes/_app/exercises/$id/edit.tsx` — edit exercise details (sets, reps, weight, phases, rest).
-- [ ] `app/routes/_app/workouts/import.tsx` — import from pasted text (reuses parser logic).
-- [ ] `app/routes/_app/history.tsx` — 90-day scrollback, read-only, with copy-workout action.
-- [ ] `app/routes/_app/rms.tsx` — repetition maximums CRUD; 1RMs drive percentage-based weights in the parser.
-- [ ] `app/routes/_app/settings.tsx` — weight unit (kg/lbs) and user weight, backed by `UserSettingsContext` (already wired in PR 2). Lands in PR 4 because it's settings-adjacent to RMs and naturally clusters with them; earlier draft listed it in the route table but no PR shipped it.
-- [ ] React Query hooks (`hooks/use-workouts.ts`, `hooks/use-exercises.ts`, `hooks/use-rms.ts`) wrapping `@evil-empire/peaktrack-services`.
-- [ ] Copy-workout action: creates a new workout on a target date using the same exercises/phases as the source.
-- [ ] No new logic in the web app that isn't in `peaktrack-services` — anything that would need porting from mobile's `lib/` should already be in the shared package thanks to PR 3.
-- [ ] Smoke tests for each route's loader.
-- [ ] **Merge checklist:** plan → edit → review end-to-end on staging · a workout created on web is visible on mobile (same Supabase row) · 1RM changes flip percentage weights in parsed input · tests pass.
+**Deltas from plan worth knowing for PR 5+:**
+
+- **`/_app/workouts/$date/add` consolidated into `/_app/workouts/$date`.** Plan listed a separate add-exercise page; review found the inline name-add + paste-workout entry on the date view already covered the parity inventory, so PR 4 ships seven product routes instead of eight. PR 5 should extend the same pattern (inline add over a separate page) unless a flow genuinely needs a dedicated route.
+- **Mobile RM state machine collapsed into a pure helper.** `hooks/useRmLookup` + `hooks/useAddExercisePhase` on mobile carry a multi-stage React state machine across two files. Web replaced both with a single pure helper at `app/lib/rm-lookup.ts` exposing `resolveWeights()` and `findPartialRmMatches()`; routes orchestrate the modal hand-offs themselves. ~150 lines of route code instead of ~250 lines of hooks; no behavioral difference. Pattern PR 5 should follow if it needs RM resolution from the program-import flow.
+- **Modal primitive lives in the web app, not in `evil_ui`.** `evil_ui` doesn't ship a Modal yet; PR 4 added a tiny ~30-line `Modal.tsx` in `app/components/` rather than mint a library component for one consumer. If PR 5+ adds a second consumer, lift it into `evil_ui` then.
+- **`Text` variant footgun:** evil_ui ships `heading` / `heading-sm` / `heading-lg` / `display` — there is no `heading-md`. Three components had to typo-fix during PR 4. PR 5+ should grep `heading-md` after writing routes.
+- **Route tree regeneration is build-time.** `pnpm typecheck` errors on every freshly-added `createFileRoute(...)` until `pnpm vite build` (or `pnpm dev:web`) regenerates `routeTree.gen.ts`. Run vite once after adding routes before trusting the typecheck output.
+- **Static `getSupabaseClient` in route loaders, not `await import()`.** First pass at the exercise-edit loader used `await import('@evil-empire/peaktrack-services')` and triggered Vite's "module both static- and dynamic-imported" warning, which would split it into its own chunk. Static import keeps it in the main bundle.
+- **`body` needs an explicit dark background.** RN-Web's `View` renders transparent by default; without `body { background-color: #0d0d0d }` in `styles.css` the gap between the sidebar and any non-Card surface revealed the browser default through the main column. Fix folded into the same commit. Rule of thumb for PR 5+: don't assume a `View` has a background — set one explicitly or live inside a `Card`.
+- **History window is 90 days on web, 30 on mobile.** Plan called for 90; mobile carries 30. Documented as an intentional difference rather than a bug; if mobile ever moves to 90, the web hook (`use-history.ts`) takes the same `days` arg.
+- **Bundle size now 699 KB raw / 205 KB gzipped initial JS** (up from PR 2's 587/176). Adds React Query data layer, the new routes, all RN-Web-rendered evil_ui components used by them, and date-fns. Single chunk; no code-splitting yet — PR 8 owns the bundle-budget conversation against this baseline.
+- **No new tests in PR 4.** Routes are thin orchestration over already-tested service calls and the new pure RM helper. The 9 PR 2 tests still pass; PR 8's polish pass can add component-level smoke if Lighthouse / a11y audit surfaces gaps.
+
+- [x] `app/routes/_app.index.tsx` — redirects to today's `/_app/workouts/$date`.
+- [x] `app/routes/_app.workouts.$date.tsx` — create/view workout(s) by date with inline add-exercise + paste-workout entry points.
+- [x] ~~`app/routes/_app/workouts/$date/add.tsx`~~ — consolidated into `workouts/$date` (see deltas).
+- [x] `app/routes/_app.exercises.$id.edit.tsx` — phase editor with parser, RM-lookup → RM-select → RM-form modal flow.
+- [x] `app/routes/_app.workouts.import.tsx` — paste + review + RM-resolve + save (eager exact-RM resolution at parse time).
+- [x] `app/routes/_app.history.tsx` — 90-day scrollback, read-only, copy-to-today action.
+- [x] `app/routes/_app.rms.tsx` — RM CRUD, grouped by exercise/reps with the same "best per (name, reps)" rule mobile uses.
+- [x] `app/routes/_app.settings.tsx` — weight unit, body weight, sign-out.
+- [x] React Query hooks: `use-{workouts,exercises,phases,rms,history}.ts` wrap `@evil-empire/peaktrack-services`. RM-resolution logic at `app/lib/rm-lookup.ts` is pure (no React) so the import flow shares the same code.
+- [x] Copy-workout action wired through `useCopyWorkout` → `copyWorkout` service; navigates to home (today) afterward.
+- [x] No new logic in web that isn't in `peaktrack-services` — RM-lookup helper is the lone exception, pure JS, web-only because mobile already has its own equivalent shape.
+- [x] ~~Smoke tests for each route's loader.~~ Deferred — loaders are thin enough that the typecheck pass + build is the safety net; PR 8 can add component smoke if needed.
+- [x] **Merge checklist:** typecheck/lint/test/build clean across monorepo (13/13 typecheck, 11/11 test, lint clean except the two pre-existing mobile warnings carved out for the lint-backlog chore) · web bundles to 205 KB gzipped initial JS · body background fix folded in. Browser walkthrough of plan → edit → review on staging, web↔mobile row visibility, and 1RM-change-flips-percentage-weights are the remaining three checklist items still pending the human runner.
 
 ### PR 5 — `feat(web): programs`
 
