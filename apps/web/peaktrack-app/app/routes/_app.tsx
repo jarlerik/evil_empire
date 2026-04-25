@@ -20,6 +20,7 @@ interface NavTarget {
 const NAV: NavTarget[] = [
   { key: 'home', label: 'Home', to: '/', match: (p) => p === '/' || p.startsWith('/workouts/') },
   { key: 'history', label: 'History', to: '/history', match: (p) => p.startsWith('/history') },
+  { key: 'programs', label: 'Programs', to: '/programs', match: (p) => p.startsWith('/programs') },
   { key: 'rms', label: 'Rep maxes', to: '/rms', match: (p) => p.startsWith('/rms') },
   { key: 'settings', label: 'Settings', to: '/settings', match: (p) => p.startsWith('/settings') },
 ];
