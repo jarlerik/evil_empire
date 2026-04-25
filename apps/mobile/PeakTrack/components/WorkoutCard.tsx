@@ -21,6 +21,11 @@ interface WorkoutCardProps {
 }
 
 export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = false, isCompleted = false, isMissed = false, onMoveToToday, onCopy, isCopying = false, exercisePhases, rating, unit = 'kg' }: WorkoutCardProps) {
+	// In history (where exercisePhases comes from execution logs), an exercise
+	// without phases was skipped — don't list it as part of the completed workout.
+	const visibleExercises = exercisePhases
+		? exercises.filter(e => (exercisePhases.get(e.id)?.length ?? 0) > 0)
+		: exercises;
 	return (
 		<View style={styles.workoutCard}>
 			{isMissed && (
@@ -30,7 +35,7 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 			)}
 			<View style={[
 				styles.workoutCardHeader,
-				exercises.length > 0 && styles.workoutCardHeaderWithExercises,
+				visibleExercises.length > 0 && styles.workoutCardHeaderWithExercises,
 			]}>
 				<View style={styles.workoutNameContainer}>
 					<Text style={styles.workoutName}>{workout.name}</Text>
@@ -65,9 +70,9 @@ export function WorkoutCard({ workout, exercises, onEdit, onStart, isReadOnly = 
 					</View>
 				)}
 			</View>
-			{exercises.length > 0 && (
+			{visibleExercises.length > 0 && (
 				<View style={styles.exercisesList}>
-					{exercises.map((exercise, index) => {
+					{visibleExercises.map((exercise, index) => {
 						const phases = exercisePhases?.get(exercise.id);
 						return (
 							<View key={exercise.id}>
