@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { formatExercisePhase, ExercisePhase } from '@evil-empire/parsers';
 
 interface ExerciseDB {
 	id: string;

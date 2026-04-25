@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Exercise, Workout } from '../types/workout';
-import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase, formatExercisePhase } from '@evil-empire/parsers';
 
 interface WorkoutCardProps {
 	workout: Workout;

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/common';
 import { Button } from './Button';
-import { parseProgramText } from '../lib/parseProgramText';
+import { parseProgramText } from '@evil-empire/peaktrack-services';
 
 interface ProgramPlanEditorProps {
 	initialText: string;

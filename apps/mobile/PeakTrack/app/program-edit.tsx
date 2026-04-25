@@ -38,7 +38,7 @@ import {
 	parseProgramText,
 	serializeProgramText,
 	defaultDayForSession,
-} from '../lib/parseProgramText';
+} from '@evil-empire/peaktrack-services';
 
 const DAY_SHORT: readonly string[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

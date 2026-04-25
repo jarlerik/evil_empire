@@ -2,7 +2,7 @@ import {
 	parseProgramText,
 	defaultDayForSession,
 	serializeProgramText,
-} from '../parseProgramText';
+} from '../src/parseProgramText';
 
 describe('parseProgramText', () => {
 	it('parses the 2x/week example from the Russian squat program', () => {

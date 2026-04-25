@@ -1,6 +1,6 @@
 import { parseSetInput } from '@evil-empire/parsers';
 import type { ProgramSessionForDate } from '@evil-empire/types';
-import type { MaterializeExerciseInput } from '@evil-empire/peaktrack-services';
+import type { MaterializeExerciseInput } from './programService';
 import {
 	exerciseNeedsRmSnapshot,
 	resolveWeightsFromSnapshot,

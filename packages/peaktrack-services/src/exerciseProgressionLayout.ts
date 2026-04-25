@@ -1,4 +1,4 @@
-import type { ExerciseProgressionRow } from '@evil-empire/peaktrack-services';
+import type { ExerciseProgressionRow } from './exerciseProgressionService';
 import {
 	buildColumnTiles,
 	formatWeight,

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { Button } from './Button';
-import { ExercisePhase, formatExercisePhase } from '../lib/formatExercisePhase';
-import { parseSetInput, ParsedSetData } from '../lib/parseSetInput';
-import { interpolateWeight } from '../lib/interpolateWeight';
+import { ExercisePhase, formatExercisePhase } from '@evil-empire/parsers';
+import { parseSetInput, ParsedSetData } from '@evil-empire/parsers';
+import { interpolateWeight } from '@evil-empire/peaktrack-services';
 
 interface EditExecutionModalProps {
 	visible: boolean;

@@ -4,7 +4,7 @@ import {
 	resolveSessionForDate,
 	resolveSessionsInRange,
 	isoWeekOf,
-} from '../programScheduling';
+} from '../src/programScheduling';
 
 describe('programScheduling', () => {
 	describe('resolveSessionDate', () => {

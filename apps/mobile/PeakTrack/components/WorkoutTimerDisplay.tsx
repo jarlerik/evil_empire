@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Button } from './Button';
-import { ExercisePhase } from '@/lib/formatExercisePhase';
-import { interpolateWeight } from '@/lib/interpolateWeight';
+import { ExercisePhase } from '@evil-empire/parsers';
+import { interpolateWeight } from '@evil-empire/peaktrack-services';
 
 type WorkoutState = 'idle' | 'work' | 'rest' | 'exercise_done' | 'workout_done';
 

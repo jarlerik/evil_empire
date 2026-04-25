@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
 import { commonStyles, colors } from '../styles/common';
 import { fetchRecentExecutionLogs, fetchExecutionLogsByExerciseIds, fetchWorkoutsByIds, copyWorkout, fetchExercisesByWorkoutIds, fetchWorkoutRatings } from '@evil-empire/peaktrack-services';
-import { ExercisePhase } from '../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 import { Exercise, Workout } from '../types/workout';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { NavigationBar } from '../components/NavigationBar';

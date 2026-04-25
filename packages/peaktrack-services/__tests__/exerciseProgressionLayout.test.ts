@@ -1,13 +1,13 @@
-import type { ExerciseProgressionRow } from '@evil-empire/peaktrack-services';
+import type { ExerciseProgressionRow } from '../src/exerciseProgressionService';
 import {
 	escapeIlike,
 	splitCompoundName,
-} from '@evil-empire/peaktrack-services';
+} from '../src/exerciseProgressionService';
 import {
 	buildExerciseSessionLayout,
 	computeAttributedVolume,
-} from '../exerciseProgressionLayout';
-import { normalizePerformed } from '../progressionLayoutCore';
+} from '../src/exerciseProgressionLayout';
+import { normalizePerformed } from '../src/progressionLayoutCore';
 
 function makeRow(overrides: Partial<ExerciseProgressionRow> = {}): ExerciseProgressionRow {
 	return {

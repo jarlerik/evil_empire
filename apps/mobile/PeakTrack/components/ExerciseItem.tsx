@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { formatExercisePhase, ExercisePhase } from '../lib/formatExercisePhase';
+import { formatExercisePhase, ExercisePhase } from '@evil-empire/parsers';
 import { Exercise } from '../types/workout';
 
 interface ExerciseItemProps {

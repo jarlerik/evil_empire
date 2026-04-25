@@ -14,7 +14,7 @@
     "smoke": "sam local start-api",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@evil-empire/peaktrack-services": "workspace:*",

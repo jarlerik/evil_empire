@@ -2,10 +2,10 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { EditExecutionModal } from '../EditExecutionModal';
-import { ExercisePhase } from '../../lib/formatExercisePhase';
+import { ExercisePhase } from '@evil-empire/parsers';
 
-// Mock parseSetInput
-jest.mock('../../lib/parseSetInput', () => ({
+// Mock parseSetInput + formatExercisePhase from @evil-empire/parsers
+jest.mock('@evil-empire/parsers', () => ({
 	parseSetInput: jest.fn((input: string) => {
 		// Simple mock implementation
 		if (input.includes('invalid')) {
@@ -27,17 +27,13 @@ jest.mock('../../lib/parseSetInput', () => ({
 			weight: 100,
 		};
 	}),
-}));
-
-// Mock formatExercisePhase
-jest.mock('../../lib/formatExercisePhase', () => ({
 	formatExercisePhase: jest.fn((phase: ExercisePhase) => {
 		return `${phase.sets} x ${phase.repetitions} @${phase.weight}kg`;
 	}),
 }));
 
-// Mock interpolateWeight
-jest.mock('../../lib/interpolateWeight', () => ({
+// Mock interpolateWeight from @evil-empire/peaktrack-services
+jest.mock('@evil-empire/peaktrack-services', () => ({
 	interpolateWeight: jest.fn((min: number, _max: number, _i: number, _total: number) => min),
 }));
 

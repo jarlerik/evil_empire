@@ -20,7 +20,7 @@ import { colors } from '../styles/common';
 import { LoadScreen } from './components/LoadScreen';
 import { NavigationBar } from '../components/NavigationBar';
 import { VolumeStatCardRow } from '../components/VolumeStatCardRow';
-import { buildSessionLayout, SessionLayout, TileColor } from '../lib/progressionLayout';
+import { buildSessionLayout, SessionLayout, TileColor } from '@evil-empire/peaktrack-services';
 import { toLocalDateString, type VolumePoint } from '../lib/volumeStats';
 
 const MIN_SESSION_WIDTH = 44;
