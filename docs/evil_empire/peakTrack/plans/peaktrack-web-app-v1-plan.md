@@ -14,7 +14,7 @@ tags:
 # Plan — PeakTrack Web App v1
 
 ## Status
-Draft — 2026-04-23. Revised 2026-04-25.
+Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below).
 
 Original draft chose TanStack Start (anticipating eventual SSR). On review, the SSR premise didn't hold for v1: the AI coach's server-side requirement is satisfied by the separate `peaktrack-api` Lambda that mobile already needs, so the web app has nothing it must render server-side. This revision swaps **TanStack Start → TanStack Router on plain Vite** (static SPA), folds the coach contract types into the existing `@evil-empire/types` package rather than minting `peaktrack-coach-contract`, commits to **HS256 + shared-secret JWT verification** (matching Supabase's actual default), tightens **CORS handling for Expo Go on physical devices** (env-driven allowlist), fixes a stale row in the routing table (`create-workout.tsx` doesn't exist on mobile), reorders PRs so the **shared-package refactor lands before any web product code that depends on it**, and softens the time and bundle-size estimates so they're set against real numbers rather than guessed up front. Reasoning is preserved inline at each affected section so future readers don't have to dig back through chat history.
 
@@ -292,47 +292,59 @@ Web v1 is a **management and analytics surface**. The following must all work:
 
 Each milestone below corresponds to **one pull request**, sized so it can be reviewed and merged independently. Later PRs assume earlier PRs have merged to `main`. Every PR ends with a merge checklist; don't merge until everything in it is green.
 
-### PR 1 — `feat(web): scaffold peaktrack-app + peaktrack-api`
+### PR 1 — `feat(web): scaffold peaktrack-app + peaktrack-api` ✅
+
+**Status:** Shipped 2026-04-25 on branch `feat/web-pr1-scaffold` (commit + PR open pending). Staging URLs: web → `https://d7kj6czc8q4sw.cloudfront.net`, API → `https://vai36aiymvj3t67l2vtsmbwprq0iebnc.lambda-url.eu-north-1.on.aws`.
 
 Wires up the two new packages and the deploy wrappers. No product features.
 
+**Deltas from plan worth knowing for PR 2+:**
+- **JWT verification migrated mid-PR from HS256 (legacy `SUPABASE_JWT_SECRET`) to asymmetric JWKS** against `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`. Supabase had already moved this project's signing model to JWT signing keys with the symmetric secret marked legacy, and greenfield (no traffic, no cached tokens) was the cheapest moment to flip. Lambda holds only public verification material now; the private key never leaves Supabase. `SUPABASE_JWT_SECRET` is gone everywhere; `SUPABASE_URL` became `required()`. Single-function code change in `src/middleware/jwt.ts`.
+- **SAM `BuildMethod: esbuild` swapped for an in-repo `scripts/bundle.mjs`.** SAM's `NodejsNpmEsbuildBuilder` runs `npm install` against `package.json`, and npm doesn't speak pnpm's `workspace:*` protocol — `@evil-empire/peaktrack-services` and `@evil-empire/types` couldn't resolve. Own-the-bundling pattern: esbuild inlines workspace deps into `dist/index.js` + writes a minimal `dist/package.json` (`name`/`version`/`type:module`/`main`); SAM uses `CodeUri: dist/` with no BuildMethod and just packages the prebuilt output. API bundle: 121 KB raw, single ESM file.
+- **Function URL `AllowMethods` excludes `OPTIONS`.** Function URL CORS handles preflight automatically; the schema rejects `OPTIONS` as a value. Caught by `sam validate --lint` after a series of opaque `AWS::EarlyValidation::PropertyValidation` failures during the first deploys. → Add `sam validate --lint` to the pre-deploy reflex; the deploy-time error doesn't surface the property name.
+- **Web app uses `flex: 1` instead of `100vh`** for full-height layout. RN's `ViewStyle` types come from `react-native` proper and reject CSS-only values like `100vh` even when `react-native-web` would render them. Rule of thumb for PR 2+: any CSS-only style value (`vh`/`vw`/`em`/named CSS colors not in RN's set) needs either a flex/percentage equivalent or a plain `<div className=...>` wrapper.
+- **Bundle baseline (first-build):** **117.79 KB gzipped initial JS**, 1.36 KB gzipped CSS. RN-Web + React 19 + TanStack Router + the evil_ui surface used by the placeholder. Plenty of headroom for PR 8's budget conversation.
+- **CI** still doesn't exist; v1 ships without one as the plan allowed.
+- **Lint warnings** in pre-existing packages (`peaktrack-services`, `parsers`, `mobile`) are not regressions from PR 1 — explicitly carved out for a separate `chore: clear lint warning backlog` PR rather than conflated with this scaffold.
+
 **Before starting** (cheap checks that prevent mid-PR surprises):
 
-- [ ] **Supabase RLS audit.** Confirm the policies on `workouts`, `exercises`, `programs`, `repetition_maximums`, `user_settings`, and `exercise_phases` only check `auth.uid() = …user_id` (or equivalent) and don't carry any client-platform conditions. A web client uses the same anon key + JWT as mobile; if a policy ever assumed mobile, web is silently blocked. 5-minute check, almost certainly fine.
-- [ ] **evil_ui RN-Web smoke.** Throwaway 30-minute exercise: spin up a tiny Vite app with the same alias config and try to mount each evil_ui component the auth shell will need (`Button`, `Input`, `Card`, `SidebarNav`, `TerminalBlock`, plus form layouts). The showcase only exercises a curated set; if any of these uses `Animated.Value`, `onLayout` measurement, or hover-state quirks that misbehave under RN-Web, you want to know now, not in PR 2. Components that fail get a `Component.web.tsx` sibling — note in the PR description which (if any) need it before PR 2 starts.
+- [x] **Supabase RLS audit.** Confirm the policies on `workouts`, `exercises`, `programs`, `repetition_maximums`, `user_settings`, and `exercise_phases` only check `auth.uid() = …user_id` (or equivalent) and don't carry any client-platform conditions. A web client uses the same anon key + JWT as mobile; if a policy ever assumed mobile, web is silently blocked. 5-minute check, almost certainly fine.  → Audit clean: every policy uses `auth.uid()` directly or via parent-table join; no platform/client conditions.
+- [x] **evil_ui RN-Web smoke.** Throwaway 30-minute exercise: spin up a tiny Vite app with the same alias config and try to mount each evil_ui component the auth shell will need (`Button`, `Input`, `Card`, `SidebarNav`, `TerminalBlock`, plus form layouts). The showcase only exercises a curated set; if any of these uses `Animated.Value`, `onLayout` measurement, or hover-state quirks that misbehave under RN-Web, you want to know now, not in PR 2. Components that fail get a `Component.web.tsx` sibling — note in the PR description which (if any) need it before PR 2 starts.  → All five mount + bundle clean (showcase build: 112 KB gzipped). Static hazard scan zero hits across the components, primitives, hooks, theme. No `Component.web.tsx` siblings needed.
+- [x] **Mobile auth surface confirmed.** (Added pre-flight, not in original plan.) `apps/mobile/PeakTrack/contexts/AuthContext.tsx` and the sign-in/sign-up screens use email/password only — no `signInWithOAuth`, no `expo-web-browser`. PR 2 takes the straight email/password port path; no `/auth/callback` route needed.
 
 **Web app:**
 
-- [ ] Create `apps/web/peaktrack-app/` with React 19, Vite, `@tanstack/react-router` + `@tanstack/router-plugin/vite` for file-based routing. Vite config aliases `react-native → react-native-web` and resolves `.web.tsx` first (copy verbatim from `apps/evil_ui/vite.config.ts`).
-- [ ] `tailwind.config.js` extends `@evil-empire/ui/tailwind-preset`; PostCSS wired.
-- [ ] Root route renders a single `@evil-empire/ui` component (e.g. `Button`, `Card`) to prove RN-Web consumption works.
-- [ ] `package.json` declares deps on `@evil-empire/ui`, `@evil-empire/parsers`, `@evil-empire/types`, `@evil-empire/peaktrack-services`; workspace protocol `workspace:*` used throughout.
-- [ ] **Vitest + React Testing Library** wired with a passing placeholder test, so PR 2's storage-adapter tests have a home.
+- [x] Create `apps/web/peaktrack-app/` with React 19, Vite, `@tanstack/react-router` + `@tanstack/router-plugin/vite` for file-based routing. Vite config aliases `react-native → react-native-web` and resolves `.web.tsx` first (copy verbatim from `apps/evil_ui/vite.config.ts`).
+- [x] `tailwind.config.js` extends `@evil-empire/ui/tailwind-preset`; PostCSS wired.
+- [x] Root route renders a single `@evil-empire/ui` component (e.g. `Button`, `Card`) to prove RN-Web consumption works.  → Renders `Card` + `Text` + `Button` with the form-layout shape PR 2 will reuse.
+- [x] `package.json` declares deps on `@evil-empire/ui`, `@evil-empire/parsers`, `@evil-empire/types`, `@evil-empire/peaktrack-services`; workspace protocol `workspace:*` used throughout.
+- [x] **Vitest + React Testing Library** wired with a passing placeholder test, so PR 2's storage-adapter tests have a home.
 
 **API:**
 
-- [ ] Create `apps/serverless/peaktrack-api/` with Hono app, **Lambda Function URL** adapter (`hono/aws-lambda` or `awslambda.streamifyResponse` for the eventual streaming path), `GET /health`, **`POST /api/coach/prompt` skeleton that returns `401` without a valid JWT** (full coach logic comes in PR 7), local dev via `@hono/node-server`.
-- [ ] **JWT verification middleware** in place — HS256 against `SUPABASE_JWT_SECRET`, wired to the coach route so the 401 path is real, not aspirational.
-- [ ] **CORS middleware** reading `CORS_ALLOWED_ORIGINS` env var, with `localhost`/`null`/`capacitor://localhost` defaults in dev.
-- [ ] `template.yaml` provisions `AWS::Serverless::Function` with **`FunctionUrlConfig` (`AuthType: NONE`, `InvokeMode: RESPONSE_STREAM`)** and **`BuildMethod: esbuild`** so workspace deps bundle inline. `samconfig.toml` with `staging` and `prod` envs. `SUPABASE_JWT_SECRET`, `SUPABASE_URL`, and `CORS_ALLOWED_ORIGINS` as `NoEcho` SAM parameters.
-- [ ] `pnpm dev:api` runs `@hono/node-server` (fast inner loop). `pnpm smoke:api` runs `sam local start-invoke` for pre-deploy parity check (slow, only invoked manually).
+- [x] Create `apps/serverless/peaktrack-api/` with Hono app, **Lambda Function URL** adapter (`hono/aws-lambda` `streamHandle` for streaming-aware invoke), `GET /health`, **`POST /api/coach/prompt` skeleton that returns `401` without a valid JWT** (full coach logic comes in PR 7), local dev via `@hono/node-server`.
+- [x] **JWT verification middleware** in place — ~~HS256 against `SUPABASE_JWT_SECRET`~~ **JWKS asymmetric verification against `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`** (see deltas above), wired to the coach route so the 401 path is real, not aspirational.
+- [x] **CORS middleware** reading `CORS_ALLOWED_ORIGINS` env var, with `localhost`/`null`/`capacitor://localhost` defaults in dev.
+- [x] `template.yaml` provisions `AWS::Serverless::Function` with **`FunctionUrlConfig` (`AuthType: NONE`, `InvokeMode: RESPONSE_STREAM`)** and ~~`BuildMethod: esbuild`~~ **own `scripts/bundle.mjs`** (see deltas — workspace:* incompat with npm) that bundles workspace deps inline and writes `dist/`. `samconfig.toml` with `staging` and `prod` envs. `SUPABASE_URL` (with `AllowedPattern`) and `AnthropicApiKey` (`NoEcho`, optional in PR 1) as SAM parameters.
+- [x] `pnpm dev:api` runs `@hono/node-server` (fast inner loop, with `--env-file-if-exists=.env.local`). `pnpm smoke` runs `sam local start-invoke` for pre-deploy parity check (slow, only invoked manually).
 
 **Static site wrapper:**
 
-- [ ] Create `apps/serverless/peaktrack-app-site/` as a near-verbatim clone of `getpeaktrack-site` (SAM template for S3 + CloudFront, `vite.config.js` points at `../../web/peaktrack-app`, `deploy.sh`, `deploy-app.sh`). With TanStack Router instead of TanStack Start, this is genuinely a copy.
+- [x] Create `apps/serverless/peaktrack-app-site/` as a near-verbatim clone of `getpeaktrack-site` (SAM template for S3 + CloudFront with SPA fallback, `deploy.sh`, `deploy-app.sh`).  → Wrapper does **not** carry its own `vite.config.js`; instead the deploy scripts call `pnpm --filter @evil-empire/web-app build` because peaktrack-app is itself a workspace package (unlike `apps/web/getpeaktrack/` which is plain static source). Cleaner separation.
 
 **Wiring:**
 
-- [ ] `turbo.json` updated so `build`, `dev`, `lint`, `typecheck`, `test` all fan out to the new packages, with `"build": { "dependsOn": ["^build"] }` so `peaktrack-services` and `@evil-empire/types` build before `peaktrack-app` and `peaktrack-api` consume them.
-- [ ] Root `package.json` scripts: `dev:web`, `dev:api`, `deploy:web`, `deploy:api`.
-- [ ] `.env.example` files added to `peaktrack-app` and `peaktrack-api` listing every var from the Environment variables table.
-- [ ] README.md in each new package with dev/deploy commands.
-- [ ] **CI** (if the repo has CI today): pipeline updated to run `pnpm build`/`typecheck`/`lint`/`test` against the new packages on PR. If the repo has no CI, note explicitly that v1 ships without one and PR 8 picks it up if needed.
-- [ ] **First-build bundle baseline captured** in the PR description (initial JS gzipped, RN-Web overhead). This is the number the bundle budget in PR 8 gets set against — picking a number up front (the earlier "300 KB gzipped" target) before knowing the baseline was guessing.
+- [x] `turbo.json` already had `build`, `dev`, `lint`, `typecheck`, `test` with `"dependsOn": ["^build"]` — new packages picked up automatically, no edit needed.
+- [x] Root `package.json` scripts: `dev:web`, `dev:api`, `build:web`, `build:api`, `deploy:web:{staging,prod}`, `deploy:api:{staging,prod}`.
+- [x] `.env.example` files added to `peaktrack-app` and `peaktrack-api` listing every var from the Environment variables table.
+- [x] README.md in each new package with dev/deploy commands.
+- [x] **CI** — repo has no CI today; v1 ships without one as the plan allowed. PR 8 picks it up if needed.
+- [x] **First-build bundle baseline captured:** **117.79 KB gzipped initial JS** + 1.36 KB gzipped CSS. RN-Web + React 19 + TanStack Router + evil_ui's placeholder-route surface.
 
-**Domain:** v1 staging deploys to the default CloudFront distribution domain (e.g., `dxxx.cloudfront.net`). Custom subdomain (`app.getpeaktrack.com` or whatever) + ACM cert + Route 53 lands in PR 8 alongside the production cutover. (Earlier draft required staging to deploy to a confirmed subdomain in PR 1; that decision was open and would have blocked the PR. Decoupled here.)
+**Domain:** v1 staging deploys to the default CloudFront distribution domain (`d7kj6czc8q4sw.cloudfront.net`). Custom subdomain `app.getpeaktrack.com` + ACM cert + Route 53 lands in PR 8 alongside the production cutover.
 
-- [ ] **Merge checklist:** `pnpm build` clean · `pnpm typecheck` clean · `pnpm lint` clean · staging deploy of `peaktrack-app-site` renders the placeholder UI on the default CloudFront domain · staging deploy of `peaktrack-api` returns `200` on `/health`, `401` on `POST /api/coach/prompt` with no `Authorization` header, correct `Access-Control-Allow-Origin` from an allowed origin and rejection from a disallowed origin · bundle baseline recorded in the PR description · pre-PR-1 RLS audit and evil_ui smoke results documented in the PR description.
+- [x] **Merge checklist:** `pnpm build` clean · `pnpm typecheck` clean · `pnpm lint` clean (PR-1 packages clean; pre-existing warnings in `peaktrack-services`/`parsers`/`mobile` deferred to a separate chore PR) · staging deploy of `peaktrack-app-site` renders the placeholder UI on the default CloudFront domain · staging deploy of `peaktrack-api` returns `200` on `/health`, `401` on `POST /api/coach/prompt` (both no-auth and bad-token paths verified locally + remote), `vary: Origin` header set with no `Access-Control-Allow-Origin` echoed for a disallowed origin · bundle baseline recorded above · pre-PR-1 RLS audit, evil_ui smoke, and mobile-auth-surface results documented above.
 
 ### PR 2 — `feat(web): auth + protected layout shell`
 
