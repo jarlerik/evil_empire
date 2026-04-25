@@ -58,6 +58,7 @@ export default function Layout() {
 								<Stack.Screen name="program-edit" />
 								<Stack.Screen name="program-assign" />
 								<Stack.Screen name="program-progression" />
+								<Stack.Screen name="exercise-progression" />
 								</Stack>
 								<UnitSelectionModal />
 							<StatusBar style="light" />

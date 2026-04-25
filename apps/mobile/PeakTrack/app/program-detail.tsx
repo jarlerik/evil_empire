@@ -274,12 +274,12 @@ export default function ProgramDetail() {
 						{uniqueExerciseNames.length > 0 ? (
 							<Pressable
 								onPress={handleViewProgression}
-								style={styles.editBtn}
+								style={[styles.editBtn, styles.primaryBtn]}
 								accessibilityRole="button"
 								accessibilityLabel="View progression"
 							>
-								<Ionicons name="trending-up-outline" size={16} color={colors.primary} />
-								<Text style={styles.editBtnText}>View progression</Text>
+								<Ionicons name="trending-up-outline" size={16} color="#fff" />
+								<Text style={[styles.editBtnText, styles.primaryBtnText]}>View progression</Text>
 							</Pressable>
 						) : null}
 					</View>
@@ -446,6 +446,12 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		fontSize: 13,
 		fontWeight: '600',
+	},
+	primaryBtn: {
+		backgroundColor: colors.primary,
+	},
+	primaryBtnText: {
+		color: '#fff',
 	},
 	planSection: {
 		marginTop: 20,

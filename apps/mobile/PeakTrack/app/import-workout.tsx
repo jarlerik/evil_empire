@@ -332,7 +332,7 @@ export default function ImportWorkoutScreen() {
 					{step === 'paste' ? (
 						<View>
 							<Text style={styles.helperText}>
-								Paste a workout from another app. Each exercise should be on its own block (separated by a blank line).
+								Paste a whole workout. Each exercise should be on its own block (separated by a blank line).
 							</Text>
 							<TextInput
 								style={styles.pasteInput}
