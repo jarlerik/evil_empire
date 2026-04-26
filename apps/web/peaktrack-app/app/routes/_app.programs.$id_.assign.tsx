@@ -31,7 +31,7 @@ interface SearchParams {
   reassign?: number;
 }
 
-export const Route = createFileRoute('/_app/programs/$id/assign')({
+export const Route = createFileRoute('/_app/programs/$id_/assign')({
   component: ProgramAssignPage,
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     reassign: search.reassign === 1 || search.reassign === '1' ? 1 : undefined,
@@ -199,76 +199,102 @@ function ProgramAssignPage() {
     return !Number.isFinite(w) || w <= 0;
   });
 
-  const handleConfirmWeek = async () => {
-    setSaveError('');
-    if (isReassign) {
-      if (hasUnresolvedNewNames) {
-        // Re-assigning into a plan that grew new percentage-based exercises
-        // since the original assignment — collect those before shifting.
-        setStep(2);
-        return;
-      }
-      if (
-        !window.confirm(
-          'Future virtual sessions will shift to the new start week. Workouts you have already started stay on the dates you did them. Your 1RM snapshot is preserved.',
-        )
-      )
-        return;
-      try {
-        await assignStart.mutateAsync({ id: program.id, isoYear: startYear, isoWeek: startWeek });
-        navigate({ to: '/programs/$id', params: { id: program.id } });
-      } catch (e) {
-        setSaveError(e instanceof Error ? e.message : 'Failed to re-assign');
-      }
+  const runAssignment = async () => {
+    if (!user) {
+      setSaveError('Not signed in. Please reload the page.');
       return;
     }
-    setStep(2);
-  };
-
-  const handleStart = async () => {
-    if (!user) return;
     if (!allResolved) {
       setSaveError('Resolve every 1RM before starting.');
       return;
     }
-    setSaveError('');
 
-    try {
-      for (const entry of names) {
-        const w = parseFloat(entry.weight);
-        const source = entry.source ?? 'manual';
-        await upsertProgramRm.mutateAsync({
-          programId: program.id,
-          exerciseName: entry.name,
-          weight: w,
-          source,
-          testedAt: entry.testedAt,
-        });
-        // Manual entries also write to the user's global RMs so future
-        // programs benefit. Failures here are non-fatal — the snapshot is
-        // what materialization reads from.
-        if (source === 'manual') {
-          try {
-            await createRm.mutateAsync({
-              exerciseName: entry.name,
-              reps: 1,
-              weight: w,
-              date: format(new Date(), 'yyyy-MM-dd'),
-            });
-          } catch {
-            // ignore
-          }
+    for (const entry of names) {
+      const w = parseFloat(entry.weight);
+      const source = entry.source ?? 'manual';
+      await upsertProgramRm.mutateAsync({
+        programId: program.id,
+        exerciseName: entry.name,
+        weight: w,
+        source,
+        testedAt: entry.testedAt,
+      });
+      // Manual entries also write to the user's global RMs so future
+      // programs benefit. Failures here are non-fatal — the snapshot is
+      // what materialization reads from.
+      if (source === 'manual') {
+        try {
+          await createRm.mutateAsync({
+            exerciseName: entry.name,
+            reps: 1,
+            weight: w,
+            date: format(new Date(), 'yyyy-MM-dd'),
+          });
+        } catch {
+          // ignore
         }
       }
-      await assignStart.mutateAsync({ id: program.id, isoYear: startYear, isoWeek: startWeek });
-      navigate({ to: '/programs/$id', params: { id: program.id } });
+    }
+    await assignStart.mutateAsync({
+      id: program.id,
+      isoYear: startYear,
+      isoWeek: startWeek,
+    });
+    navigate({ to: '/programs/$id', params: { id: program.id } });
+  };
+
+  const handleConfirmWeek = async () => {
+    setSaveError('');
+    try {
+      if (isReassign) {
+        if (hasUnresolvedNewNames) {
+          // Re-assigning into a plan that grew new percentage-based exercises
+          // since the original assignment — collect those before shifting.
+          setStep(2);
+          return;
+        }
+        if (
+          !window.confirm(
+            'Future virtual sessions will shift to the new start week. Workouts you have already started stay on the dates you did them. Your 1RM snapshot is preserved.',
+          )
+        )
+          return;
+        await assignStart.mutateAsync({
+          id: program.id,
+          isoYear: startYear,
+          isoWeek: startWeek,
+        });
+        navigate({ to: '/programs/$id', params: { id: program.id } });
+        return;
+      }
+      // Draft → active. If there's nothing left to set (no RM-needed
+      // exercises or every entry is already pre-resolved from the user's RM
+      // library), skip step 2 and run the full activation right here.
+      // Otherwise fall through to the 1RM input step.
+      if (!hasUnresolvedNewNames) {
+        await runAssignment();
+        return;
+      }
+      setStep(2);
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to start program');
+      const msg = e instanceof Error ? e.message : 'Failed to assign program';
+      console.error('[assign] failed', e);
+      setSaveError(msg);
+    }
+  };
+
+  const handleStart = async () => {
+    setSaveError('');
+    try {
+      await runAssignment();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to start program';
+      console.error('[assign] start failed', e);
+      setSaveError(msg);
     }
   };
 
   const isSavingStart = upsertProgramRm.isPending || assignStart.isPending;
-  const isSavingReassign = assignStart.isPending;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
@@ -315,13 +341,23 @@ function ProgramAssignPage() {
             </Text>
           </Card>
 
-          {saveError ? <Text variant="caption">{saveError}</Text> : null}
+          {saveError ? (
+            <Card variant="bordered" style={{ borderColor: '#ef4444' }}>
+              <Text variant="body-sm">{saveError}</Text>
+            </Card>
+          ) : null}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button
-              title={isReassign ? 'Re-assign' : 'Next: set 1RMs'}
+              title={
+                isReassign
+                  ? 'Re-assign'
+                  : hasUnresolvedNewNames
+                    ? 'Next: set 1RMs'
+                    : 'Start program'
+              }
               variant="primary"
-              loading={isSavingReassign}
+              loading={isSavingStart}
               onPress={handleConfirmWeek}
             />
           </View>
@@ -386,7 +422,11 @@ function ProgramAssignPage() {
             })
           )}
 
-          {saveError ? <Text variant="caption">{saveError}</Text> : null}
+          {saveError ? (
+            <Card variant="bordered" style={{ borderColor: '#ef4444' }}>
+              <Text variant="body-sm">{saveError}</Text>
+            </Card>
+          ) : null}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button

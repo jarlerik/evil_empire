@@ -22,7 +22,7 @@ import {
 } from '../hooks/use-programs';
 import { ProgramPlanEditor } from '../components/ProgramPlanEditor';
 
-export const Route = createFileRoute('/_app/programs/$id/edit')({
+export const Route = createFileRoute('/_app/programs/$id_/edit')({
   component: ProgramEditPage,
 });
 

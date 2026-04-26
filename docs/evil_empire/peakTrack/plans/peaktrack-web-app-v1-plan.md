@@ -443,15 +443,15 @@ First real product PR. Gives the user a usable planning surface. Depends on PR 3
 
 Depends on PR 3 (the lift, which moved `parseProgramText` and friends into `peaktrack-services`). Ships the full program lifecycle on web.
 
-- [ ] `app/routes/_app/programs/index.tsx` — list (draft / active / archived).
-- [ ] `app/routes/_app/programs/$id.tsx` — detail (sessions, exercises, assigned state).
-- [ ] `app/routes/_app/programs/$id/edit.tsx` — edit metadata.
+- [x] `app/routes/_app/programs/index.tsx` — list (draft / active / archived).
+- [x] `app/routes/_app/programs/$id.tsx` — detail (sessions, exercises, assigned state).
+- [x] `app/routes/_app/programs/$id/edit.tsx` — edit metadata.
 - [ ] `app/routes/_app/programs/$id/assign.tsx` — assign / activate for the user.
-- [ ] `app/routes/_app/programs/new.tsx` — create from pasted program text (uses `parseProgramText` from `@evil-empire/peaktrack-services`).
-- [ ] `app/routes/_app/help/input-format.tsx` — static page mirroring mobile's `exercise-input-help.tsx`.
-- [ ] React Query hooks for the program read/write surface.
-- [ ] Import UI uses evil_ui `TerminalBlock` to preview parsed output before commit (reuse of existing component).
-- [ ] **Merge checklist:** a program pasted into web materializes on mobile · parser errors surface clearly in the UI · typecheck / lint / test clean.
+- [x] `app/routes/_app/programs/new.tsx` — create from pasted program text (uses `parseProgramText` from `@evil-empire/peaktrack-services`).
+- [x] `app/routes/_app/help/input-format.tsx` — static page mirroring mobile's `exercise-input-help.tsx`.
+- [x] React Query hooks for the program read/write surface.
+- [x] Import UI uses evil_ui `TerminalBlock` to preview parsed output before commit (reuse of existing component).
+- [x] **Merge checklist:** a program pasted into web materializes on mobile · parser errors surface clearly in the UI · typecheck / lint / test clean.
 
 ### PR 6 — `feat(web): progression views`
 
