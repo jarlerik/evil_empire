@@ -156,6 +156,19 @@ function ProgramDetailPage() {
             navigate({ to: '/programs/$id/edit', params: { id: program.id } })
           }
         />
+        {hasPlan ? (
+          <Button
+            title="View progression"
+            variant="outline"
+            size="sm"
+            onPress={() =>
+              navigate({
+                to: '/programs/$id/progression',
+                params: { id: program.id },
+              })
+            }
+          />
+        ) : null}
       </View>
 
       {hasPlan ? (

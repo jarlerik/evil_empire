@@ -22,8 +22,10 @@ import { Route as AppWorkoutsDateRouteImport } from './routes/_app.workouts.$dat
 import { Route as AppProgramsNewRouteImport } from './routes/_app.programs.new'
 import { Route as AppProgramsIdRouteImport } from './routes/_app.programs.$id'
 import { Route as AppHelpInputFormatRouteImport } from './routes/_app.help.input-format'
+import { Route as AppProgramsIdProgressionRouteImport } from './routes/_app.programs.$id_.progression'
 import { Route as AppProgramsIdEditRouteImport } from './routes/_app.programs.$id_.edit'
 import { Route as AppProgramsIdAssignRouteImport } from './routes/_app.programs.$id_.assign'
+import { Route as AppExercisesIdProgressionRouteImport } from './routes/_app.exercises.$id.progression'
 import { Route as AppExercisesIdEditRouteImport } from './routes/_app.exercises.$id.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -90,6 +92,12 @@ const AppHelpInputFormatRoute = AppHelpInputFormatRouteImport.update({
   path: '/help/input-format',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProgramsIdProgressionRoute =
+  AppProgramsIdProgressionRouteImport.update({
+    id: '/programs/$id_/progression',
+    path: '/programs/$id/progression',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProgramsIdEditRoute = AppProgramsIdEditRouteImport.update({
   id: '/programs/$id_/edit',
   path: '/programs/$id/edit',
@@ -100,6 +108,12 @@ const AppProgramsIdAssignRoute = AppProgramsIdAssignRouteImport.update({
   path: '/programs/$id/assign',
   getParentRoute: () => AppRoute,
 } as any)
+const AppExercisesIdProgressionRoute =
+  AppExercisesIdProgressionRouteImport.update({
+    id: '/exercises/$id/progression',
+    path: '/exercises/$id/progression',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppExercisesIdEditRoute = AppExercisesIdEditRouteImport.update({
   id: '/exercises/$id/edit',
   path: '/exercises/$id/edit',
@@ -120,8 +134,10 @@ export interface FileRoutesByFullPath {
   '/workouts/import': typeof AppWorkoutsImportRoute
   '/programs/': typeof AppProgramsIndexRoute
   '/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/exercises/$id/progression': typeof AppExercisesIdProgressionRoute
   '/programs/$id/assign': typeof AppProgramsIdAssignRoute
   '/programs/$id/edit': typeof AppProgramsIdEditRoute
+  '/programs/$id/progression': typeof AppProgramsIdProgressionRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
@@ -137,8 +153,10 @@ export interface FileRoutesByTo {
   '/workouts/import': typeof AppWorkoutsImportRoute
   '/programs': typeof AppProgramsIndexRoute
   '/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/exercises/$id/progression': typeof AppExercisesIdProgressionRoute
   '/programs/$id/assign': typeof AppProgramsIdAssignRoute
   '/programs/$id/edit': typeof AppProgramsIdEditRoute
+  '/programs/$id/progression': typeof AppProgramsIdProgressionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,8 +174,10 @@ export interface FileRoutesById {
   '/_app/workouts/import': typeof AppWorkoutsImportRoute
   '/_app/programs/': typeof AppProgramsIndexRoute
   '/_app/exercises/$id/edit': typeof AppExercisesIdEditRoute
+  '/_app/exercises/$id/progression': typeof AppExercisesIdProgressionRoute
   '/_app/programs/$id_/assign': typeof AppProgramsIdAssignRoute
   '/_app/programs/$id_/edit': typeof AppProgramsIdEditRoute
+  '/_app/programs/$id_/progression': typeof AppProgramsIdProgressionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,8 +195,10 @@ export interface FileRouteTypes {
     | '/workouts/import'
     | '/programs/'
     | '/exercises/$id/edit'
+    | '/exercises/$id/progression'
     | '/programs/$id/assign'
     | '/programs/$id/edit'
+    | '/programs/$id/progression'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -192,8 +214,10 @@ export interface FileRouteTypes {
     | '/workouts/import'
     | '/programs'
     | '/exercises/$id/edit'
+    | '/exercises/$id/progression'
     | '/programs/$id/assign'
     | '/programs/$id/edit'
+    | '/programs/$id/progression'
   id:
     | '__root__'
     | '/_app'
@@ -210,8 +234,10 @@ export interface FileRouteTypes {
     | '/_app/workouts/import'
     | '/_app/programs/'
     | '/_app/exercises/$id/edit'
+    | '/_app/exercises/$id/progression'
     | '/_app/programs/$id_/assign'
     | '/_app/programs/$id_/edit'
+    | '/_app/programs/$id_/progression'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -313,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHelpInputFormatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/programs/$id_/progression': {
+      id: '/_app/programs/$id_/progression'
+      path: '/programs/$id/progression'
+      fullPath: '/programs/$id/progression'
+      preLoaderRoute: typeof AppProgramsIdProgressionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/programs/$id_/edit': {
       id: '/_app/programs/$id_/edit'
       path: '/programs/$id/edit'
@@ -325,6 +358,13 @@ declare module '@tanstack/react-router' {
       path: '/programs/$id/assign'
       fullPath: '/programs/$id/assign'
       preLoaderRoute: typeof AppProgramsIdAssignRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/exercises/$id/progression': {
+      id: '/_app/exercises/$id/progression'
+      path: '/exercises/$id/progression'
+      fullPath: '/exercises/$id/progression'
+      preLoaderRoute: typeof AppExercisesIdProgressionRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/exercises/$id/edit': {
@@ -349,8 +389,10 @@ interface AppRouteChildren {
   AppWorkoutsImportRoute: typeof AppWorkoutsImportRoute
   AppProgramsIndexRoute: typeof AppProgramsIndexRoute
   AppExercisesIdEditRoute: typeof AppExercisesIdEditRoute
+  AppExercisesIdProgressionRoute: typeof AppExercisesIdProgressionRoute
   AppProgramsIdAssignRoute: typeof AppProgramsIdAssignRoute
   AppProgramsIdEditRoute: typeof AppProgramsIdEditRoute
+  AppProgramsIdProgressionRoute: typeof AppProgramsIdProgressionRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -365,8 +407,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppWorkoutsImportRoute: AppWorkoutsImportRoute,
   AppProgramsIndexRoute: AppProgramsIndexRoute,
   AppExercisesIdEditRoute: AppExercisesIdEditRoute,
+  AppExercisesIdProgressionRoute: AppExercisesIdProgressionRoute,
   AppProgramsIdAssignRoute: AppProgramsIdAssignRoute,
   AppProgramsIdEditRoute: AppProgramsIdEditRoute,
+  AppProgramsIdProgressionRoute: AppProgramsIdProgressionRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

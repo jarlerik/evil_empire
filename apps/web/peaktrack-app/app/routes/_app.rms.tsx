@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button, Card, Text } from '@evil-empire/ui';
@@ -6,7 +6,13 @@ import { format } from 'date-fns';
 import type { RepetitionMaximum } from '@evil-empire/peaktrack-services';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../contexts/UserSettingsContext';
-import { useCreateRm, useDeleteRm, useRms, useUpdateRm } from '../hooks/use-rms';
+import {
+  useCompletedExerciseNames,
+  useCreateRm,
+  useDeleteRm,
+  useRms,
+  useUpdateRm,
+} from '../hooks/use-rms';
 import { RmFormModal, type RmFormData } from '../components/RmFormModal';
 
 export const Route = createFileRoute('/_app/rms')({
@@ -43,7 +49,9 @@ function RmsPage() {
   const { settings } = useUserSettings();
   const weightUnit = settings?.weight_unit ?? 'kg';
 
+  const navigate = useNavigate();
   const { data: rms = [], isLoading } = useRms(user?.id);
+  const { data: completedNames } = useCompletedExerciseNames(user?.id);
   const createRm = useCreateRm(user?.id);
   const updateRm = useUpdateRm();
   const deleteRm = useDeleteRm();
@@ -99,9 +107,26 @@ function RmsPage() {
         </Card>
       ) : null}
 
-      {grouped.map(({ exerciseName, rms: groupRms }) => (
+      {grouped.map(({ exerciseName, rms: groupRms }) => {
+        const hasLogs = completedNames?.has(exerciseName.trim().toLowerCase()) ?? false;
+        return (
         <Card key={exerciseName} variant="bordered" style={{ gap: 8 }}>
-          <Text variant="heading-sm">{exerciseName}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <Text variant="heading-sm">{exerciseName}</Text>
+            {hasLogs ? (
+              <Button
+                title="View progression"
+                variant="ghost"
+                size="sm"
+                onPress={() =>
+                  navigate({
+                    to: '/exercises/$id/progression',
+                    params: { id: encodeURIComponent(exerciseName) },
+                  })
+                }
+              />
+            ) : null}
+          </View>
           {groupRms.map((rm) => (
             <View
               key={rm.id}
@@ -132,7 +157,8 @@ function RmsPage() {
             </View>
           ))}
         </Card>
-      ))}
+        );
+      })}
 
       <RmFormModal
         open={open}
