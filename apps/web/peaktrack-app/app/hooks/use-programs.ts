@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { format, parseISO } from 'date-fns';
 import {
   fetchProgramsByUserId,
   fetchProgramById,
   fetchProgramSessionsByProgramId,
   fetchProgramExercisesBySessionIds,
   fetchProgramRmsByProgramId,
+  fetchProgramSessionsForDateRange,
   createProgram as createProgramSvc,
   updateProgram as updateProgramSvc,
   deleteProgram as deleteProgramSvc,
@@ -14,18 +16,25 @@ import {
   deleteProgramSession,
   deleteAllProgramSessions,
   upsertProgramRm as upsertProgramRmSvc,
+  resolveSessionsInRange,
+  materializeProgramSession as materializeProgramSessionSvc,
+  type MaterializeExerciseInput,
 } from '@evil-empire/peaktrack-services';
 import type {
   Program,
   ProgramExercise,
   ProgramRepetitionMaximum,
   ProgramSession,
+  ProgramSessionForDate,
 } from '@evil-empire/types';
+import { workoutKeys } from './use-workouts';
 
 export const programKeys = {
   all: ['programs'] as const,
   byUser: (userId: string) => [...programKeys.all, 'user', userId] as const,
   detail: (programId: string) => [...programKeys.all, 'detail', programId] as const,
+  sessionsForRange: (userId: string, start: string, end: string) =>
+    [...programKeys.all, 'sessions-range', userId, start, end] as const,
 };
 
 export function usePrograms(userId: string | undefined) {
@@ -205,6 +214,58 @@ export function useSaveProgramPlan() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: programKeys.all });
+    },
+  });
+}
+
+/**
+ * Project active programs onto a calendar date range. Returns one entry per
+ * (session, date) tuple — including those already materialized into a real
+ * workout (with `materializedWorkoutId` set). Callers typically render only
+ * the un-materialized ones, since the real workout already shows in the
+ * normal workouts list.
+ */
+export function useProgramSessionsForDateRange(
+  userId: string | undefined,
+  start: string,
+  end: string,
+) {
+  return useQuery({
+    queryKey: programKeys.sessionsForRange(userId ?? '', start, end),
+    enabled: !!userId && !!start && !!end,
+    queryFn: async (): Promise<ProgramSessionForDate[]> => {
+      if (!userId) return [];
+      const { data, error } = await fetchProgramSessionsForDateRange(
+        userId,
+        parseISO(start),
+        parseISO(end),
+        {
+          resolveSessionsInRange,
+          formatDate: (d) => format(d, 'yyyy-MM-dd'),
+        },
+      );
+      if (error) throw new Error(error);
+      return data ?? [];
+    },
+  });
+}
+
+export function useMaterializeProgramSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: {
+      session_id: string;
+      target_date: string;
+      name: string;
+      exercises: MaterializeExerciseInput[];
+    }) => {
+      const { data, error } = await materializeProgramSessionSvc(vars);
+      if (error || !data) throw new Error(error ?? 'Failed to materialize session');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: workoutKeys.all });
+      qc.invalidateQueries({ queryKey: [...programKeys.all, 'sessions-range'] });
     },
   });
 }

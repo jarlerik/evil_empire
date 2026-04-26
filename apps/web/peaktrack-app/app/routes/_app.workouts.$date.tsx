@@ -12,7 +12,9 @@ import {
   useDeleteWorkout,
 } from '../hooks/use-workouts';
 import { useCreateExercise } from '../hooks/use-exercises';
+import { useProgramSessionsForDateRange } from '../hooks/use-programs';
 import { DateNav } from '../components/DateNav';
+import { VirtualProgramSessionCard } from '../components/VirtualProgramSessionCard';
 
 export const Route = createFileRoute('/_app/workouts/$date')({
   component: WorkoutsForDate,
@@ -33,10 +35,22 @@ function WorkoutsForDate() {
     dateValid ? date : '',
     dateValid ? date : '',
   );
+  const { data: programSessionsData } = useProgramSessionsForDateRange(
+    user?.id,
+    dateValid ? date : '',
+    dateValid ? date : '',
+  );
 
   const workouts = useMemo(() => {
     return [...(workoutsData ?? [])].reverse();
   }, [workoutsData]);
+
+  // Only render virtual cards for sessions that haven't been materialized yet
+  // — once materialized, the real workout shows up in the workouts list above.
+  const virtualSessions = useMemo(
+    () => (programSessionsData ?? []).filter((s) => !s.materializedWorkoutId),
+    [programSessionsData],
+  );
 
   const createWorkout = useCreateWorkout(user?.id);
   const deleteWorkout = useDeleteWorkout();
@@ -110,7 +124,7 @@ function WorkoutsForDate() {
 
       {isLoading ? (
         <Text variant="caption">Loading…</Text>
-      ) : workouts.length === 0 ? (
+      ) : workouts.length === 0 && virtualSessions.length === 0 ? (
         <Card variant="bordered">
           <Text variant="body">No workouts for this day yet.</Text>
           <Text variant="caption">
@@ -159,6 +173,14 @@ function WorkoutsForDate() {
           );
         })
       )}
+
+      {virtualSessions.map((session) => (
+        <VirtualProgramSessionCard
+          key={session.session.id}
+          item={session}
+          unit={weightUnit}
+        />
+      ))}
 
       <Card variant="bordered" style={{ gap: 12 }}>
         <Text variant="heading-sm">Add exercise</Text>
