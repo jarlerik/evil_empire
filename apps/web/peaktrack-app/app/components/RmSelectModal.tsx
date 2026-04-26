@@ -31,7 +31,12 @@ export function RmSelectModal({
         </Text>
         <View style={{ gap: 8 }}>
           {matches.map((m) => (
-            <Pressable key={`${m.exerciseName}-${m.weight}`} onPress={() => onSelect(m)}>
+            <Pressable
+              key={`${m.exerciseName}-${m.weight}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Use ${m.exerciseName} 1RM at ${m.weight}${unit}`}
+              onPress={() => onSelect(m)}
+            >
               <Card variant="bordered" style={{ padding: 12 }}>
                 <Text variant="body">{m.exerciseName}</Text>
                 <Text variant="caption">

@@ -8,3 +8,6 @@ Added the per-exercise (`/exercises/$id/progression`) and per-program (`/program
 
 ## feat(api): coach endpoint + secret plumbing (PR 7)
 Filled in `POST /api/coach/prompt` with JWT gating, JSON validation, and `streamSSE` over Lambda Function URL `RESPONSE_STREAM`; an Anthropic provider adapter sits behind a stub fallback so the SSE path is exercisable without a real key. Added `@evil-empire/types/coach` as a subpath export, a hidden `/coach` web surface gated by `VITE_COACH_ENABLED=1`, and verified the secret is absent from the built client bundle.
+
+## chore(web): v1 polish + launch prep (PR 8)
+Added a root-level `errorComponent` with a friendly Card fallback, ESC-to-close on `Modal`, and ARIA labels on previously-bare `Pressable` rows (workout exercise card, RM select, settings unit toggle, import-resolve-RM). Wired `HostedZoneId` + Route 53 A-alias into the `peaktrack-app-site` SAM template and pre-filled `parameter_overrides` for prod with `app.getpeaktrack.com`. Linked the `getpeaktrack.com` landing page to the new web app, and recorded the bundle-size budget at 240 KB gzipped initial JS against today's 222.48 KB measurement.

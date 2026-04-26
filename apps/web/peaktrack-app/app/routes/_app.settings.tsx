@@ -53,7 +53,13 @@ function SettingsPage() {
         <Text variant="heading-sm">Weight unit</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {(['kg', 'lbs'] as const).map((u) => (
-            <Pressable key={u} onPress={() => setUnit(u)}>
+            <Pressable
+              key={u}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: unit === u }}
+              accessibilityLabel={`Use ${u.toUpperCase()} as weight unit`}
+              onPress={() => setUnit(u)}
+            >
               <Card
                 variant="bordered"
                 style={{

@@ -358,7 +358,11 @@ function ImportWorkout() {
                   />
                 ) : null}
                 {!state.skipped && needsRm ? (
-                  <Pressable onPress={() => handleResolveRm(idx)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Set 1RM for this exercise"
+                    onPress={() => handleResolveRm(idx)}
+                  >
                     <Card variant="bordered" style={{ padding: 8 }}>
                       <Text variant="caption">⚠ 1RM needed — click to set</Text>
                     </Card>

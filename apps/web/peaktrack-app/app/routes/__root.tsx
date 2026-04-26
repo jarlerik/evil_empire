@@ -1,4 +1,9 @@
-import { Outlet, createRootRoute, useRouter } from '@tanstack/react-router';
+import {
+  Outlet,
+  createRootRoute,
+  useRouter,
+  type ErrorComponentProps,
+} from '@tanstack/react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { View } from 'react-native';
 import { Card, Text, Button } from '@evil-empire/ui';
@@ -31,7 +36,31 @@ function NotFound() {
   );
 }
 
+function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
+  const message =
+    error instanceof Error && error.message ? error.message : 'An unexpected error occurred.';
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <Card variant="bordered" style={{ maxWidth: 480, gap: 16 }}>
+        <Text variant="display">Something went wrong</Text>
+        <Text variant="body">{message}</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Button title="Try again" variant="primary" onPress={reset} />
+          <Button
+            title="Reload"
+            variant="outline"
+            onPress={() => {
+              if (typeof window !== 'undefined') window.location.reload();
+            }}
+          />
+        </View>
+      </Card>
+    </View>
+  );
+}
+
 export const Route = createRootRoute({
   component: RootLayout,
   notFoundComponent: NotFound,
+  errorComponent: RootErrorBoundary,
 });

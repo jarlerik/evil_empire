@@ -499,14 +499,14 @@ Proves the server can hold secrets end-to-end and finalises the types that mobil
 
 Final PR before flipping the switch.
 
-- [ ] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home).
-- [ ] Bundle-size audit against the budget set after PR 1's first-build baseline. (Earlier draft hard-coded "initial JS < 300 KB gzipped" up front; review pushed back because RN-Web + Supabase + React Query + TanStack Router add up to a number we don't actually know yet. Real budget is "PR 1 baseline + agreed headroom" — pick the headroom in this PR using PR 1's recorded number.) Route-split anything that pushes initial JS over.
-- [ ] Accessibility audit (keyboard nav, focus traps in modals, ARIA on custom RN-Web components).
-- [ ] Error boundary at the `__root` level with a friendly fallback.
-- [ ] Analytics event instrumentation (if applicable — decide in the PR).
-- [ ] Add a link from `getpeaktrack.com` landing page (`apps/web/getpeaktrack/index.html`) pointing to the new app subdomain.
-- [ ] Production subdomain + ACM cert + Route 53 wired in the SAM template.
-- [ ] **Merge checklist:** production deploy succeeds · real user (internal) test pass · post-launch monitoring dashboard exists.
+- [ ] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home). *Manual on the deployed staging URL — out of scope for the code PR; left for the launch dry-run.*
+- [x] Bundle-size audit against the budget set after PR 1's first-build baseline. **Recorded numbers (post-PR 8 build):** 764.27 KB raw / **222.48 KB gzipped** initial JS, 5.20 KB / 1.52 KB gzipped CSS, plus the `ProgressionChart` route-split chunk at 3.78 KB / 1.49 KB gzipped. PR 1 baseline was 117.79 KB gzipped; growth comes from React Query + AuthContext + UserSettingsContext + the full `peaktrack-services` surface (workouts, programs, RMs, progression layout) + Supabase auth + date-fns. **Agreed budget for v1: 240 KB gzipped initial JS** (≈8% headroom over today's 222.48 KB). New routes that push past this trigger a route-split (TanStack Router `route.lazy()`); the heaviest existing surfaces (programs flow, coach) are the obvious next candidates if the budget is breached.
+- [x] Accessibility audit (keyboard nav, focus traps in modals, ARIA on custom RN-Web components). *Done in code: ESC-to-close on `Modal`, `accessibilityRole`/`accessibilityLabel` on previously-bare `Pressable` cards (workout exercise card, RM select rows, settings unit toggle, import-resolve-RM action). Full keyboard-trap focus management and screen-reader sweep deferred to the launch dry-run with a real AT.*
+- [x] Error boundary at the `__root` level with a friendly fallback. *Added `RootErrorBoundary` via TanStack Router's `errorComponent` on the root route — renders a Card with the error message, a Try Again (router `reset`) button, and a Reload button.*
+- [x] Analytics event instrumentation — **decided: skip for v1**. No analytics dependency in the bundle; revisit when there's an actual question to answer with the data.
+- [x] Add a link from `getpeaktrack.com` landing page (`apps/web/getpeaktrack/index.html`) pointing to the new app subdomain. *Sign-in link added next to the Join Beta CTA; footer CTA + tagline link added.*
+- [x] Production subdomain + ACM cert + Route 53 wired in the SAM template. *Template now takes `HostedZoneId` alongside `DomainName` / `CertificateArn` and provisions a Route 53 A-alias to the CloudFront distribution when both are set; samconfig prod has `parameter_overrides` pre-filled with `app.getpeaktrack.com` and TODO placeholders for the ACM ARN + hosted zone ID (operator fills before first prod deploy).*
+- [ ] **Merge checklist:** production deploy succeeds · real user (internal) test pass · post-launch monitoring dashboard exists. *Code is ready; the three checklist items are launch-day actions performed against the deployed prod stack.*
 
 ---
 
