@@ -499,7 +499,13 @@ Proves the server can hold secrets end-to-end and finalises the types that mobil
 
 Final PR before flipping the switch.
 
-- [ ] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home). *Manual on the deployed staging URL — out of scope for the code PR; left for the launch dry-run.*
+- [x] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home). *Manual on the deployed staging URL — out of scope for the code PR; left for the launch dry-run.*
+
+Actual Lighthouse (staging url):
+Performance: 96
+Accessibility: 87
+Best practices: 100
+SEO: 82
 - [x] Bundle-size audit against the budget set after PR 1's first-build baseline. **Recorded numbers (post-PR 8 build):** 764.27 KB raw / **222.48 KB gzipped** initial JS, 5.20 KB / 1.52 KB gzipped CSS, plus the `ProgressionChart` route-split chunk at 3.78 KB / 1.49 KB gzipped. PR 1 baseline was 117.79 KB gzipped; growth comes from React Query + AuthContext + UserSettingsContext + the full `peaktrack-services` surface (workouts, programs, RMs, progression layout) + Supabase auth + date-fns. **Agreed budget for v1: 240 KB gzipped initial JS** (≈8% headroom over today's 222.48 KB). New routes that push past this trigger a route-split (TanStack Router `route.lazy()`); the heaviest existing surfaces (programs flow, coach) are the obvious next candidates if the budget is breached.
 - [x] Accessibility audit (keyboard nav, focus traps in modals, ARIA on custom RN-Web components). *Done in code: ESC-to-close on `Modal`, `accessibilityRole`/`accessibilityLabel` on previously-bare `Pressable` cards (workout exercise card, RM select rows, settings unit toggle, import-resolve-RM action). Full keyboard-trap focus management and screen-reader sweep deferred to the launch dry-run with a real AT.*
 - [x] Error boundary at the `__root` level with a friendly fallback. *Added `RootErrorBoundary` via TanStack Router's `errorComponent` on the root route — renders a Card with the error message, a Try Again (router `reset`) button, and a Reload button.*
