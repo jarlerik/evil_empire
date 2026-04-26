@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppRmsRouteImport } from './routes/_app.rms'
 import { Route as AppHistoryRouteImport } from './routes/_app.history'
+import { Route as AppCoachRouteImport } from './routes/_app.coach'
 import { Route as AppProgramsIndexRouteImport } from './routes/_app.programs.index'
 import { Route as AppWorkoutsImportRouteImport } from './routes/_app.workouts.import'
 import { Route as AppWorkoutsDateRouteImport } from './routes/_app.workouts.$date'
@@ -60,6 +61,11 @@ const AppRmsRoute = AppRmsRouteImport.update({
 const AppHistoryRoute = AppHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachRoute = AppCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProgramsIndexRoute = AppProgramsIndexRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/coach': typeof AppCoachRoute
   '/history': typeof AppHistoryRoute
   '/rms': typeof AppRmsRoute
   '/settings': typeof AppSettingsRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/coach': typeof AppCoachRoute
   '/history': typeof AppHistoryRoute
   '/rms': typeof AppRmsRoute
   '/settings': typeof AppSettingsRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/_app/coach': typeof AppCoachRoute
   '/_app/history': typeof AppHistoryRoute
   '/_app/rms': typeof AppRmsRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/coach'
     | '/history'
     | '/rms'
     | '/settings'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
   to:
     | '/sign-in'
     | '/sign-up'
+    | '/coach'
     | '/history'
     | '/rms'
     | '/settings'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/sign-in'
     | '/sign-up'
+    | '/_app/coach'
     | '/_app/history'
     | '/_app/rms'
     | '/_app/settings'
@@ -295,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coach': {
+      id: '/_app/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof AppCoachRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/programs/': {
@@ -378,6 +397,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCoachRoute: typeof AppCoachRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppRmsRoute: typeof AppRmsRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -396,6 +416,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCoachRoute: AppCoachRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppRmsRoute: AppRmsRoute,
   AppSettingsRoute: AppSettingsRoute,
