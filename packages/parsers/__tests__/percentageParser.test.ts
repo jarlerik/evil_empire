@@ -158,4 +158,45 @@ describe('parseSetInput - Percentage Format', () => {
 			expect(result.weightPercentage).toBe(95);
 		});
 	});
+
+	describe('"of 1RM <exercise>" suffix (captures the source movement)', () => {
+		it('should capture the trailing exercise name on a simple percentage', () => {
+			const result = parseSetInput('4 x 5 @95% of 1RM power snatch');
+			expect(result.isValid).toBe(true);
+			expect(result.weightPercentage).toBe(95);
+			expect(result.needsRmLookup).toBe(true);
+			expect(result.rmSourceExercise).toBe('power snatch');
+		});
+
+		it('should capture the trailing name on a percentage range with compound reps', () => {
+			const result = parseSetInput('3 x 3+3 @50-60% of 1RM power snatch');
+			expect(result.isValid).toBe(true);
+			expect(result.weightMinPercentage).toBe(50);
+			expect(result.weightMaxPercentage).toBe(60);
+			expect(result.compoundReps).toEqual([3, 3]);
+			expect(result.needsRmLookup).toBe(true);
+			expect(result.rmSourceExercise).toBe('power snatch');
+		});
+
+		it('should leave rmSourceExercise undefined when no name follows "of 1RM"', () => {
+			const result = parseSetInput('4 x 5 @95% of 1RM');
+			expect(result.isValid).toBe(true);
+			expect(result.rmSourceExercise).toBeUndefined();
+		});
+
+		it('should preserve original casing of the captured name', () => {
+			const result = parseSetInput('4 x 2+1 @90-95% of 1RM Snatch');
+			expect(result.rmSourceExercise).toBe('Snatch');
+		});
+
+		it('should strip trailing punctuation from the captured name', () => {
+			const result = parseSetInput('4 x 5 @95% of 1RM power snatch.');
+			expect(result.rmSourceExercise).toBe('power snatch');
+		});
+
+		it('should collapse internal whitespace in the captured name', () => {
+			const result = parseSetInput('4 x 5 @95% of 1RM   power   snatch');
+			expect(result.rmSourceExercise).toBe('power snatch');
+		});
+	});
 });

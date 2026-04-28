@@ -60,15 +60,6 @@ export function parseSetInput(input: string): ParsedSetData {
 	const exerciseLine = lines[0].trim();
 	const notesLine = lines.length > 1 ? lines.slice(1).join('\n').trim() : undefined;
 
-	// Helper to add notes and EMOM to a valid result
-	const withExtras = (result: ParsedSetData): ParsedSetData => {
-		if (!result.isValid) {return result;}
-		const extras: Partial<ParsedSetData> = {};
-		if (notesLine) {extras.notes = notesLine;}
-		if (emomIntervalSeconds) {extras.emomIntervalSeconds = emomIntervalSeconds;}
-		return Object.keys(extras).length > 0 ? { ...result, ...extras } : result;
-	};
-
 	// Parse EMOM prefix from the exercise line
 	const { emomIntervalSeconds, remainingInput: afterEmom } = parseEmom(exerciseLine);
 
@@ -78,9 +69,28 @@ export function parseSetInput(input: string): ParsedSetData {
 		? { restTimeSeconds: undefined, remainingInput: afterEmom }
 		: parseRestTime(afterEmom);
 
-	// Remove any extra spaces and convert to lowercase for easier parsing
-	// Strip " of 1RM" suffix that some sources append to percentages (e.g. "@95% of 1RM" → "@95%")
-	const cleanInput = remainingInput.toLowerCase().replace(/\s+of\s+1\s*rm\s*$/i, '');
+	// Strip " of 1RM [<exercise>]" suffix that some sources append to percentages
+	// (e.g. "@95% of 1RM" or "@50-60% of 1RM power snatch"). Capture the optional
+	// trailing exercise name in original case so it can pre-fill the RM picker.
+	let rmSourceExercise: string | undefined;
+	const stripped = remainingInput.replace(/\s+of\s+1\s*rm(?:\s+([^\n]+?))?\s*$/i, (_match, name?: string) => {
+		if (name) {
+			const cleaned = name.trim().replace(/[.,;:]+$/, '').replace(/\s+/g, ' ');
+			if (cleaned) {rmSourceExercise = cleaned;}
+		}
+		return '';
+	});
+	const cleanInput = stripped.toLowerCase();
+
+	// Helper to add notes, EMOM, and parsed RM source to a valid result
+	const withExtras = (result: ParsedSetData): ParsedSetData => {
+		if (!result.isValid) {return result;}
+		const extras: Partial<ParsedSetData> = {};
+		if (notesLine) {extras.notes = notesLine;}
+		if (emomIntervalSeconds) {extras.emomIntervalSeconds = emomIntervalSeconds;}
+		if (rmSourceExercise && result.needsRmLookup) {extras.rmSourceExercise = rmSourceExercise;}
+		return Object.keys(extras).length > 0 ? { ...result, ...extras } : result;
+	};
 
 	// Pattern order matters! More specific patterns must come before general ones.
 	// Each parser returns { matched: boolean, data?: ParsedSetData }

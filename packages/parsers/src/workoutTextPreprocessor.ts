@@ -87,10 +87,37 @@ function stripTrailingSeparator(line: string): string {
 	return line.replace(TRAILING_SEPARATOR_REGEX, '').trim();
 }
 
+/**
+ * If a line contains multiple back-to-back set-spec patterns with no exercise
+ * name prefix (e.g. `1 x 3+1 @60% 2 x 2+1 @65% 5 x 1+1 @70-75%`, common when a
+ * paste loses its line breaks), split it into one line per phase.
+ *
+ * Conservative: only splits when no name prefix precedes the first spec, so
+ * `Squat — 5 x 5 @100kg 4 x 5` (an unlikely but ambiguous shape) is left alone.
+ */
+function splitInlineMultiSpec(line: string): string[] {
+	const re = /\b\d+\s*[x×]\s*\d/gi;
+	const positions: number[] = [];
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(line)) !== null) {
+		positions.push(m.index);
+	}
+	if (positions.length <= 1) {return [line];}
+	if (line.slice(0, positions[0]).trim().length > 0) {return [line];}
+
+	const result: string[] = [];
+	for (let i = 0; i < positions.length; i++) {
+		const start = positions[i];
+		const end = i + 1 < positions.length ? positions[i + 1] : line.length;
+		result.push(line.slice(start, end).trim());
+	}
+	return result.filter(s => s.length > 0);
+}
+
 function processBlock(blockText: string): PreprocessedBlock {
 	const lines = blockText
 		.split('\n')
-		.map(l => l.trim())
+		.flatMap(l => splitInlineMultiSpec(l.trim()))
 		.filter(l => l.length > 0);
 
 	// Single-line block: try inline-separator split first (e.g. "Squat — 5 x 5 @100kg").

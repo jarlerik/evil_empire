@@ -20,6 +20,7 @@ export interface ParsedSetData {
 	weightMaxPercentage?: number; // Maximum percentage for percentage ranges (e.g., 85 for "80-85%")
 	restTimeSeconds?: number; // Rest time between sets in seconds (e.g., 120 for 2 minutes)
 	emomIntervalSeconds?: number; // EMOM interval in seconds (e.g., 300 for 5 minutes)
+	rmSourceExercise?: string; // Exercise name parsed from "@X% of 1RM <name>" suffix; used to pre-fill the RM source picker
 }
 
 export interface ParserResult {

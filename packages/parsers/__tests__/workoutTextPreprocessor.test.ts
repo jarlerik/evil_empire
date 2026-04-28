@@ -124,6 +124,29 @@ describe('preprocessWorkoutText', () => {
 			const [block] = preprocessWorkoutText(raw);
 			expect(block.setSpecLines).toEqual(['3 x 5 @60%', '2 x 3 @60%']);
 		});
+
+		it('splits a line with multiple back-to-back specs (paste lost newlines)', () => {
+			const raw = [
+				'Power snatch + hang snatch',
+				'1 x 3+1 @60% 2 x 2+1 @65%  5 x 1+1 @70-75%',
+			].join('\n');
+
+			const [block] = preprocessWorkoutText(raw);
+
+			expect(block.suggestedName).toBe('Power snatch + hang snatch');
+			expect(block.setSpecLines).toEqual([
+				'1 x 3+1 @60%',
+				'2 x 2+1 @65%',
+				'5 x 1+1 @70-75%',
+			]);
+			expect(block.notesText).toBeUndefined();
+		});
+
+		it('does not split a line with an exercise-name prefix before the first spec', () => {
+			const raw = 'Squat — 5 x 5 @100kg 4 x 5 @110kg';
+			const [block] = preprocessWorkoutText(raw);
+			expect(block.setSpecLines).toEqual(['5 x 5 @100kg 4 x 5 @110kg']);
+		});
 	});
 
 	describe('single-line block', () => {

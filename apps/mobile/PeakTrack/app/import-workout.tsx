@@ -80,6 +80,16 @@ function buildRmSourceNote(
 		: `${rmName} 1RM (${rmWeight}${weightUnit})`;
 }
 
+/**
+ * Resolve the exercise name to query for a 1RM source. Prefers a name parsed
+ * from a phase's `@X% of 1RM <name>` suffix over the block's suggested name,
+ * since the inline annotation is the user's explicit choice of reference.
+ */
+function getRmSourceForBlock(block: ParsedWorkoutBlock): string {
+	const fromPhase = block.phases.find(p => p.needsRmLookup && p.rmSourceExercise)?.rmSourceExercise;
+	return fromPhase || block.suggestedName;
+}
+
 function isBlockReady(state: BlockState): boolean {
 	if (state.skipped) {return true;}
 	if (!state.block.phases.every(p => p.isValid)) {return false;}
@@ -140,10 +150,13 @@ export default function ImportWorkoutScreen() {
 						notes: b.notes ?? '',
 						skipped: false,
 					};
-					if (b.phases.some(p => p.needsRmLookup) && b.suggestedName) {
-						const lookup = await lookupRm(user.id, b.suggestedName);
-						if (lookup.found) {
-							return { ...base, rmWeight: lookup.weight, rmSourceName: b.suggestedName };
+					if (b.phases.some(p => p.needsRmLookup)) {
+						const rmSource = getRmSourceForBlock(b);
+						if (rmSource) {
+							const lookup = await lookupRm(user.id, rmSource);
+							if (lookup.found) {
+								return { ...base, rmWeight: lookup.weight, rmSourceName: rmSource };
+							}
 						}
 					}
 					return base;
@@ -161,7 +174,11 @@ export default function ImportWorkoutScreen() {
 		if (!user) {return;}
 		setActiveBlockIdx(idx);
 		const target = blocks[idx];
-		const lookup = await lookupRm(user.id, target.name.trim() || target.block.suggestedName);
+		// Prefer a name explicitly parsed from "@X% of 1RM <name>" — that's the user's
+		// stated reference. Fall back to the (possibly edited) block name otherwise.
+		const parsedRmSource = target.block.phases.find(p => p.needsRmLookup && p.rmSourceExercise)?.rmSourceExercise;
+		const lookupName = parsedRmSource || target.name.trim() || target.block.suggestedName;
+		const lookup = await lookupRm(user.id, lookupName);
 
 		if (lookup.partialMatches && lookup.partialMatches.length > 0) {
 			setRmPartialMatches(lookup.partialMatches);
@@ -324,6 +341,16 @@ export default function ImportWorkoutScreen() {
 		setBlocks(prev => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
 	};
 
+	// Pre-fill the RM modals with the parsed "of 1RM <name>" if the user gave one;
+	// otherwise fall back to the block's exercise name (matching prior behavior).
+	const activeRmSourceName = (() => {
+		if (activeBlockIdx === null) {return '';}
+		const active = blocks[activeBlockIdx];
+		if (!active) {return '';}
+		const parsed = active.block.phases.find(p => p.needsRmLookup && p.rmSourceExercise)?.rmSourceExercise;
+		return parsed || active.name;
+	})();
+
 	return (
 		<KeyboardAvoidingView
 			style={styles.flex}
@@ -405,7 +432,7 @@ export default function ImportWorkoutScreen() {
 				onSelect={handleSelectMatch}
 				onAddNew={handleAddNewFromSelect}
 				matches={rmPartialMatches}
-				exerciseName={activeBlockIdx !== null ? blocks[activeBlockIdx]?.name ?? '' : ''}
+				exerciseName={activeRmSourceName}
 				unit={weightUnit}
 			/>
 			<RmFormModal
@@ -415,7 +442,7 @@ export default function ImportWorkoutScreen() {
 					setActiveBlockIdx(null);
 				}}
 				onSave={handleRmSave}
-				defaultExerciseName={activeBlockIdx !== null ? blocks[activeBlockIdx]?.name ?? '' : ''}
+				defaultExerciseName={activeRmSourceName}
 				isLoading={rmSaving}
 				unit={weightUnit}
 			/>
