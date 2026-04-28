@@ -256,17 +256,21 @@ export type WorkoutBlockMissing = 'unparseable' | 'rmSource';
 
 /**
  * One imported exercise: the preprocessor's name/notes guess, the parser's
- * structured output, and a checklist of what (if anything) is still missing
- * before the block can be saved as an `ExercisePhase`.
+ * structured output for each phase, and a checklist of what (if anything) is
+ * still missing before the block can be saved as one or more `ExercisePhase`s.
+ *
+ * `phases` always has at least one entry. A block whose preprocessor flagged
+ * `no_set_spec` carries a single invalid `ParsedSetData` so the UI can render
+ * it as an unparseable card.
  */
 export interface ParsedWorkoutBlock {
 	/** Original block text exactly as the user pasted it. */
 	rawText: string;
 	/** Best-guess exercise name from the preprocessor. May be empty. */
 	suggestedName: string;
-	/** Result of feeding `setSpecLine` into `parseSetInput`. `isValid: false` on failure. */
-	parsed: ParsedSetData;
-	/** Notes the preprocessor extracted from lines after the set-spec. */
+	/** One parsed phase per set-spec line found in the block. Always non-empty. */
+	phases: ParsedSetData[];
+	/** Notes the preprocessor extracted from non-spec lines after the first spec. */
 	notes?: string;
 	/** Information still required before the block can be saved. */
 	missing: WorkoutBlockMissing[];
@@ -278,31 +282,32 @@ export interface ParsedWorkoutBlock {
  * High-level flow:
  * 1. {@link preprocessWorkoutText} splits the input into per-exercise blocks
  *    and rewrites tokens (`@light weight` → `@60%`).
- * 2. Each block's set-spec line is fed through {@link parseSetInput}.
- * 3. A `missing` checklist is computed from the parser result so the UI can
- *    drive any follow-up prompts (RM picker, raw-edit fallback).
+ * 2. Each block's set-spec lines are fed through {@link parseSetInput}, one
+ *    `ParsedSetData` per phase.
+ * 3. A `missing` checklist is computed across all phases so the UI can drive
+ *    follow-up prompts (RM picker, raw-edit fallback) at the block level.
  *
  * Returns `[]` for empty input.
  */
 export function parseWorkoutText(raw: string): ParsedWorkoutBlock[] {
 	return preprocessWorkoutText(raw).map(block => {
-		const parsed =
+		const phases: ParsedSetData[] =
 			block.parseError === 'no_set_spec'
-				? invalidResult('No sets x reps line found in this block.')
-				: parseSetInput(block.setSpecLine);
+				? [invalidResult('No sets x reps line found in this block.')]
+				: block.setSpecLines.map(line => parseSetInput(line));
 
 		const missing: WorkoutBlockMissing[] = [];
-		if (!parsed.isValid) {
+		if (phases.some(p => !p.isValid)) {
 			missing.push('unparseable');
 		}
-		if (parsed.needsRmLookup) {
+		if (phases.some(p => p.needsRmLookup)) {
 			missing.push('rmSource');
 		}
 
 		return {
 			rawText: block.rawText,
 			suggestedName: block.suggestedName,
-			parsed,
+			phases,
 			...(block.notesText !== undefined && { notes: block.notesText }),
 			missing,
 		};

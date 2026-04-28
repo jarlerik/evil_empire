@@ -82,9 +82,9 @@ function buildRmSourceNote(
 
 function isBlockReady(state: BlockState): boolean {
 	if (state.skipped) {return true;}
-	if (!state.block.parsed.isValid) {return false;}
+	if (!state.block.phases.every(p => p.isValid)) {return false;}
 	if (!state.name.trim()) {return false;}
-	if (state.block.parsed.needsRmLookup && state.rmWeight === undefined) {return false;}
+	if (state.block.phases.some(p => p.needsRmLookup) && state.rmWeight === undefined) {return false;}
 	return true;
 }
 
@@ -140,7 +140,7 @@ export default function ImportWorkoutScreen() {
 						notes: b.notes ?? '',
 						skipped: false,
 					};
-					if (b.parsed.needsRmLookup && b.suggestedName) {
+					if (b.phases.some(p => p.needsRmLookup) && b.suggestedName) {
 						const lookup = await lookupRm(user.id, b.suggestedName);
 						if (lookup.found) {
 							return { ...base, rmWeight: lookup.weight, rmSourceName: b.suggestedName };
@@ -219,7 +219,9 @@ export default function ImportWorkoutScreen() {
 			Alert.alert('Resolve all blocks', 'Each block must be skipped, parsed, or have its 1RM source set before saving.');
 			return;
 		}
-		const importable = blocks.filter(b => !b.skipped && b.block.parsed.isValid && b.name.trim());
+		const importable = blocks.filter(
+			b => !b.skipped && b.block.phases.every(p => p.isValid) && b.name.trim(),
+		);
 		if (importable.length === 0) {
 			Alert.alert('Nothing to import', 'All blocks were skipped or invalid.');
 			return;
@@ -253,51 +255,62 @@ export default function ImportWorkoutScreen() {
 					return;
 				}
 
-				// Resolve weights from the parsed data + any user-resolved RM.
-				const weightResult = await calculateWeightsFromParsedData(
-					user.id,
-					trimmedName,
-					state.block.parsed,
-					state.rmWeight,
-					state.rmSourceName,
-				);
-				if (!weightResult.success) {
-					setError(`Couldn't resolve weights for "${trimmedName}": ${weightResult.error ?? 'unknown error'}`);
-					return;
-				}
-
-				const { weight, weightMin, weightMax, weights: resolvedWeights, rmWeight, rmSourceName } = weightResult.weights;
-				const weightRange =
-					weightMin !== undefined && weightMax !== undefined ? { min: weightMin, max: weightMax } : undefined;
-
-				let finalParsed: ParsedSetData = state.block.parsed;
-				if (resolvedWeights) {
-					finalParsed = { ...finalParsed, weights: resolvedWeights };
-				}
-
-				// Combine user-edited notes with auto-generated RM source line.
 				const userNotes = state.notes.trim();
-				const rmSourceNote =
-					state.block.parsed.needsRmLookup && rmWeight
-						? buildRmSourceNote(state.block.parsed, rmWeight, rmSourceName ?? trimmedName, weightUnit)
-						: '';
-				const combinedNotes = [userNotes, rmSourceNote].filter(Boolean).join('\n');
-				if (combinedNotes) {
-					finalParsed = { ...finalParsed, notes: combinedNotes };
-				}
 
-				// For wave exercises with percentage weights, resolve to kg values
-				// (mirrors the special-case in useAddExercisePhase).
-				if (finalParsed.exerciseType === 'wave' && finalParsed.needsRmLookup && finalParsed.weights && rmWeight) {
-					const resolved = finalParsed.weights.map(pct => Math.round((rmWeight * pct) / 100));
-					finalParsed = { ...finalParsed, weights: resolved };
-				}
+				for (let phaseIdx = 0; phaseIdx < state.block.phases.length; phaseIdx++) {
+					const phase = state.block.phases[phaseIdx];
 
-				const phaseData = buildPhaseData(exercise.id, finalParsed, weight, weightRange);
-				const { error: phaseError } = await insertPhase(phaseData);
-				if (phaseError) {
-					setError(`Failed to insert phase for "${trimmedName}": ${phaseError}`);
-					return;
+					// Resolve weights from this phase + any user-resolved RM.
+					// `calculateWeightsFromParsedData` short-circuits when an rmWeight
+					// override is supplied, so phases 2+ reuse the resolved RM without
+					// hitting the DB again.
+					const weightResult = await calculateWeightsFromParsedData(
+						user.id,
+						trimmedName,
+						phase,
+						state.rmWeight,
+						state.rmSourceName,
+					);
+					if (!weightResult.success) {
+						setError(`Couldn't resolve weights for "${trimmedName}": ${weightResult.error ?? 'unknown error'}`);
+						return;
+					}
+
+					const { weight, weightMin, weightMax, weights: resolvedWeights, rmWeight, rmSourceName } = weightResult.weights;
+					const weightRange =
+						weightMin !== undefined && weightMax !== undefined ? { min: weightMin, max: weightMax } : undefined;
+
+					let finalParsed: ParsedSetData = phase;
+					if (resolvedWeights) {
+						finalParsed = { ...finalParsed, weights: resolvedWeights };
+					}
+
+					// User-edited block notes go on the first phase only; per-phase RM
+					// source line is generated for any phase whose weight came from a
+					// percentage so each phase shows its own resolved number.
+					const rmSourceNote =
+						phase.needsRmLookup && rmWeight
+							? buildRmSourceNote(phase, rmWeight, rmSourceName ?? trimmedName, weightUnit)
+							: '';
+					const blockNotes = phaseIdx === 0 ? userNotes : '';
+					const combinedNotes = [blockNotes, rmSourceNote].filter(Boolean).join('\n');
+					if (combinedNotes) {
+						finalParsed = { ...finalParsed, notes: combinedNotes };
+					}
+
+					// For wave exercises with percentage weights, resolve to kg values
+					// (mirrors the special-case in useAddExercisePhase).
+					if (finalParsed.exerciseType === 'wave' && finalParsed.needsRmLookup && finalParsed.weights && rmWeight) {
+						const resolved = finalParsed.weights.map(pct => Math.round((rmWeight * pct) / 100));
+						finalParsed = { ...finalParsed, weights: resolved };
+					}
+
+					const phaseData = buildPhaseData(exercise.id, finalParsed, weight, weightRange);
+					const { error: phaseError } = await insertPhase(phaseData);
+					if (phaseError) {
+						setError(`Failed to insert phase for "${trimmedName}": ${phaseError}`);
+						return;
+					}
 				}
 			}
 
@@ -421,8 +434,8 @@ interface BlockCardProps {
 
 function BlockCard({ state, weightUnit, onChangeName, onChangeNotes, onToggleSkip, onResolveRm }: BlockCardProps) {
 	const { block, skipped } = state;
-	const isUnparseable = !block.parsed.isValid;
-	const needsRm = block.parsed.needsRmLookup && state.rmWeight === undefined;
+	const isUnparseable = !block.phases.every(p => p.isValid);
+	const needsRm = block.phases.some(p => p.needsRmLookup) && state.rmWeight === undefined;
 
 	return (
 		<View style={[styles.card, skipped && styles.cardSkipped]}>
@@ -445,9 +458,11 @@ function BlockCard({ state, weightUnit, onChangeName, onChangeNotes, onToggleSki
 			</View>
 
 			{!isUnparseable ? (
-				<Text style={[styles.specSummary, skipped && styles.dimmed]}>
-					{summarizeSpec(block.parsed, state.rmWeight, weightUnit)}
-				</Text>
+				block.phases.map((phase, i) => (
+					<Text key={i} style={[styles.specSummary, skipped && styles.dimmed]}>
+						{summarizeSpec(phase, state.rmWeight, weightUnit)}
+					</Text>
+				))
 			) : (
 				<Text style={styles.unparseableText}>
 					Couldn't parse this block. Skip it, or go back and fix the pasted text.
