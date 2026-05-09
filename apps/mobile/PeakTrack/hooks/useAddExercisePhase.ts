@@ -91,7 +91,7 @@ export function useAddExercisePhase({
 			const pctMin = parsedData.weightMinPercentage;
 			const pctMax = parsedData.weightMaxPercentage;
 
-			let pctLabel: string;
+			let label: string;
 			if (parsedData.weights && parsedData.weights.length > 1 && pctMin !== undefined && pctMax !== undefined) {
 				// Combined: per-set percentages with trailing range (e.g., "80%, 85%, 88-90%")
 				const parts = parsedData.weights.map((w, i) => {
@@ -100,19 +100,24 @@ export function useAddExercisePhase({
 					}
 					return `${w}%`;
 				});
-				pctLabel = parts.join(', ');
+				label = parts.join(', ');
 			} else if (pctMin !== undefined && pctMax !== undefined) {
-				pctLabel = `${pctMin}-${pctMax}%`;
+				label = `${pctMin}-${pctMax}%`;
 			} else if (parsedData.weights && parsedData.weights.length > 1) {
-				pctLabel = parsedData.weights.map(w => `${w}%`).join(', ');
+				label = parsedData.weights.map(w => `${w}%`).join(', ');
 			} else if (pct !== undefined) {
-				pctLabel = `${pct}%`;
+				label = `${pct}%`;
+			} else if (parsedData.rirMin !== undefined && parsedData.rirMax !== undefined) {
+				const rirStr = parsedData.rirMin === parsedData.rirMax
+					? `${parsedData.rirMin}RIR`
+					: `${parsedData.rirMin}-${parsedData.rirMax}RIR`;
+				label = `≈ ${parsedData.reps} reps @ ${rirStr}`;
 			} else {
-				pctLabel = '';
+				label = '';
 			}
 
-			const note = pctLabel
-				? `${pctLabel} of ${rmName} 1RM (${rmW}${weightUnit})`
+			const note = label
+				? `${label} of ${rmName} 1RM (${rmW}${weightUnit})`
 				: `${rmName} 1RM (${rmW}${weightUnit})`;
 
 			finalParsedData = { ...finalParsedData, notes: note };

@@ -59,6 +59,7 @@ describe('parseSetInput - Compound Format', () => {
 				compoundReps: [2, 2],
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 	});

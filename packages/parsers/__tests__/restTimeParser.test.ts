@@ -108,6 +108,7 @@ describe('parseSetInput - Rest Time Parsing', () => {
 				rirMin: 2,
 				rirMax: 3,
 				restTimeSeconds: 180,
+				needsRmLookup: true,
 			});
 		});
 

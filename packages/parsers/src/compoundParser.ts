@@ -257,6 +257,7 @@ export function parseCompoundPercentage(cleanInput: string, restTimeSeconds?: nu
 				compoundReps: repsParts,
 				rirMin: value,
 				rirMax: value,
+				needsRmLookup: true,
 				...(restTimeSeconds !== undefined && { restTimeSeconds }),
 			}),
 		};
