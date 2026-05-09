@@ -322,7 +322,7 @@ export default function ImportWorkoutScreen() {
 						finalParsed = { ...finalParsed, weights: resolved };
 					}
 
-					const phaseData = buildPhaseData(exercise.id, finalParsed, weight, weightRange);
+					const phaseData = buildPhaseData(exercise.id, finalParsed, weight, weightRange, false, settings?.default_rest_seconds ?? null);
 					const { error: phaseError } = await insertPhase(phaseData);
 					if (phaseError) {
 						setError(`Failed to insert phase for "${trimmedName}": ${phaseError}`);

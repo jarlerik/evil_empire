@@ -10,6 +10,7 @@ interface UserSettings {
   weight_unit: 'kg' | 'lbs' | null;
   user_weight: string;
   onboarding_completed: boolean;
+  default_rest_seconds: number | null;
 }
 
 interface UserSettingsContextType {
@@ -45,9 +46,15 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
             weight_unit: data.weight_unit,
             user_weight: data.user_weight,
             onboarding_completed: data.onboarding_completed ?? false,
+            default_rest_seconds: data.default_rest_seconds ?? null,
           });
         } else {
-          setSettings({ weight_unit: null, user_weight: '85', onboarding_completed: false });
+          setSettings({
+            weight_unit: null,
+            user_weight: '85',
+            onboarding_completed: false,
+            default_rest_seconds: null,
+          });
         }
       } catch (error) {
         console.error('Error fetching user settings:', error);
@@ -65,7 +72,12 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const currentSettings =
-      settings ?? { weight_unit: null, user_weight: '85', onboarding_completed: false };
+      settings ?? {
+        weight_unit: null,
+        user_weight: '85',
+        onboarding_completed: false,
+        default_rest_seconds: null,
+      };
     const updatedSettings = { ...currentSettings, ...newSettings };
 
     if (!updatedSettings.weight_unit) {
@@ -76,6 +88,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
     const { error } = await upsertUserSettings(user.id, {
       weight_unit: updatedSettings.weight_unit,
       user_weight: updatedSettings.user_weight,
+      default_rest_seconds: updatedSettings.default_rest_seconds,
     });
     if (error) throw new Error(error);
 

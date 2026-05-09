@@ -13,6 +13,12 @@ jest.mock('../../contexts/ProgramsContext', () => ({
 	}),
 }));
 
+jest.mock('../../contexts/UserSettingsContext', () => ({
+	useUserSettings: () => ({
+		settings: { default_rest_seconds: null },
+	}),
+}));
+
 function makeItem(overrides: Partial<ProgramSessionForDate> = {}): ProgramSessionForDate {
 	return {
 		program: {

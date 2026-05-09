@@ -16,6 +16,7 @@ function SettingsPage() {
 
   const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
   const [userWeight, setUserWeight] = useState('85');
+  const [defaultRest, setDefaultRest] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -23,14 +24,32 @@ function SettingsPage() {
     if (settings) {
       setUnit(settings.weight_unit ?? 'kg');
       setUserWeight(settings.user_weight ?? '85');
+      setDefaultRest(
+        settings.default_rest_seconds != null ? String(settings.default_rest_seconds) : '',
+      );
     }
   }, [settings]);
 
   const handleSave = async () => {
+    const trimmedRest = defaultRest.trim();
+    let restValue: number | null = null;
+    if (trimmedRest !== '') {
+      const parsed = parseInt(trimmedRest, 10);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        setMessage('Default rest must be a non-negative whole number of seconds.');
+        return;
+      }
+      restValue = parsed;
+    }
+
     setSaving(true);
     setMessage('');
     try {
-      await updateSettings({ weight_unit: unit, user_weight: userWeight });
+      await updateSettings({
+        weight_unit: unit,
+        user_weight: userWeight,
+        default_rest_seconds: restValue,
+      });
       setMessage('Saved.');
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Failed to save.');
@@ -83,6 +102,21 @@ function SettingsPage() {
           onChangeText={setUserWeight}
           keyboardType="decimal-pad"
           inputMode="decimal"
+        />
+      </Card>
+
+      <Card variant="bordered" style={{ gap: 12 }}>
+        <Text variant="heading-sm">Default rest between sets</Text>
+        <Text variant="caption">
+          Used when you don&apos;t specify a rest time on an exercise. Leave empty for none.
+        </Text>
+        <Input
+          label="Seconds"
+          value={defaultRest}
+          onChangeText={setDefaultRest}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          placeholder="e.g. 120"
         />
       </Card>
 

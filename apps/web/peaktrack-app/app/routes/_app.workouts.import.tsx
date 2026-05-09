@@ -269,6 +269,8 @@ function ImportWorkout() {
             finalParsed,
             weights.weight,
             weightRange,
+            false,
+            settings?.default_rest_seconds ?? null,
           );
           const { error: pErr } = await insertPhase(phaseData);
           if (pErr) {

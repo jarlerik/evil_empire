@@ -12,6 +12,7 @@ import {
 import type { ProgramSessionForDate } from '@evil-empire/types';
 import { useNavigate } from '@tanstack/react-router';
 import { useMaterializeProgramSession } from '../hooks/use-programs';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 interface VirtualProgramSessionCardProps {
   item: ProgramSessionForDate;
@@ -21,6 +22,7 @@ interface VirtualProgramSessionCardProps {
 export function VirtualProgramSessionCard({ item, unit }: VirtualProgramSessionCardProps) {
   const navigate = useNavigate();
   const materialize = useMaterializeProgramSession();
+  const { settings } = useUserSettings();
   const [error, setError] = useState<string | null>(null);
 
   const missingNames: string[] = [];
@@ -35,7 +37,7 @@ export function VirtualProgramSessionCard({ item, unit }: VirtualProgramSessionC
 
   const handleMaterialize = async () => {
     setError(null);
-    const prep = prepareMaterializeInputs(item);
+    const prep = prepareMaterializeInputs(item, settings?.default_rest_seconds ?? null);
     if (!prep.ok) {
       setError(prep.error);
       return;

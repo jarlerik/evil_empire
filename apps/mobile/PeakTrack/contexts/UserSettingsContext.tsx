@@ -6,6 +6,7 @@ interface UserSettings {
   weight_unit: 'kg' | 'lbs' | null;
   user_weight: string;
   onboarding_completed: boolean;
+  default_rest_seconds: number | null;
 }
 
 interface UserSettingsContextType {
@@ -45,6 +46,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
           weight_unit: data.weight_unit,
           user_weight: data.user_weight,
           onboarding_completed: data.onboarding_completed ?? false,
+          default_rest_seconds: data.default_rest_seconds ?? null,
         });
       } else {
         // No settings exist yet — set null weight_unit so the unit selection modal appears
@@ -52,6 +54,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
           weight_unit: null,
           user_weight: '85',
           onboarding_completed: false,
+          default_rest_seconds: null,
         };
         setSettings(defaultSettings);
       }
@@ -67,7 +70,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
       if (!user) {return;}
 
       // Ensure we have all required fields by merging with current settings
-      const currentSettings = settings || { weight_unit: null, user_weight: '85', onboarding_completed: false };
+      const currentSettings = settings || { weight_unit: null, user_weight: '85', onboarding_completed: false, default_rest_seconds: null };
       const updatedSettings = {
         ...currentSettings,
         ...newSettings,
@@ -82,6 +85,7 @@ export function UserSettingsProvider({ children }: { children: React.ReactNode }
       const { error } = await upsertUserSettings(user.id, {
         weight_unit: updatedSettings.weight_unit,
         user_weight: updatedSettings.user_weight,
+        default_rest_seconds: updatedSettings.default_rest_seconds,
       });
 
       if (error) {throw new Error(error);}

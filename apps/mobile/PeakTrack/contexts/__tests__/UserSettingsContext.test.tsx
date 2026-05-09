@@ -73,6 +73,7 @@ describe('UserSettingsContext', () => {
 				weight_unit: 'kg',
 				user_weight: '85',
 				onboarding_completed: false,
+				default_rest_seconds: null,
 			});
 		});
 
@@ -143,6 +144,7 @@ describe('UserSettingsContext', () => {
 				weight_unit: 'kg',
 				user_weight: '90',
 				onboarding_completed: false,
+				default_rest_seconds: null,
 			});
 		});
 

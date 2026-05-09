@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, Keyboard, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal, Keyboard, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ export default function Settings() {
 	const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
 	const router = useRouter();
 	const [isEditingUnit, setIsEditingUnit] = useState(false);
+	const [restInput, setRestInput] = useState('');
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -19,12 +20,34 @@ export default function Settings() {
 		}
 	}, [user, authLoading]);
 
+	useEffect(() => {
+		setRestInput(settings?.default_rest_seconds != null ? String(settings.default_rest_seconds) : '');
+	}, [settings?.default_rest_seconds]);
+
 	const handleUnitSelect = async (unit: 'kg' | 'lbs') => {
 		try {
 			await updateSettings({ weight_unit: unit });
 			setIsEditingUnit(false);
 		} catch (error) {
 			console.error('Error updating weight unit:', error);
+		}
+	};
+
+	const commitRest = async () => {
+		const trimmed = restInput.trim();
+		if (trimmed === '') {
+			if (settings?.default_rest_seconds != null) {
+				await updateSettings({ default_rest_seconds: null });
+			}
+			return;
+		}
+		const parsed = parseInt(trimmed, 10);
+		if (Number.isNaN(parsed) || parsed < 0) {
+			setRestInput(settings?.default_rest_seconds != null ? String(settings.default_rest_seconds) : '');
+			return;
+		}
+		if (parsed !== settings?.default_rest_seconds) {
+			await updateSettings({ default_rest_seconds: parsed });
 		}
 	};
 
@@ -104,6 +127,20 @@ export default function Settings() {
 								</View>
 							</Modal>
 
+							<Text style={styles.sectionTitle}>Default rest between sets</Text>
+							<Text style={styles.helpText}>Used when you don&apos;t specify a rest time on an exercise. Leave empty for none.</Text>
+							<TextInput
+								style={styles.restInput}
+								value={restInput}
+								onChangeText={setRestInput}
+								onBlur={commitRest}
+								onSubmitEditing={commitRest}
+								keyboardType="number-pad"
+								placeholder="e.g. 120"
+								placeholderTextColor="#666"
+								returnKeyType="done"
+								accessibilityLabel="Default rest seconds"
+							/>
 						</View>
 					</View>
 				</ScrollView>
@@ -223,5 +260,20 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: '#fff',
 		opacity: 0.7,
+	},
+	helpText: {
+		fontSize: 13,
+		color: '#888',
+		marginTop: 8,
+	},
+	restInput: {
+		backgroundColor: '#333',
+		color: '#fff',
+		borderRadius: 8,
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		marginTop: 12,
+		marginBottom: 40,
+		fontSize: 16,
 	},
 });

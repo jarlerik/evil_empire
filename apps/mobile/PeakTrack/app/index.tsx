@@ -272,7 +272,7 @@ export default function Index() {
 	const handleMoveSession = async (sessionId: string, targetDate: Date) => {
 		const ps = programSessions.find(p => p.session.id === sessionId);
 		if (!ps) {return;}
-		const prep = prepareMaterializeInputs(ps);
+		const prep = prepareMaterializeInputs(ps, settings?.default_rest_seconds ?? null);
 		if (!prep.ok) {
 			setErrorState(prep.error);
 			return;

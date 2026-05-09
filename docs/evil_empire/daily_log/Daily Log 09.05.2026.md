@@ -5,3 +5,6 @@ RIR formats without explicit weight (`4 x 3 2RIR`, `4 x 6@1RIR`, compound `4 x 2
 
 ## fix(mobile): only show completed dot when all day's workouts are done
 The week selector previously marked a day green as soon as one workout was completed, even if other workouts or virtual program sessions on the same day were still planned or missed. Refactored the status aggregation in `app/index.tsx` to a two-pass approach that tracks `hasCompleted` / `hasIncompletePast` / `hasIncompleteFuture` per date before deriving the dot, so green appears only when every item that day is done.
+
+## feat(settings): add default rest time setting baked into new phases
+New `user_settings.default_rest_seconds` column plus a settings UI on mobile and web. When set, `buildPhaseData` and `prepareMaterializeInputs` bake the default into `exercise_phases.rest_time_seconds` whenever the user's input has no explicit rest, and the edit-exercise screen shows a `rest: Ns (default)` hint to confirm what will be saved. NULL semantics preserved when no default is configured.

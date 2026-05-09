@@ -21,7 +21,11 @@ export async function fetchUserSettings(
 
 export async function upsertUserSettings(
 	userId: string,
-	settings: { weight_unit: 'kg' | 'lbs'; user_weight: string },
+	settings: {
+		weight_unit: 'kg' | 'lbs';
+		user_weight: string;
+		default_rest_seconds?: number | null;
+	},
 ): Promise<ServiceResult<UserSettingsRow>> {
 	const supabase = getSupabaseClient();
 
@@ -31,6 +35,7 @@ export async function upsertUserSettings(
 		.update({
 			weight_unit: settings.weight_unit,
 			user_weight: settings.user_weight,
+			default_rest_seconds: settings.default_rest_seconds ?? null,
 			updated_at: new Date().toISOString(),
 		})
 		.eq('user_id', userId)
@@ -45,6 +50,7 @@ export async function upsertUserSettings(
 				user_id: userId,
 				weight_unit: settings.weight_unit,
 				user_weight: settings.user_weight,
+				default_rest_seconds: settings.default_rest_seconds ?? null,
 				updated_at: new Date().toISOString(),
 			})
 			.select()

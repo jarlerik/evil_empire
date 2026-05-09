@@ -12,6 +12,7 @@ import {
 import { prepareMaterializeInputs, sessionLabel as buildSessionLabel } from '@evil-empire/peaktrack-services';
 import { colors } from '../styles/common';
 import { usePrograms } from '../contexts/ProgramsContext';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 interface ProgramSessionCardProps {
 	item: ProgramSessionForDate;
@@ -23,6 +24,7 @@ interface ProgramSessionCardProps {
 
 export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMoveActive = false, onMoveRequest }: ProgramSessionCardProps) {
 	const { materializeSession } = usePrograms();
+	const { settings } = useUserSettings();
 	const [starting, setStarting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMove
 
 	const handleStart = async () => {
 		setError(null);
-		const prep = prepareMaterializeInputs(item);
+		const prep = prepareMaterializeInputs(item, settings?.default_rest_seconds ?? null);
 		if (!prep.ok) {
 			setError(prep.error);
 			return;
