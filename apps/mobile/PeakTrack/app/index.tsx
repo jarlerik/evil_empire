@@ -336,23 +336,28 @@ export default function Index() {
 	const todayStr = format(new Date(), 'yyyy-MM-dd');
 
 	const today = startOfDay(new Date());
-	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
+	// A day is only 'completed' when every workout/session on that day is done.
+	// Any incomplete item downgrades the day to 'missed' (past) or 'planned' (today/future).
+	const dayInfo: Record<string, { hasCompleted: boolean; hasIncompletePast: boolean; hasIncompleteFuture: boolean }> = {};
+	const ensureDay = (dateKey: string) => {
+		if (!dayInfo[dateKey]) {
+			dayInfo[dateKey] = { hasCompleted: false, hasIncompletePast: false, hasIncompleteFuture: false };
+		}
+		return dayInfo[dateKey];
+	};
 	for (const w of workouts) {
 		const dateKey = w.workout_date;
 		if (!dateKey) continue;
 		const workoutExercises = exercises[w.id] || [];
 		if (workoutExercises.length === 0) continue;
+		const info = ensureDay(dateKey);
 		const workoutDay = startOfDay(new Date(dateKey + 'T00:00:00'));
 		if (completedWorkoutIds.has(w.id)) {
-			dayStatuses[dateKey] = 'completed';
+			info.hasCompleted = true;
 		} else if (isBefore(workoutDay, today)) {
-			if (dayStatuses[dateKey] !== 'completed') {
-				dayStatuses[dateKey] = 'missed';
-			}
+			info.hasIncompletePast = true;
 		} else {
-			if (!dayStatuses[dateKey]) {
-				dayStatuses[dateKey] = 'planned';
-			}
+			info.hasIncompleteFuture = true;
 		}
 	}
 	// Virtual program sessions: past = missed (user never materialized them),
@@ -360,12 +365,22 @@ export default function Index() {
 	// workouts loop above.
 	for (const ps of programSessions) {
 		if (ps.materializedWorkoutId) {continue;}
-		if (dayStatuses[ps.date] === 'completed') {continue;}
+		const info = ensureDay(ps.date);
 		const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
 		if (isBefore(psDay, today)) {
-			dayStatuses[ps.date] = 'missed';
-		} else if (!dayStatuses[ps.date]) {
-			dayStatuses[ps.date] = 'planned';
+			info.hasIncompletePast = true;
+		} else {
+			info.hasIncompleteFuture = true;
+		}
+	}
+	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
+	for (const [dateKey, info] of Object.entries(dayInfo)) {
+		if (info.hasIncompletePast) {
+			dayStatuses[dateKey] = 'missed';
+		} else if (info.hasIncompleteFuture) {
+			dayStatuses[dateKey] = 'planned';
+		} else if (info.hasCompleted) {
+			dayStatuses[dateKey] = 'completed';
 		}
 	}
 
