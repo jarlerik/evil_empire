@@ -18,6 +18,7 @@ import { LoadScreen } from './components/LoadScreen';
 import { CoachMark } from '../components/CoachMark';
 import { useCoachMark } from '../hooks/useCoachMark';
 import { ProgramSessionCard } from '../components/ProgramSessionCard';
+import { WorkoutActionsModal } from '../components/WorkoutActionsModal';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { ProgramSessionForDate } from '@evil-empire/types';
 import { prepareMaterializeInputs, sessionLabel } from '@evil-empire/peaktrack-services';
@@ -50,6 +51,7 @@ export default function Index() {
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 	const [programSessions, setProgramSessions] = useState<ProgramSessionForDate[]>([]);
 	const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+	const [actionsForWorkoutId, setActionsForWorkoutId] = useState<string | null>(null);
 	const { fetchSessionsForRange, materializeSession } = usePrograms();
 
 	const weekDayCoach = useCoachMark('week-day-selector');
@@ -479,38 +481,14 @@ export default function Index() {
 												<View style={styles.workoutCardHeader}>
 													<Text style={styles.workoutCardTitle}>{workout.name}</Text>
 													<View style={styles.dateTitleActions}>
-														{workoutHasExercises && !workoutCompleted && (
-															<Pressable
-																onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
-																style={styles.iconButton}
-															>
-																<Ionicons name="stopwatch-outline" size={22} color="#fff" />
-															</Pressable>
-														)}
 														{!workoutCompleted && (
 															<Pressable
-																onPress={() => handleDeleteWorkout(workout)}
+																onPress={() => setActionsForWorkoutId(workout.id)}
 																style={styles.iconButton}
+																accessibilityRole="button"
+																accessibilityLabel="Workout actions"
 															>
-																<Text style={styles.deleteButtonText}>×</Text>
-															</Pressable>
-														)}
-														{!workoutCompleted && (
-															<Pressable
-																onPress={() =>
-																	setPendingMove(prev =>
-																		prev?.kind === 'workout' && prev.id === workout.id
-																			? null
-																			: { kind: 'workout', id: workout.id },
-																	)
-																}
-																style={styles.iconButton}
-															>
-																<Ionicons
-																	name="arrow-forward-outline"
-																	size={22}
-																	color={pendingMove?.kind === 'workout' && pendingMove.id === workout.id ? '#C87E25' : '#fff'}
-																/>
+																<Ionicons name="ellipsis-vertical" size={22} color="#fff" />
 															</Pressable>
 														)}
 													</View>
@@ -589,6 +567,38 @@ export default function Index() {
 						</View>
 					</ScrollView>
 					<NavigationBar />
+					{(() => {
+						const actionsWorkout = actionsForWorkoutId
+							? workouts.find(w => w.id === actionsForWorkoutId) ?? null
+							: null;
+						if (!actionsWorkout) {return null;}
+						const actionsHasExercises = (exercises[actionsWorkout.id] || []).length > 0;
+						const actionsMoveActive =
+							pendingMove?.kind === 'workout' && pendingMove.id === actionsWorkout.id;
+						return (
+							<WorkoutActionsModal
+								visible={true}
+								workoutName={actionsWorkout.name}
+								canStart={actionsHasExercises}
+								isMoveActive={actionsMoveActive}
+								onClose={() => setActionsForWorkoutId(null)}
+								onStart={() =>
+									router.push({
+										pathname: '/start-workout',
+										params: { workoutName: actionsWorkout.name, workoutId: actionsWorkout.id },
+									})
+								}
+								onReschedule={() =>
+									setPendingMove(prev =>
+										prev?.kind === 'workout' && prev.id === actionsWorkout.id
+											? null
+											: { kind: 'workout', id: actionsWorkout.id },
+									)
+								}
+								onDelete={() => handleDeleteWorkout(actionsWorkout)}
+							/>
+						);
+					})()}
 				</View>
 			</KeyboardAvoidingView>
 		);
@@ -692,11 +702,6 @@ const styles = StyleSheet.create({
 		padding: 8,
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	deleteButtonText: {
-		color: '#666',
-		fontSize: 24,
-		lineHeight: 24,
 	},
 	noWorkoutText: {
 		color: '#666',
