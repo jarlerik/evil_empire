@@ -17,12 +17,11 @@ import { useUserSettings } from '../contexts/UserSettingsContext';
 interface ProgramSessionCardProps {
 	item: ProgramSessionForDate;
 	unit?: 'kg' | 'lbs';
-	isMissed?: boolean;
 	isMoveActive?: boolean;
 	onMoveRequest?: () => void;
 }
 
-export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMoveActive = false, onMoveRequest }: ProgramSessionCardProps) {
+export function ProgramSessionCard({ item, unit = 'kg', isMoveActive = false, onMoveRequest }: ProgramSessionCardProps) {
 	const { materializeSession } = usePrograms();
 	const { settings } = useUserSettings();
 	const [starting, setStarting] = useState(false);
@@ -77,7 +76,7 @@ export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMove
 				<View style={styles.headerBody}>
 					<Text style={styles.title}>{sessionLabel}</Text>
 				</View>
-				{isMissed && onMoveRequest && (
+				{onMoveRequest && (
 					<Pressable
 						onPress={onMoveRequest}
 						style={styles.moveBtn}

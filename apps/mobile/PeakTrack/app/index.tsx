@@ -333,8 +333,6 @@ export default function Index() {
 		);
 	}
 
-	const todayStr = format(new Date(), 'yyyy-MM-dd');
-
 	const today = startOfDay(new Date());
 	// A day is only 'completed' when every workout/session on that day is done.
 	// Any incomplete item downgrades the day to 'missed' (past) or 'planned' (today/future).
@@ -475,7 +473,6 @@ export default function Index() {
 										const workoutExercises = exercises[workout.id] || [];
 										const workoutHasExercises = workoutExercises.length > 0;
 										const workoutCompleted = completedWorkoutIds.has(workout.id);
-										const workoutMissed = !workoutCompleted && !!workout.workout_date && workout.workout_date < todayStr;
 
 										return (
 											<View key={workout.id} style={styles.workoutCard}>
@@ -498,7 +495,7 @@ export default function Index() {
 																<Text style={styles.deleteButtonText}>×</Text>
 															</Pressable>
 														)}
-														{workoutMissed && (
+														{!workoutCompleted && (
 															<Pressable
 																onPress={() =>
 																	setPendingMove(prev =>
@@ -538,15 +535,12 @@ export default function Index() {
 								)}
 
 								{virtualSessionsForDate.map(ps => {
-									const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
-									const psIsMissed = isBefore(psDay, today);
 									const psMoveActive = pendingMove?.kind === 'session' && pendingMove.id === ps.session.id;
 									return (
 										<ProgramSessionCard
 											key={ps.session.id}
 											item={ps}
 											unit={weightUnit}
-											isMissed={psIsMissed}
 											isMoveActive={psMoveActive}
 											onMoveRequest={() =>
 												setPendingMove(prev =>
