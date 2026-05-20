@@ -11,6 +11,8 @@ import { colors, commonStyles } from '../styles/common';
 import { NavigationBar } from '../components/NavigationBar';
 import { LoadScreen } from './components/LoadScreen';
 import { RepetitionMaximum, fetchRepetitionMaximums, createRepetitionMaximum, updateRepetitionMaximum, deleteRepetitionMaximum, fetchCompletedExerciseNameSet } from '@evil-empire/peaktrack-services';
+import { ShareButton } from '../components/share/ShareButton';
+import { useShareExerciseImage } from '../hooks/useShareExerciseImage';
 
 export default function RepetitionMaximums() {
 	const { user } = useAuth();
@@ -23,6 +25,7 @@ export default function RepetitionMaximums() {
 	const [editingRm, setEditingRm] = useState<RepetitionMaximum | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [completedNames, setCompletedNames] = useState<Set<string>>(new Set());
+	const share = useShareExerciseImage();
 
 	useFocusEffect(
 		useCallback(() => {
@@ -182,22 +185,30 @@ export default function RepetitionMaximums() {
 								<View key={exerciseName} style={styles.exerciseGroup}>
 									<View style={styles.exerciseHeader}>
 										<Text style={styles.exerciseName}>{exerciseName}</Text>
-										{hasLogs ? (
-											<Pressable
-												onPress={() =>
-													router.push({
-														pathname: '/exercise-progression',
-														params: { exerciseName },
-													})
-												}
-												style={[styles.progressionBtn, styles.progressionBtnPrimary]}
-												accessibilityRole="button"
-												accessibilityLabel="View progression"
-											>
-												<Ionicons name="trending-up-outline" size={16} color="#fff" />
-												<Text style={styles.progressionBtnText}>View progression</Text>
-											</Pressable>
-										) : null}
+										<View style={styles.exerciseActions}>
+											{hasLogs ? (
+												<>
+													<Pressable
+														onPress={() =>
+															router.push({
+																pathname: '/exercise-progression',
+																params: { exerciseName },
+															})
+														}
+														style={[styles.progressionBtn, styles.progressionBtnPrimary]}
+														accessibilityRole="button"
+														accessibilityLabel="View progression"
+													>
+														<Ionicons name="trending-up-outline" size={16} color="#fff" />
+														<Text style={styles.progressionBtnText}>View progression</Text>
+													</Pressable>
+													<ShareButton
+														onPress={() => share.share({ exerciseName, weightUnit })}
+														disabled={share.capturing}
+													/>
+												</>
+											) : null}
+										</View>
 									</View>
 									{exerciseRms.map((rm) => (
 										<View key={rm.id} style={styles.rmItem}>
@@ -245,6 +256,7 @@ export default function RepetitionMaximums() {
 		</KeyboardAvoidingView>
 
 			<NavigationBar />
+			{share.OffscreenCard}
 		</>
 	);
 }
@@ -304,6 +316,11 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 		fontWeight: 'bold',
 		flexShrink: 1,
+	},
+	exerciseActions: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
 	},
 	progressionBtn: {
 		flexDirection: 'row',
