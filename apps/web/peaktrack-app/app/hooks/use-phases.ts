@@ -7,6 +7,7 @@ import {
   buildPhaseData,
 } from '@evil-empire/peaktrack-services';
 import type { ExercisePhase, ParsedSetData } from '@evil-empire/parsers';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 export const phaseKeys = {
   all: ['phases'] as const,
@@ -36,6 +37,8 @@ export interface SavePhaseVars {
 
 export function useSavePhase() {
   const qc = useQueryClient();
+  const { settings } = useUserSettings();
+  const defaultRestSeconds = settings?.default_rest_seconds ?? null;
   return useMutation({
     mutationFn: async (vars: SavePhaseVars) => {
       const isUpdate = !!vars.phaseId;
@@ -45,6 +48,7 @@ export function useSavePhase() {
         vars.calculatedWeight,
         vars.weightRange,
         isUpdate,
+        defaultRestSeconds,
       );
       if (isUpdate && vars.phaseId) {
         const { exercise_id: _ignored, ...updateData } = data;

@@ -11,7 +11,8 @@ import {
 } from '@evil-empire/peaktrack-services';
 import type { ProgramSessionForDate } from '@evil-empire/types';
 import { useNavigate } from '@tanstack/react-router';
-import { useMaterializeProgramSession } from '../hooks/use-programs';
+import { useMaterializeProgramSession, useSkipProgramSlot } from '../hooks/use-programs';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 interface VirtualProgramSessionCardProps {
   item: ProgramSessionForDate;
@@ -21,6 +22,8 @@ interface VirtualProgramSessionCardProps {
 export function VirtualProgramSessionCard({ item, unit }: VirtualProgramSessionCardProps) {
   const navigate = useNavigate();
   const materialize = useMaterializeProgramSession();
+  const skipSlot = useSkipProgramSlot();
+  const { settings } = useUserSettings();
   const [error, setError] = useState<string | null>(null);
 
   const missingNames: string[] = [];
@@ -33,9 +36,27 @@ export function VirtualProgramSessionCard({ item, unit }: VirtualProgramSessionC
 
   const label = sessionLabel(item);
 
+  const handleSkipAndPush = async () => {
+    setError(null);
+    const confirmed =
+      typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm(
+            `Skip "${label}" and push every following unstarted session in "${item.program.name}" forward by one slot?`,
+          )
+        : true;
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await skipSlot.mutateAsync(item.program.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to skip program');
+    }
+  };
+
   const handleMaterialize = async () => {
     setError(null);
-    const prep = prepareMaterializeInputs(item);
+    const prep = prepareMaterializeInputs(item, settings?.default_rest_seconds ?? null);
     if (!prep.ok) {
       setError(prep.error);
       return;
@@ -69,14 +90,23 @@ export function VirtualProgramSessionCard({ item, unit }: VirtualProgramSessionC
           <Text variant="heading-sm">{label}</Text>
           <Text variant="caption">Scheduled · {item.program.name}</Text>
         </View>
-        <Button
-          title="Materialize"
-          variant="primary"
-          size="sm"
-          loading={materialize.isPending}
-          disabled={missingNames.length > 0}
-          onPress={handleMaterialize}
-        />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button
+            title="Skip and push"
+            variant="outline"
+            size="sm"
+            loading={skipSlot.isPending}
+            onPress={handleSkipAndPush}
+          />
+          <Button
+            title="Materialize"
+            variant="primary"
+            size="sm"
+            loading={materialize.isPending}
+            disabled={missingNames.length > 0}
+            onPress={handleMaterialize}
+          />
+        </View>
       </View>
 
       {missingNames.length > 0 ? (

@@ -72,9 +72,9 @@ function summarize(parsed: ParsedSetData, rmWeight: number | undefined, unit: st
 
 function isReady(b: BlockState): boolean {
   if (b.skipped) return true;
-  if (!b.block.parsed.isValid) return false;
+  if (!b.block.phases.every((p) => p.isValid)) return false;
   if (!b.name.trim()) return false;
-  if (b.block.parsed.needsRmLookup && b.rmWeight === undefined) return false;
+  if (b.block.phases.some((p) => p.needsRmLookup) && b.rmWeight === undefined) return false;
   return true;
 }
 
@@ -126,7 +126,7 @@ function ImportWorkout() {
             notes: b.notes ?? '',
             skipped: false,
           };
-          if (b.parsed.needsRmLookup && b.suggestedName) {
+          if (b.phases.some((p) => p.needsRmLookup) && b.suggestedName) {
             const { data } = await lookupExactRm(user.id, b.suggestedName, 1);
             if (data?.weight) {
               return { ...base, rmWeight: data.weight, rmSourceName: b.suggestedName };
@@ -190,7 +190,7 @@ function ImportWorkout() {
       return;
     }
     const importable = blocks.filter(
-      (b) => !b.skipped && b.block.parsed.isValid && b.name.trim(),
+      (b) => !b.skipped && b.block.phases.every((p) => p.isValid) && b.name.trim(),
     );
     if (importable.length === 0) {
       setError('Nothing to import — all blocks were skipped or invalid.');
@@ -227,41 +227,56 @@ function ImportWorkout() {
           setError(`Failed to create exercise "${trimmedName}".`);
           return;
         }
-        const result = await resolveWeights({
-          userId: user.id,
-          exerciseName: trimmedName,
-          parsed: state.block.parsed,
-          weightUnit,
-          rmOverride:
-            state.rmWeight !== undefined
-              ? { weight: state.rmWeight, sourceName: state.rmSourceName }
-              : undefined,
-        });
-        if (result.kind === 'needs-rm') {
-          setError(`Couldn't resolve weights for "${trimmedName}".`);
-          return;
-        }
+
         const userNotes = state.notes.trim();
-        let finalParsed = result.finalParsed;
-        if (userNotes) {
-          const combined = [userNotes, finalParsed.notes].filter(Boolean).join('\n');
-          finalParsed = { ...finalParsed, notes: combined };
-        }
-        const { weights } = result;
-        const weightRange =
-          weights.weightMin !== undefined && weights.weightMax !== undefined
-            ? { min: weights.weightMin, max: weights.weightMax }
-            : undefined;
-        const phaseData = buildPhaseData(
-          exercise.id,
-          finalParsed,
-          weights.weight,
-          weightRange,
-        );
-        const { error: pErr } = await insertPhase(phaseData);
-        if (pErr) {
-          setError(`Failed to insert phase for "${trimmedName}": ${pErr}`);
-          return;
+
+        for (let phaseIdx = 0; phaseIdx < state.block.phases.length; phaseIdx++) {
+          const phase = state.block.phases[phaseIdx];
+
+          // Per-phase weight resolution. `resolveWeights` short-circuits on
+          // `rmOverride`, so phases 2+ don't trigger another DB lookup.
+          const result = await resolveWeights({
+            userId: user.id,
+            exerciseName: trimmedName,
+            parsed: phase,
+            weightUnit,
+            rmOverride:
+              state.rmWeight !== undefined
+                ? { weight: state.rmWeight, sourceName: state.rmSourceName }
+                : undefined,
+          });
+          if (result.kind === 'needs-rm') {
+            setError(`Couldn't resolve weights for "${trimmedName}".`);
+            return;
+          }
+
+          let finalParsed = result.finalParsed;
+          // User-edited block notes attach to the first phase only; per-phase
+          // RM source note (already on `finalParsed.notes`) stays on every
+          // phase that needs it.
+          if (phaseIdx === 0 && userNotes) {
+            const combined = [userNotes, finalParsed.notes].filter(Boolean).join('\n');
+            finalParsed = { ...finalParsed, notes: combined };
+          }
+
+          const { weights } = result;
+          const weightRange =
+            weights.weightMin !== undefined && weights.weightMax !== undefined
+              ? { min: weights.weightMin, max: weights.weightMax }
+              : undefined;
+          const phaseData = buildPhaseData(
+            exercise.id,
+            finalParsed,
+            weights.weight,
+            weightRange,
+            false,
+            settings?.default_rest_seconds ?? null,
+          );
+          const { error: pErr } = await insertPhase(phaseData);
+          if (pErr) {
+            setError(`Failed to insert phase for "${trimmedName}": ${pErr}`);
+            return;
+          }
         }
       }
 
@@ -316,8 +331,9 @@ function ImportWorkout() {
             Review {blocks.length} block{blocks.length === 1 ? '' : 's'}. Resolve any "1RM needed" chips, then save.
           </Text>
           {blocks.map((state, idx) => {
-            const unparseable = !state.block.parsed.isValid;
-            const needsRm = state.block.parsed.needsRmLookup && state.rmWeight === undefined;
+            const unparseable = !state.block.phases.every((p) => p.isValid);
+            const needsRm =
+              state.block.phases.some((p) => p.needsRmLookup) && state.rmWeight === undefined;
             return (
               <Card
                 key={idx}
@@ -345,7 +361,11 @@ function ImportWorkout() {
                     Couldn't parse this block. Skip it, or go back and fix the pasted text.
                   </Text>
                 ) : (
-                  <Text variant="body-sm">{summarize(state.block.parsed, state.rmWeight, weightUnit)}</Text>
+                  state.block.phases.map((phase, phaseIdx) => (
+                    <Text key={phaseIdx} variant="body-sm">
+                      {summarize(phase, state.rmWeight, weightUnit)}
+                    </Text>
+                  ))
                 )}
                 {!unparseable ? (
                   <Input
@@ -358,7 +378,11 @@ function ImportWorkout() {
                   />
                 ) : null}
                 {!state.skipped && needsRm ? (
-                  <Pressable onPress={() => handleResolveRm(idx)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Set 1RM for this exercise"
+                    onPress={() => handleResolveRm(idx)}
+                  >
                     <Card variant="bordered" style={{ padding: 8 }}>
                       <Text variant="caption">⚠ 1RM needed — click to set</Text>
                     </Card>

@@ -149,6 +149,8 @@ function WorkoutsForDate() {
                 workout.exercises.map((exercise) => (
                   <Pressable
                     key={exercise.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit ${exercise.name}`}
                     onPress={() =>
                       navigate({ to: '/exercises/$id/edit', params: { id: exercise.id } })
                     }

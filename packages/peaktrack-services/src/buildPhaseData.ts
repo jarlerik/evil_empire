@@ -10,6 +10,9 @@ import type { PhaseInsertData } from './exercisePhaseService';
  *
  * `isUpdate` toggles whether absent optional fields are written as `null`
  * (clearing the column on update) vs. omitted (using the column default on insert).
+ *
+ * `defaultRestSeconds` (from user settings) is baked in when the parsed input
+ * has no explicit rest. Pass null/undefined to disable the fallback.
  */
 export function buildPhaseData(
 	exerciseId: string,
@@ -17,6 +20,7 @@ export function buildPhaseData(
 	calculatedWeight: number,
 	weightRange?: { min: number; max: number },
 	isUpdate = false,
+	defaultRestSeconds?: number | null,
 ): PhaseInsertData {
 	const data: PhaseInsertData = {
 		exercise_id: exerciseId,
@@ -75,6 +79,8 @@ export function buildPhaseData(
 
 	if (parsedData.restTimeSeconds !== undefined) {
 		data.rest_time_seconds = parsedData.restTimeSeconds;
+	} else if (defaultRestSeconds != null) {
+		data.rest_time_seconds = defaultRestSeconds;
 	} else if (isUpdate) {
 		data.rest_time_seconds = null;
 	}

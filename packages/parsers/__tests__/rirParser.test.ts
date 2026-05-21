@@ -12,6 +12,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 
@@ -25,6 +26,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 	});
@@ -40,6 +42,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 
@@ -53,6 +56,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 2,
 				rirMax: 3,
+				needsRmLookup: true,
 			});
 		});
 
@@ -81,6 +85,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 
@@ -94,6 +99,7 @@ describe('parseSetInput - RIR Format', () => {
 				exerciseType: 'standard',
 				rirMin: 2,
 				rirMax: 3,
+				needsRmLookup: true,
 			});
 		});
 
@@ -123,6 +129,7 @@ describe('parseSetInput - RIR Format', () => {
 				rirMin: 2,
 				rirMax: 3,
 				restTimeSeconds: 180,
+				needsRmLookup: true,
 			});
 		});
 
@@ -137,6 +144,7 @@ describe('parseSetInput - RIR Format', () => {
 				rirMin: 1,
 				rirMax: 1,
 				restTimeSeconds: 180, // 3 minutes = 180 seconds
+				needsRmLookup: true,
 			});
 		});
 
@@ -167,6 +175,7 @@ describe('parseSetInput - RIR Format', () => {
 				compoundReps: [2, 2],
 				rirMin: 1,
 				rirMax: 1,
+				needsRmLookup: true,
 			});
 		});
 	});

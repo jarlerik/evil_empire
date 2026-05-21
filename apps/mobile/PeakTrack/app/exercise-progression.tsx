@@ -6,11 +6,9 @@ import {
 	ScrollView,
 	Pressable,
 } from 'react-native';
-import Svg, { Polyline, Circle } from 'react-native-svg';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { format } from 'date-fns';
 import {
 	fetchExerciseProgressionData,
 	ExerciseProgressionRow,
@@ -21,86 +19,14 @@ import { colors } from '../styles/common';
 import { LoadScreen } from './components/LoadScreen';
 import { NavigationBar } from '../components/NavigationBar';
 import { VolumeStatCardRow } from '../components/VolumeStatCardRow';
+import { VolumeTiles } from '../components/VolumeTiles';
 import {
 	buildExerciseSessionLayout,
 	ExerciseSessionLayout,
 } from '@evil-empire/peaktrack-services';
-import type { TileColor } from '@evil-empire/peaktrack-services';
 import { bucketByDate, type VolumePoint } from '../lib/volumeStats';
-
-const MIN_SESSION_WIDTH = 44;
-const COLUMN_GAP = 8;
-const TILE_SIZE = 12;
-const TILE_GAP = 2;
-const TREND_HEIGHT = 140;
-const TREND_TOP_PADDING = 12;
-const TREND_BOTTOM_PADDING = 12;
-const SET_COLUMN_GAP = 2;
-
-function tileBackground(color: TileColor): { backgroundColor: string; opacity: number } {
-	switch (color) {
-		case 'bright':
-		case 'dark':
-			return { backgroundColor: colors.primary, opacity: 1 };
-		case 'faded-bright':
-		case 'faded-dark':
-			return { backgroundColor: colors.primary, opacity: 0.5 };
-		case 'dim':
-			return { backgroundColor: colors.primary, opacity: 0.2 };
-		case 'neutral':
-		default:
-			return { backgroundColor: '#2a2a2a', opacity: 1 };
-	}
-}
-
-function maxStackHeightTiles(layouts: ExerciseSessionLayout[]): number {
-	let max = 0;
-	for (const l of layouts) {
-		for (const col of l.columns) {
-			if (col.tiles.length > max) {
-				max = col.tiles.length;
-			}
-		}
-	}
-	return max;
-}
-
-function intrinsicSessionWidth(setCount: number): number {
-	if (setCount <= 0) {
-		return MIN_SESSION_WIDTH;
-	}
-	const stackWidth = setCount * TILE_SIZE + Math.max(0, setCount - 1) * SET_COLUMN_GAP;
-	return Math.max(MIN_SESSION_WIDTH, stackWidth);
-}
-
-function layoutGeometry(layouts: ExerciseSessionLayout[]): {
-	uniformWidth: number;
-	centers: number[];
-	totalWidth: number;
-} {
-	let uniformWidth = MIN_SESSION_WIDTH;
-	for (const l of layouts) {
-		const w = intrinsicSessionWidth(l.columns.length);
-		if (w > uniformWidth) {
-			uniformWidth = w;
-		}
-	}
-	const centers: number[] = [];
-	let x = 0;
-	for (let i = 0; i < layouts.length; i += 1) {
-		centers.push(x + uniformWidth / 2);
-		x += uniformWidth + (i < layouts.length - 1 ? COLUMN_GAP : 0);
-	}
-	return { uniformWidth, centers, totalWidth: x };
-}
-
-function formatDayLabel(iso: string): string {
-	try {
-		return format(new Date(iso), 'MMM d');
-	} catch {
-		return iso;
-	}
-}
+import { ShareButton } from '../components/share/ShareButton';
+import { useShareExerciseImage } from '../hooks/useShareExerciseImage';
 
 export default function ExerciseProgression() {
 	const { user } = useAuth();
@@ -153,16 +79,6 @@ export default function ExerciseProgression() {
 		return out;
 	}, [rows, weightUnit]);
 
-	const maxVolume = useMemo(() => {
-		let max = 0;
-		for (const l of layouts) {
-			if (l.volume > max) {
-				max = l.volume;
-			}
-		}
-		return max;
-	}, [layouts]);
-
 	const hasAnyCompound = useMemo(
 		() => layouts.some(l => l.isCompound),
 		[layouts],
@@ -175,6 +91,8 @@ export default function ExerciseProgression() {
 			),
 		[layouts],
 	);
+
+	const share = useShareExerciseImage();
 
 	if (loading) {
 		return (
@@ -200,22 +118,6 @@ export default function ExerciseProgression() {
 		);
 	}
 
-	const { uniformWidth, centers: sessionCenters, totalWidth: chartWidth } =
-		layoutGeometry(layouts);
-	const stackHeight = maxStackHeightTiles(layouts) * (TILE_SIZE + TILE_GAP);
-	const trendPoints = layouts
-		.map((l, i) => {
-			if (maxVolume === 0) {
-				return null;
-			}
-			const yNorm = 1 - l.volume / maxVolume;
-			const y =
-				TREND_TOP_PADDING +
-				yNorm * (TREND_HEIGHT - TREND_TOP_PADDING - TREND_BOTTOM_PADDING);
-			return { x: sessionCenters[i] ?? 0, y };
-		})
-		.filter((p): p is { x: number; y: number } => p !== null);
-
 	return (
 		<View style={styles.flex}>
 			<View style={styles.headerRow}>
@@ -231,6 +133,14 @@ export default function ExerciseProgression() {
 						{exerciseName}
 					</Text>
 				</View>
+				{layouts.length > 0 && exerciseName ? (
+					<ShareButton
+						onPress={() =>
+							share.share({ exerciseName, layouts, weightUnit })
+						}
+						disabled={share.capturing}
+					/>
+				) : null}
 			</View>
 
 			{layouts.length === 0 ? (
@@ -248,68 +158,7 @@ export default function ExerciseProgression() {
 					contentContainerStyle={styles.chartContent}
 					showsHorizontalScrollIndicator={true}
 				>
-					<View style={[styles.chartInner, { width: chartWidth }]}>
-						<View
-							style={[styles.trendArea, { width: chartWidth, height: TREND_HEIGHT }]}
-						>
-							{trendPoints.length > 1 ? (
-								<Svg width={chartWidth} height={TREND_HEIGHT}>
-									<Polyline
-										points={trendPoints.map(p => `${p.x},${p.y}`).join(' ')}
-										fill="none"
-										stroke={colors.primary}
-										strokeWidth={2}
-									/>
-									{trendPoints.map((p, i) => (
-										<Circle
-											key={i}
-											cx={p.x}
-											cy={p.y}
-											r={3}
-											fill={colors.primary}
-											stroke={colors.primary}
-											strokeWidth={1}
-										/>
-									))}
-								</Svg>
-							) : null}
-						</View>
-
-						<View style={[styles.volumeRow, { width: chartWidth, gap: COLUMN_GAP }]}>
-							{layouts.map(l => (
-								<View key={l.logId} style={[styles.volumeCell, { width: uniformWidth }]}>
-									<Text style={styles.volumeText}>{l.volume}</Text>
-								</View>
-							))}
-						</View>
-
-						<View
-							style={[
-								styles.columnsRow,
-								{ width: chartWidth, height: stackHeight, gap: COLUMN_GAP },
-							]}
-						>
-							{layouts.map(l => (
-								<SessionStack
-									key={l.logId}
-									layout={l}
-									width={uniformWidth}
-									totalHeight={stackHeight}
-								/>
-							))}
-						</View>
-
-						<View style={[styles.labelRow, { width: chartWidth, gap: COLUMN_GAP }]}>
-							{layouts.map(l => (
-								<View key={l.logId} style={[styles.labelCell, { width: uniformWidth }]}>
-									{l.headerWeightLabel ? (
-										<Text style={styles.weightLabel}>{l.headerWeightLabel}</Text>
-									) : null}
-									<Text style={styles.dayLabel}>{formatDayLabel(l.workoutDate)}</Text>
-								</View>
-							))}
-						</View>
-					</View>
+					<VolumeTiles layouts={layouts} />
 				</ScrollView>
 				</>
 			)}
@@ -321,53 +170,7 @@ export default function ExerciseProgression() {
 				</View>
 			) : null}
 			<NavigationBar />
-		</View>
-	);
-}
-
-interface SessionStackProps {
-	layout: ExerciseSessionLayout;
-	width: number;
-	totalHeight: number;
-}
-
-function SessionStack({ layout, width, totalHeight }: SessionStackProps) {
-	const intrinsic = intrinsicSessionWidth(layout.columns.length);
-	const leftPad = Math.max(0, Math.round((width - intrinsic) / 2));
-	return (
-		<View
-			style={[
-				styles.sessionStack,
-				{ width, height: totalHeight, paddingLeft: leftPad, gap: SET_COLUMN_GAP },
-			]}
-		>
-			{layout.columns.map((col, idx) => (
-				<View
-					key={idx}
-					style={[
-						styles.setColumn,
-						{ width: TILE_SIZE, height: totalHeight, gap: TILE_GAP },
-					]}
-				>
-					{col.tiles.map((tile, tIdx) => {
-						const bg = tileBackground(tile);
-						return (
-							<View
-								key={tIdx}
-								style={[
-									styles.tile,
-									{
-										width: TILE_SIZE,
-										height: TILE_SIZE,
-										backgroundColor: bg.backgroundColor,
-										opacity: bg.opacity,
-									},
-								]}
-							/>
-						);
-					})}
-				</View>
-			))}
+			{share.OffscreenCard}
 		</View>
 	);
 }
@@ -451,54 +254,6 @@ const styles = StyleSheet.create({
 	chartContent: {
 		paddingHorizontal: 16,
 		paddingVertical: 8,
-	},
-	chartInner: {
-		flexDirection: 'column',
-	},
-	trendArea: {},
-	volumeRow: {
-		flexDirection: 'row',
-		alignItems: 'flex-end',
-		marginBottom: 6,
-	},
-	volumeCell: {
-		alignItems: 'center',
-	},
-	volumeText: {
-		color: colors.text,
-		fontSize: 11,
-		fontWeight: '600',
-	},
-	columnsRow: {
-		flexDirection: 'row',
-		alignItems: 'flex-end',
-	},
-	sessionStack: {
-		flexDirection: 'row',
-		alignItems: 'flex-end',
-	},
-	setColumn: {
-		flexDirection: 'column-reverse',
-		justifyContent: 'flex-start',
-		alignItems: 'center',
-	},
-	tile: {},
-	labelRow: {
-		flexDirection: 'row',
-		marginTop: 8,
-	},
-	labelCell: {
-		alignItems: 'center',
-	},
-	weightLabel: {
-		color: colors.primary,
-		fontSize: 10,
-		marginBottom: 2,
-	},
-	dayLabel: {
-		color: colors.text,
-		fontSize: 11,
-		fontWeight: '600',
 	},
 	legend: {
 		flexDirection: 'row',

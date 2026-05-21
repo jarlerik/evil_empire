@@ -1,5 +1,4 @@
 import { renderHook, waitFor, act } from '@testing-library/react-native';
-import { useExercisePhases } from '../useExercisePhases';
 import { ParsedSetData } from '@evil-empire/parsers';
 
 // Mock exercise phase service
@@ -15,6 +14,16 @@ jest.mock('@evil-empire/peaktrack-services', () => ({
 	updatePhase: (...args: unknown[]) => mockUpdatePhase(...args),
 	deletePhase: (...args: unknown[]) => mockDeletePhase(...args),
 }));
+
+// Stub UserSettingsContext to avoid pulling in supabase/AsyncStorage from the
+// real provider. The hook only reads `settings.default_rest_seconds`.
+jest.mock('../../contexts/UserSettingsContext', () => ({
+	useUserSettings: () => ({
+		settings: { default_rest_seconds: null },
+	}),
+}));
+
+import { useExercisePhases } from '../useExercisePhases';
 
 describe('useExercisePhases', () => {
 	beforeEach(() => {

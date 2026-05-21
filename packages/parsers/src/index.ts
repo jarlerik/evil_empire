@@ -60,15 +60,6 @@ export function parseSetInput(input: string): ParsedSetData {
 	const exerciseLine = lines[0].trim();
 	const notesLine = lines.length > 1 ? lines.slice(1).join('\n').trim() : undefined;
 
-	// Helper to add notes and EMOM to a valid result
-	const withExtras = (result: ParsedSetData): ParsedSetData => {
-		if (!result.isValid) {return result;}
-		const extras: Partial<ParsedSetData> = {};
-		if (notesLine) {extras.notes = notesLine;}
-		if (emomIntervalSeconds) {extras.emomIntervalSeconds = emomIntervalSeconds;}
-		return Object.keys(extras).length > 0 ? { ...result, ...extras } : result;
-	};
-
 	// Parse EMOM prefix from the exercise line
 	const { emomIntervalSeconds, remainingInput: afterEmom } = parseEmom(exerciseLine);
 
@@ -78,9 +69,28 @@ export function parseSetInput(input: string): ParsedSetData {
 		? { restTimeSeconds: undefined, remainingInput: afterEmom }
 		: parseRestTime(afterEmom);
 
-	// Remove any extra spaces and convert to lowercase for easier parsing
-	// Strip " of 1RM" suffix that some sources append to percentages (e.g. "@95% of 1RM" → "@95%")
-	const cleanInput = remainingInput.toLowerCase().replace(/\s+of\s+1\s*rm\s*$/i, '');
+	// Strip " of 1RM [<exercise>]" suffix that some sources append to percentages
+	// (e.g. "@95% of 1RM" or "@50-60% of 1RM power snatch"). Capture the optional
+	// trailing exercise name in original case so it can pre-fill the RM picker.
+	let rmSourceExercise: string | undefined;
+	const stripped = remainingInput.replace(/\s+of\s+1\s*rm(?:\s+([^\n]+?))?\s*$/i, (_match, name?: string) => {
+		if (name) {
+			const cleaned = name.trim().replace(/[.,;:]+$/, '').replace(/\s+/g, ' ');
+			if (cleaned) {rmSourceExercise = cleaned;}
+		}
+		return '';
+	});
+	const cleanInput = stripped.toLowerCase();
+
+	// Helper to add notes, EMOM, and parsed RM source to a valid result
+	const withExtras = (result: ParsedSetData): ParsedSetData => {
+		if (!result.isValid) {return result;}
+		const extras: Partial<ParsedSetData> = {};
+		if (notesLine) {extras.notes = notesLine;}
+		if (emomIntervalSeconds) {extras.emomIntervalSeconds = emomIntervalSeconds;}
+		if (rmSourceExercise && result.needsRmLookup) {extras.rmSourceExercise = rmSourceExercise;}
+		return Object.keys(extras).length > 0 ? { ...result, ...extras } : result;
+	};
 
 	// Pattern order matters! More specific patterns must come before general ones.
 	// Each parser returns { matched: boolean, data?: ParsedSetData }
@@ -256,17 +266,21 @@ export type WorkoutBlockMissing = 'unparseable' | 'rmSource';
 
 /**
  * One imported exercise: the preprocessor's name/notes guess, the parser's
- * structured output, and a checklist of what (if anything) is still missing
- * before the block can be saved as an `ExercisePhase`.
+ * structured output for each phase, and a checklist of what (if anything) is
+ * still missing before the block can be saved as one or more `ExercisePhase`s.
+ *
+ * `phases` always has at least one entry. A block whose preprocessor flagged
+ * `no_set_spec` carries a single invalid `ParsedSetData` so the UI can render
+ * it as an unparseable card.
  */
 export interface ParsedWorkoutBlock {
 	/** Original block text exactly as the user pasted it. */
 	rawText: string;
 	/** Best-guess exercise name from the preprocessor. May be empty. */
 	suggestedName: string;
-	/** Result of feeding `setSpecLine` into `parseSetInput`. `isValid: false` on failure. */
-	parsed: ParsedSetData;
-	/** Notes the preprocessor extracted from lines after the set-spec. */
+	/** One parsed phase per set-spec line found in the block. Always non-empty. */
+	phases: ParsedSetData[];
+	/** Notes the preprocessor extracted from non-spec lines after the first spec. */
 	notes?: string;
 	/** Information still required before the block can be saved. */
 	missing: WorkoutBlockMissing[];
@@ -278,31 +292,32 @@ export interface ParsedWorkoutBlock {
  * High-level flow:
  * 1. {@link preprocessWorkoutText} splits the input into per-exercise blocks
  *    and rewrites tokens (`@light weight` → `@60%`).
- * 2. Each block's set-spec line is fed through {@link parseSetInput}.
- * 3. A `missing` checklist is computed from the parser result so the UI can
- *    drive any follow-up prompts (RM picker, raw-edit fallback).
+ * 2. Each block's set-spec lines are fed through {@link parseSetInput}, one
+ *    `ParsedSetData` per phase.
+ * 3. A `missing` checklist is computed across all phases so the UI can drive
+ *    follow-up prompts (RM picker, raw-edit fallback) at the block level.
  *
  * Returns `[]` for empty input.
  */
 export function parseWorkoutText(raw: string): ParsedWorkoutBlock[] {
 	return preprocessWorkoutText(raw).map(block => {
-		const parsed =
+		const phases: ParsedSetData[] =
 			block.parseError === 'no_set_spec'
-				? invalidResult('No sets x reps line found in this block.')
-				: parseSetInput(block.setSpecLine);
+				? [invalidResult('No sets x reps line found in this block.')]
+				: block.setSpecLines.map(line => parseSetInput(line));
 
 		const missing: WorkoutBlockMissing[] = [];
-		if (!parsed.isValid) {
+		if (phases.some(p => !p.isValid)) {
 			missing.push('unparseable');
 		}
-		if (parsed.needsRmLookup) {
+		if (phases.some(p => p.needsRmLookup)) {
 			missing.push('rmSource');
 		}
 
 		return {
 			rawText: block.rawText,
 			suggestedName: block.suggestedName,
-			parsed,
+			phases,
 			...(block.notesText !== undefined && { notes: block.notesText }),
 			missing,
 		};

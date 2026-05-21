@@ -18,13 +18,14 @@ import { LoadScreen } from './components/LoadScreen';
 import { CoachMark } from '../components/CoachMark';
 import { useCoachMark } from '../hooks/useCoachMark';
 import { ProgramSessionCard } from '../components/ProgramSessionCard';
+import { WorkoutActionsModal } from '../components/WorkoutActionsModal';
 import { usePrograms } from '../contexts/ProgramsContext';
 import { ProgramSessionForDate } from '@evil-empire/types';
 import { prepareMaterializeInputs, sessionLabel } from '@evil-empire/peaktrack-services';
 
 type PendingMove =
-	| { kind: 'workout'; id: string }
-	| { kind: 'session'; id: string };
+	| { kind: 'workout'; id: string; name: string }
+	| { kind: 'session'; id: string; name: string };
 
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
@@ -50,6 +51,7 @@ export default function Index() {
 	const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
 	const [programSessions, setProgramSessions] = useState<ProgramSessionForDate[]>([]);
 	const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+	const [actionsForWorkoutId, setActionsForWorkoutId] = useState<string | null>(null);
 	const { fetchSessionsForRange, materializeSession } = usePrograms();
 
 	const weekDayCoach = useCoachMark('week-day-selector');
@@ -63,14 +65,12 @@ export default function Index() {
 		const nextStart = addDays(selectedWeekStart, 7);
 		setSelectedWeekStart(nextStart);
 		setSelectedDate(nextStart);
-		setPendingMove(null);
 	};
 
 	const prevWeek = () => {
 		const prevStart = subDays(selectedWeekStart, 7);
 		setSelectedWeekStart(prevStart);
 		setSelectedDate(prevStart);
-		setPendingMove(null);
 	};
 
 	// Dedupe concurrent loadData calls. useFocusEffect can fire twice on mount
@@ -251,6 +251,9 @@ export default function Index() {
 								delete next[workout.id];
 								return next;
 							});
+							setPendingMove(prev =>
+								prev?.kind === 'workout' && prev.id === workout.id ? null : prev,
+							);
 						}
 					},
 				},
@@ -272,7 +275,7 @@ export default function Index() {
 	const handleMoveSession = async (sessionId: string, targetDate: Date) => {
 		const ps = programSessions.find(p => p.session.id === sessionId);
 		if (!ps) {return;}
-		const prep = prepareMaterializeInputs(ps);
+		const prep = prepareMaterializeInputs(ps, settings?.default_rest_seconds ?? null);
 		if (!prep.ok) {
 			setErrorState(prep.error);
 			return;
@@ -307,19 +310,6 @@ export default function Index() {
 		}
 	};
 
-	useEffect(() => {
-		if (!pendingMove) {return;}
-		if (pendingMove.kind === 'workout') {
-			const stillPresent = workouts.some(w => w.id === pendingMove.id);
-			if (!stillPresent) {setPendingMove(null);}
-		} else {
-			const stillPresent = programSessions.some(
-				ps => ps.session.id === pendingMove.id && !ps.materializedWorkoutId,
-			);
-			if (!stillPresent) {setPendingMove(null);}
-		}
-	}, [workouts, programSessions, pendingMove]);
-
 	if (authLoading || settingsLoading) {
 		return <LoadScreen />;
 	}
@@ -333,26 +323,29 @@ export default function Index() {
 		);
 	}
 
-	const todayStr = format(new Date(), 'yyyy-MM-dd');
-
 	const today = startOfDay(new Date());
-	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
+	// A day is only 'completed' when every workout/session on that day is done.
+	// Any incomplete item downgrades the day to 'missed' (past) or 'planned' (today/future).
+	const dayInfo: Record<string, { hasCompleted: boolean; hasIncompletePast: boolean; hasIncompleteFuture: boolean }> = {};
+	const ensureDay = (dateKey: string) => {
+		if (!dayInfo[dateKey]) {
+			dayInfo[dateKey] = { hasCompleted: false, hasIncompletePast: false, hasIncompleteFuture: false };
+		}
+		return dayInfo[dateKey];
+	};
 	for (const w of workouts) {
 		const dateKey = w.workout_date;
 		if (!dateKey) continue;
 		const workoutExercises = exercises[w.id] || [];
 		if (workoutExercises.length === 0) continue;
+		const info = ensureDay(dateKey);
 		const workoutDay = startOfDay(new Date(dateKey + 'T00:00:00'));
 		if (completedWorkoutIds.has(w.id)) {
-			dayStatuses[dateKey] = 'completed';
+			info.hasCompleted = true;
 		} else if (isBefore(workoutDay, today)) {
-			if (dayStatuses[dateKey] !== 'completed') {
-				dayStatuses[dateKey] = 'missed';
-			}
+			info.hasIncompletePast = true;
 		} else {
-			if (!dayStatuses[dateKey]) {
-				dayStatuses[dateKey] = 'planned';
-			}
+			info.hasIncompleteFuture = true;
 		}
 	}
 	// Virtual program sessions: past = missed (user never materialized them),
@@ -360,12 +353,22 @@ export default function Index() {
 	// workouts loop above.
 	for (const ps of programSessions) {
 		if (ps.materializedWorkoutId) {continue;}
-		if (dayStatuses[ps.date] === 'completed') {continue;}
+		const info = ensureDay(ps.date);
 		const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
 		if (isBefore(psDay, today)) {
-			dayStatuses[ps.date] = 'missed';
-		} else if (!dayStatuses[ps.date]) {
-			dayStatuses[ps.date] = 'planned';
+			info.hasIncompletePast = true;
+		} else {
+			info.hasIncompleteFuture = true;
+		}
+	}
+	const dayStatuses: Record<string, 'completed' | 'missed' | 'planned'> = {};
+	for (const [dateKey, info] of Object.entries(dayInfo)) {
+		if (info.hasIncompletePast) {
+			dayStatuses[dateKey] = 'missed';
+		} else if (info.hasIncompleteFuture) {
+			dayStatuses[dateKey] = 'planned';
+		} else if (info.hasCompleted) {
+			dayStatuses[dateKey] = 'completed';
 		}
 	}
 
@@ -418,14 +421,7 @@ export default function Index() {
 							{pendingMove && (
 								<View style={styles.moveBanner}>
 									<Text style={styles.moveBannerText} numberOfLines={1}>
-										Tap a day to move &ldquo;{
-											pendingMove.kind === 'workout'
-												? (workouts.find(w => w.id === pendingMove.id)?.name ?? 'workout')
-												: (() => {
-													const ps = programSessions.find(p => p.session.id === pendingMove.id);
-													return ps ? sessionLabel(ps) : 'session';
-												})()
-										}&rdquo;
+										Tap a day to move &ldquo;{pendingMove.name}&rdquo;
 									</Text>
 									<Pressable
 										onPress={() => setPendingMove(null)}
@@ -460,45 +456,20 @@ export default function Index() {
 										const workoutExercises = exercises[workout.id] || [];
 										const workoutHasExercises = workoutExercises.length > 0;
 										const workoutCompleted = completedWorkoutIds.has(workout.id);
-										const workoutMissed = !workoutCompleted && !!workout.workout_date && workout.workout_date < todayStr;
 
 										return (
 											<View key={workout.id} style={styles.workoutCard}>
 												<View style={styles.workoutCardHeader}>
 													<Text style={styles.workoutCardTitle}>{workout.name}</Text>
 													<View style={styles.dateTitleActions}>
-														{workoutHasExercises && !workoutCompleted && (
-															<Pressable
-																onPress={() => router.push({ pathname: '/start-workout', params: { workoutName: workout.name, workoutId: workout.id } })}
-																style={styles.iconButton}
-															>
-																<Ionicons name="stopwatch-outline" size={22} color="#fff" />
-															</Pressable>
-														)}
 														{!workoutCompleted && (
 															<Pressable
-																onPress={() => handleDeleteWorkout(workout)}
+																onPress={() => setActionsForWorkoutId(workout.id)}
 																style={styles.iconButton}
+																accessibilityRole="button"
+																accessibilityLabel="Workout actions"
 															>
-																<Text style={styles.deleteButtonText}>×</Text>
-															</Pressable>
-														)}
-														{workoutMissed && (
-															<Pressable
-																onPress={() =>
-																	setPendingMove(prev =>
-																		prev?.kind === 'workout' && prev.id === workout.id
-																			? null
-																			: { kind: 'workout', id: workout.id },
-																	)
-																}
-																style={styles.iconButton}
-															>
-																<Ionicons
-																	name="arrow-forward-outline"
-																	size={22}
-																	color={pendingMove?.kind === 'workout' && pendingMove.id === workout.id ? '#C87E25' : '#fff'}
-																/>
+																<Ionicons name="ellipsis-vertical" size={22} color="#fff" />
 															</Pressable>
 														)}
 													</View>
@@ -523,23 +494,21 @@ export default function Index() {
 								)}
 
 								{virtualSessionsForDate.map(ps => {
-									const psDay = startOfDay(new Date(ps.date + 'T00:00:00'));
-									const psIsMissed = isBefore(psDay, today);
 									const psMoveActive = pendingMove?.kind === 'session' && pendingMove.id === ps.session.id;
 									return (
 										<ProgramSessionCard
 											key={ps.session.id}
 											item={ps}
 											unit={weightUnit}
-											isMissed={psIsMissed}
 											isMoveActive={psMoveActive}
 											onMoveRequest={() =>
 												setPendingMove(prev =>
 													prev?.kind === 'session' && prev.id === ps.session.id
 														? null
-														: { kind: 'session', id: ps.session.id },
+														: { kind: 'session', id: ps.session.id, name: sessionLabel(ps) },
 												)
 											}
+											onSkipped={() => loadData({ showLoader: false })}
 										/>
 									);
 								})}
@@ -580,6 +549,38 @@ export default function Index() {
 						</View>
 					</ScrollView>
 					<NavigationBar />
+					{(() => {
+						const actionsWorkout = actionsForWorkoutId
+							? workouts.find(w => w.id === actionsForWorkoutId) ?? null
+							: null;
+						if (!actionsWorkout) {return null;}
+						const actionsHasExercises = (exercises[actionsWorkout.id] || []).length > 0;
+						const actionsMoveActive =
+							pendingMove?.kind === 'workout' && pendingMove.id === actionsWorkout.id;
+						return (
+							<WorkoutActionsModal
+								visible={true}
+								workoutName={actionsWorkout.name}
+								canStart={actionsHasExercises}
+								isMoveActive={actionsMoveActive}
+								onClose={() => setActionsForWorkoutId(null)}
+								onStart={() =>
+									router.push({
+										pathname: '/start-workout',
+										params: { workoutName: actionsWorkout.name, workoutId: actionsWorkout.id },
+									})
+								}
+								onReschedule={() =>
+									setPendingMove(prev =>
+										prev?.kind === 'workout' && prev.id === actionsWorkout.id
+											? null
+											: { kind: 'workout', id: actionsWorkout.id, name: actionsWorkout.name },
+									)
+								}
+								onDelete={() => handleDeleteWorkout(actionsWorkout)}
+							/>
+						);
+					})()}
 				</View>
 			</KeyboardAvoidingView>
 		);
@@ -683,11 +684,6 @@ const styles = StyleSheet.create({
 		padding: 8,
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	deleteButtonText: {
-		color: '#666',
-		fontSize: 24,
-		lineHeight: 24,
 	},
 	noWorkoutText: {
 		color: '#666',

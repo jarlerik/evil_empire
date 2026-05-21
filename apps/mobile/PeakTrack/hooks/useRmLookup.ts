@@ -92,11 +92,31 @@ export function useRmLookup() {
 	};
 
 	/**
+	 * Estimate weight from 1RM for a target rep count using Epley's formula:
+	 *   weight = 1RM / (1 + reps/30)
+	 * For RIR-based prescriptions, the effective rep count is the prescribed
+	 * reps plus the RIR (e.g., 3 reps @ 2RIR ≈ 5RM load).
+	 */
+	const calculateWeightFromRir = (
+		rmWeight: number,
+		reps: number,
+		rirMin: number,
+		rirMax: number,
+	): number => {
+		const avgRir = (rirMin + rirMax) / 2;
+		const effectiveReps = reps + avgRir;
+		const raw = rmWeight / (1 + effectiveReps / 30);
+		// Round to nearest 0.5 to keep numbers gym-friendly
+		return Math.round(raw * 2) / 2;
+	};
+
+	/**
 	 * Apply an RM weight to parsed percentage data
 	 */
 	const applyRmWeight = (
 		rmWeight: number,
 		parsedData: {
+			reps?: number;
 			weight: number;
 			weights?: number[];
 			weightPercentage?: number;
@@ -104,6 +124,8 @@ export function useRmLookup() {
 			weightMaxPercentage?: number;
 			weightMin?: number;
 			weightMax?: number;
+			rirMin?: number;
+			rirMax?: number;
 		},
 		rmSourceName?: string,
 	): { success: true; weights: CalculatedWeights } => {
@@ -130,6 +152,19 @@ export function useRmLookup() {
 			calculatedWeight = calculatedWeightMin;
 		} else if (parsedData.weightPercentage !== undefined) {
 			calculatedWeight = calculateWeightFromPercentage(rmWeight, parsedData.weightPercentage);
+		}
+		// RIR-based estimation: no explicit weight or %, derive from rep target + RIR
+		else if (
+			parsedData.rirMin !== undefined
+			&& parsedData.rirMax !== undefined
+			&& parsedData.reps !== undefined
+		) {
+			calculatedWeight = calculateWeightFromRir(
+				rmWeight,
+				parsedData.reps,
+				parsedData.rirMin,
+				parsedData.rirMax,
+			);
 		}
 
 		// Handle absolute weight ranges
@@ -159,6 +194,7 @@ export function useRmLookup() {
 		userId: string,
 		exerciseName: string,
 		parsedData: {
+			reps?: number;
 			weight: number;
 			weights?: number[];
 			needsRmLookup?: boolean;
@@ -167,6 +203,8 @@ export function useRmLookup() {
 			weightMaxPercentage?: number;
 			weightMin?: number;
 			weightMax?: number;
+			rirMin?: number;
+			rirMax?: number;
 		},
 		rmWeightOverride?: number,
 		rmSourceNameOverride?: string,

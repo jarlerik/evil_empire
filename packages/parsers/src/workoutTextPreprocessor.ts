@@ -22,12 +22,22 @@ export interface PreprocessedBlock {
 	/** Best guess at the exercise name. May be empty if no name line was present. */
 	suggestedName: string;
 	/**
-	 * The set-spec line, ready to feed to `parseSetInput`.
+	 * The set-spec lines for this block, ready to feed to `parseSetInput`.
 	 * Token rewrites already applied (e.g. `@light weight` → `@60%`).
-	 * Empty string when `parseError === 'no_set_spec'`.
+	 *
+	 * A block may carry multiple specs when the same exercise has working-up
+	 * sets at different intensities (e.g. an Olympic-lifting complex with
+	 * `1 x 3+1 @55-60%` then `2 x 2+1 @65%` then `5 x 1+1 @70-75%`). Each
+	 * entry parses into its own phase.
+	 *
+	 * Empty array when `parseError === 'no_set_spec'`.
 	 */
-	setSpecLine: string;
-	/** Lines after the set-spec, joined with `\n`. Undefined when none. */
+	setSpecLines: string[];
+	/**
+	 * Block-level notes — non-spec lines that appear after the first spec.
+	 * Lines that fall between specs collapse into the same notes string.
+	 * Undefined when no such lines are present.
+	 */
 	notesText?: string;
 	/** Set when no set-spec line could be detected in this block. */
 	parseError?: 'no_set_spec';
@@ -77,10 +87,37 @@ function stripTrailingSeparator(line: string): string {
 	return line.replace(TRAILING_SEPARATOR_REGEX, '').trim();
 }
 
+/**
+ * If a line contains multiple back-to-back set-spec patterns with no exercise
+ * name prefix (e.g. `1 x 3+1 @60% 2 x 2+1 @65% 5 x 1+1 @70-75%`, common when a
+ * paste loses its line breaks), split it into one line per phase.
+ *
+ * Conservative: only splits when no name prefix precedes the first spec, so
+ * `Squat — 5 x 5 @100kg 4 x 5` (an unlikely but ambiguous shape) is left alone.
+ */
+function splitInlineMultiSpec(line: string): string[] {
+	const re = /\b\d+\s*[x×]\s*\d/gi;
+	const positions: number[] = [];
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(line)) !== null) {
+		positions.push(m.index);
+	}
+	if (positions.length <= 1) {return [line];}
+	if (line.slice(0, positions[0]).trim().length > 0) {return [line];}
+
+	const result: string[] = [];
+	for (let i = 0; i < positions.length; i++) {
+		const start = positions[i];
+		const end = i + 1 < positions.length ? positions[i + 1] : line.length;
+		result.push(line.slice(start, end).trim());
+	}
+	return result.filter(s => s.length > 0);
+}
+
 function processBlock(blockText: string): PreprocessedBlock {
 	const lines = blockText
 		.split('\n')
-		.map(l => l.trim())
+		.flatMap(l => splitInlineMultiSpec(l.trim()))
 		.filter(l => l.length > 0);
 
 	// Single-line block: try inline-separator split first (e.g. "Squat — 5 x 5 @100kg").
@@ -92,7 +129,7 @@ function processBlock(blockText: string): PreprocessedBlock {
 			return {
 				rawText: blockText,
 				suggestedName: stripTrailingSeparator(inline.name),
-				setSpecLine: rewriteSetSpec(inline.spec),
+				setSpecLines: [rewriteSetSpec(inline.spec)],
 			};
 		}
 
@@ -100,39 +137,48 @@ function processBlock(blockText: string): PreprocessedBlock {
 			return {
 				rawText: blockText,
 				suggestedName: '',
-				setSpecLine: rewriteSetSpec(line),
+				setSpecLines: [rewriteSetSpec(line)],
 			};
 		}
 
 		return {
 			rawText: blockText,
 			suggestedName: line,
-			setSpecLine: '',
+			setSpecLines: [],
 			parseError: 'no_set_spec',
 		};
 	}
 
-	// Multi-line: find the first line that looks like a set spec.
-	const setSpecIdx = lines.findIndex(l => SET_SPEC_REGEX.test(l));
+	// Multi-line: collect every line that looks like a set spec.
+	const specIndices: number[] = [];
+	lines.forEach((l, i) => {
+		if (SET_SPEC_REGEX.test(l)) {
+			specIndices.push(i);
+		}
+	});
 
-	if (setSpecIdx === -1) {
+	if (specIndices.length === 0) {
 		return {
 			rawText: blockText,
 			suggestedName: lines.join(' '),
-			setSpecLine: '',
+			setSpecLines: [],
 			parseError: 'no_set_spec',
 		};
 	}
 
-	const nameLines = lines.slice(0, setSpecIdx);
-	const noteLines = lines.slice(setSpecIdx + 1);
+	const firstSpecIdx = specIndices[0];
+	const specIndexSet = new Set(specIndices);
+	const nameLines = lines.slice(0, firstSpecIdx);
+	const noteLines = lines
+		.slice(firstSpecIdx + 1)
+		.filter((_, i) => !specIndexSet.has(firstSpecIdx + 1 + i));
 	const suggestedName = stripTrailingSeparator(nameLines.join(' '));
 	const notesText = noteLines.length > 0 ? noteLines.join('\n') : undefined;
 
 	return {
 		rawText: blockText,
 		suggestedName,
-		setSpecLine: rewriteSetSpec(lines[setSpecIdx]),
+		setSpecLines: specIndices.map(i => rewriteSetSpec(lines[i])),
 		...(notesText !== undefined && { notesText }),
 	};
 }
@@ -141,14 +187,17 @@ function processBlock(blockText: string): PreprocessedBlock {
  * Split free-form pasted workout text into one block per exercise.
  *
  * Block boundary heuristic: blank line(s). Within a block:
- * - Find the first line containing a sets-x-reps pattern → set-spec line.
- * - Lines before it → suggestedName (joined with spaces).
- * - Lines after it → notesText (joined with newlines).
- * - Apply token rewrites to the set-spec line (e.g. `@light weight` → `@60%`).
+ * - Collect every line containing a sets-x-reps pattern → `setSpecLines`.
+ *   Multiple specs map to multiple phases of the same exercise (e.g. an
+ *   Olympic complex with three working-up sets).
+ * - Lines BEFORE the first spec → suggestedName (joined with spaces).
+ * - Non-spec lines AFTER the first spec → notesText (joined with newlines).
+ *   Lines between specs collapse into the same notes string.
+ * - Apply token rewrites to each spec line (e.g. `@light weight` → `@60%`).
  *
  * Blocks that contain no set-spec (e.g. workout headers like "Snatch WORKOUT")
- * are returned with `parseError: 'no_set_spec'` so the UI can either skip them
- * or surface them for manual editing.
+ * are returned with `parseError: 'no_set_spec'` and `setSpecLines: []` so the
+ * UI can either skip them or surface them for manual editing.
  *
  * @param raw - The full pasted text, possibly containing multiple blocks.
  * @returns One `PreprocessedBlock` per non-empty block, in source order. Returns

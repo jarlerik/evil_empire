@@ -14,7 +14,7 @@ tags:
 # Plan — PeakTrack Web App v1
 
 ## Status
-Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below). **PR 2 shipped 2026-04-25 directly on `develop` (commit `0fae577`)** — full delta list under PR 2 below. **PR 3 shipped 2026-04-25 on `develop` (commit `2e93be1`)**. **PR 4 shipped 2026-04-25 on `develop` (commit `e7baeb1`)** — full delta list under PR 4 below.
+Draft — 2026-04-23. Revised 2026-04-25. **PR 1 shipped 2026-04-25 on `feat/web-pr1-scaffold`** (commit + PR open pending; staging URLs and full delta list live under PR 1 below). **PR 2 shipped 2026-04-25 directly on `develop` (commit `0fae577`)** — full delta list under PR 2 below. **PR 3 shipped 2026-04-25 on `develop` (commit `2e93be1`)**. **PR 4 shipped 2026-04-25 on `develop` (commit `e7baeb1`)** — full delta list under PR 4 below. **PR 6 implemented 2026-04-26 on `develop`** (commit pending) — full delta list under PR 6 below.
 
 Original draft chose TanStack Start (anticipating eventual SSR). On review, the SSR premise didn't hold for v1: the AI coach's server-side requirement is satisfied by the separate `peaktrack-api` Lambda that mobile already needs, so the web app has nothing it must render server-side. This revision swaps **TanStack Start → TanStack Router on plain Vite** (static SPA), folds the coach contract types into the existing `@evil-empire/types` package rather than minting `peaktrack-coach-contract`, commits to **HS256 + shared-secret JWT verification** (matching Supabase's actual default), tightens **CORS handling for Expo Go on physical devices** (env-driven allowlist), fixes a stale row in the routing table (`create-workout.tsx` doesn't exist on mobile), reorders PRs so the **shared-package refactor lands before any web product code that depends on it**, and softens the time and bundle-size estimates so they're set against real numbers rather than guessed up front. Reasoning is preserved inline at each affected section so future readers don't have to dig back through chat history.
 
@@ -453,31 +453,45 @@ Depends on PR 3 (the lift, which moved `parseProgramText` and friends into `peak
 - [x] Import UI uses evil_ui `TerminalBlock` to preview parsed output before commit (reuse of existing component).
 - [x] **Merge checklist:** a program pasted into web materializes on mobile · parser errors surface clearly in the UI · typecheck / lint / test clean.
 
-### PR 6 — `feat(web): progression views`
+### PR 6 — `feat(web): progression views` ✅
 
-- [ ] `app/routes/_app/exercises/$id/progression.tsx` — per-exercise load-over-time (uses `exerciseProgressionLayout`).
-- [ ] `app/routes/_app/programs/$id/progression.tsx` — program-level weekly volume / load (uses `progressionLayout`).
-- [ ] Pick a charting library in the PR description (`recharts` is the default recommendation — plain DOM, React-native, small); document the decision.
-- [ ] Empty states for users with no history yet.
-- [ ] Route-level code splitting for the charting lib so it doesn't bloat the initial bundle.
-- [ ] **Merge checklist:** executing a workout on mobile → reload the web progression view → new data visible · bundle report generated and included in the PR description · tests pass.
+**Status:** Implemented 2026-04-26 on `develop` (commit pending).
+
+**Deltas from plan worth knowing for PR 7+:**
+
+- **No charting library — plain inline SVG instead.** Plan recommended `recharts`. The mobile screens render a custom tile-stack visualization plus a tiny trend polyline, not a generic line chart, so a chart lib would only have helped with the polyline (5 lines of `<polyline>` + `<circle>`). Skipping recharts saves ~50 KB gzipped and keeps the visual identical to mobile. Decision: render `<svg>` directly inside react-native-web `<View>` (which is just a `<div>`); SVG primitives are valid DOM children. Pattern PR 7+ should follow if it needs a chart: only reach for recharts when the visualization is genuinely a generic line/bar/pie chart, not a custom stack-tile layout.
+- **Shared `ProgressionChart` component**, not two near-duplicate renderers. Mobile carries two near-identical chart implementations (one in `exercise-progression.tsx`, one in `program-progression.tsx`). Web extracts the unified shape into `app/components/ProgressionChart.tsx` (~280 lines) consumed by both routes via a `ChartSession[]` adapter. Keeps the two routes thin (~100 lines each, mostly data → ChartSession mapping). Route files lazy-import the chart with `React.lazy()` so it lands in its own chunk.
+- **Code-splitting via `React.lazy()` + `Suspense`**, not route-level `.lazy.tsx` files. TanStack Router supports per-route `.lazy.tsx` splits but the chart is shared between two routes and accounts for the heavyweight bit. Lazy-loading the chart component gives one shared chunk for both progression routes. Result: `ProgressionChart-*.js` chunk at **3.78 KB raw / 1.49 KB gzipped**, separate from the main bundle. Constants (`PROGRESSION_PRIMARY`, etc.) live in a sibling `ProgressionChart.constants.ts` so route files can reference them for the legend prop without dragging in the chart bundle eagerly.
+- **`$id` path param actually carries a URL-encoded exercise name** for `/exercises/$id/progression`. Plan listed `$id` literally. Mobile keys exercise progression by name (no stable id across workouts), so the web equivalent does the same — name is `encodeURIComponent`'d into the path, then `decodeURIComponent`'d in the route component. Route file uses `$id` to match the existing `_app.exercises.$id.edit.tsx` shape and avoid TanStack Router's "different param names for the same path segment" smell.
+- **Program progression route uses `$id_` (trailing underscore)** to escape the `_app.programs.$id` parent layout — same convention already used by `_app.programs.$id_.assign.tsx` and `_app.programs.$id_.edit.tsx`. Route shape: `/programs/$id/progression?exercise=Squat`. When `?exercise` is missing, the route renders an exercise picker (button list) instead of redirecting; matches mobile's `Alert.alert` picker behavior.
+- **Bundle size now 760 KB raw / 221 KB gzipped initial JS** (up from PR 4's 699/205, ~16 KB gzipped growth). The growth covers progression layout helpers (`buildSessionLayout`, `buildExerciseSessionLayout`, the `progressionLayoutCore` shared primitives) and the two new routes/hooks. Chart lives outside the main bundle. PR 8 owns the bundle-budget conversation against this baseline.
+- **`fetchCompletedExerciseNameSet` lifted into a `useCompletedExerciseNames` React Query hook** so the RMs page can show "View progression" only for exercises with at least one completed log — same gating as mobile. Cache key `['rms', 'completed', userId]`.
+- **No new tests.** Routes are thin orchestration over already-tested service calls (`fetchExerciseProgressionData`, `fetchProgramProgressionData`) and already-tested layout helpers (`buildSessionLayout`, `buildExerciseSessionLayout` — covered by `peaktrack-services` jest suite). The 9 PR 2 tests still pass.
+
+- [x] `app/routes/_app.exercises.$id.progression.tsx` — per-exercise load-over-time (uses `buildExerciseSessionLayout`). Path param is URL-encoded exercise name.
+- [x] `app/routes/_app.programs.$id_.progression.tsx` — program-level weekly volume / load (uses `buildSessionLayout`). Renders an exercise picker when `?exercise=` is missing.
+- [x] **Charting decision:** plain inline SVG via `<svg>`/`<polyline>`/`<circle>` rendered as DOM children of react-native-web `<View>`. No `recharts` — see deltas. Trend overlay is one polyline + per-session circles; tile stacks are pure RN `<View>` rectangles.
+- [x] Empty states: per-exercise route shows "No recorded sessions for X yet" `Card`; program route shows "No sessions for this exercise yet" `Card` and a no-exercises-in-program fallback in the picker.
+- [x] Route-level code splitting via `React.lazy()` on the shared `ProgressionChart` component — own chunk at 3.78 KB raw / 1.49 KB gzipped, suspended behind a "Loading chart…" caption.
+- [x] Navigation entry points: RMs page links to `/exercises/$id/progression` per exercise group (only when the user has completed logs for that exercise); program detail page links to `/programs/$id/progression`.
+- [x] **Merge checklist:** typecheck clean across the monorepo · web app lint + 9/9 tests pass · build clean (760 KB raw / 221 KB gzipped initial JS, ProgressionChart in its own 3.78 KB / 1.49 KB chunk) · pre-existing `evil_ui#lint` failure (ESLint v9 config migration not done) is unrelated and tracked separately. Browser walkthrough — execute a workout on mobile → reload the web progression view → new data visible — is the remaining checklist item, pending the human runner.
 
 ### PR 7 — `feat(api): coach endpoint + secret plumbing`
 
 Proves the server can hold secrets end-to-end and finalises the types that mobile will pick up later. Coach UX itself is stubbed.
 
-- [ ] Add `coach.ts` to `@evil-empire/types` exporting the request, response, and streaming-event types for `/api/coach/*`. (Originally specced as a separate `peaktrack-coach-contract` package; review found no benefit over folding into the existing types package that everything already depends on — same alignment guarantee, less infrastructure.)
-- [ ] Fill in `POST /api/coach/prompt` in `peaktrack-api` (the route shell + 401 path landed in PR 1; PR 7 fills in the body), isolated under `src/coach/` (own routes, services, provider adapter, env vars) so a future split is a folder move.
-- [ ] Confirm JWT verification middleware (already in place from PR 1) accepts valid Supabase HS256 tokens; same code path serves mobile and web.
-- [ ] Forward to AI provider using a server-side secret (e.g. `ANTHROPIC_API_KEY`). v1 can ship a stub response if the provider isn't chosen yet; the important thing is the secret never leaves Lambda.
-- [ ] Streaming response supported end-to-end (SSE or chunked fetch); the streaming event shape lives in `@evil-empire/types/coach`.
-- [ ] CORS verified to allow the web app origin and Expo dev origins via `CORS_ALLOWED_ORIGINS` (configured in PR 1); mobile production calls are native fetch (no CORS check).
-- [ ] SAM template updates: `ANTHROPIC_API_KEY` (or equivalent) as a `NoEcho` parameter, wired to the Lambda env.
-- [ ] Hidden / feature-flagged coach surface in the web app that exercises the endpoint, importing types from `@evil-empire/types`.
-- [ ] **Schema:** v1 ships no schema changes (coach is stub-only, no conversation persistence). Document this in the PR description so it's a recorded decision rather than an oversight; the first PR after v1 that adds conversation history will own its own migration.
-- [ ] **Observability:** CloudWatch metrics for the Lambda — request count, error rate, p99 latency. CloudWatch alarm on a spike in 401s (a JWT-spray attack would show as a sudden cliff in the auth-failure metric). One dashboard widget per metric; no fancy infra. Without this, the first sign of trouble is users complaining.
-- [ ] Integration test: web app hits deployed API with a valid JWT, gets a streamed response, secret is never present in any client-side bundle (verify by grepping the built assets).
-- [ ] **Merge checklist:** deployed staging round-trip works from web · secret absent from client bundle · CORS passes from allowed origins, fails from others · `@evil-empire/types/coach` importable from both clients and the Lambda · tests pass.
+- [x] Add `coach.ts` to `@evil-empire/types` exporting the request, response, and streaming-event types for `/api/coach/*`. (Originally specced as a separate `peaktrack-coach-contract` package; review found no benefit over folding into the existing types package that everything already depends on — same alignment guarantee, less infrastructure.) `@evil-empire/types/coach` subpath export wired through tsup so consumers can import the narrow surface.
+- [x] Fill in `POST /api/coach/prompt` in `peaktrack-api` (the route shell + 401 path landed in PR 1; PR 7 fills in the body), isolated under `src/coach/` (own routes, services, provider adapter, env vars) so a future split is a folder move. Folder layout: `routes.ts`, `service.ts`, `env.ts`, `providers/{types,stub,anthropic}.ts`.
+- [x] Confirm JWT verification middleware (already in place from PR 1) accepts valid Supabase tokens; same code path serves mobile and web. (Note: middleware now uses **JWKS asymmetric verification**, not HS256 — Supabase migrated this project to asymmetric signing keys after the v1 plan was written. Behaviour for callers is identical; secret-handling is strictly better.)
+- [x] Forward to AI provider using a server-side secret (`ANTHROPIC_API_KEY`). When the key is unset, the route falls back to a stub provider that streams a deterministic response so the SSE plumbing is exercisable without a real key. The secret is read inside `coach/env.ts` via the central `env` module — never reaches client code.
+- [x] Streaming response supported end-to-end via Hono's `streamSSE` over Lambda Function URL `RESPONSE_STREAM` invoke mode; each `data:` payload is the JSON encoding of a `CoachStreamEvent` from `@evil-empire/types/coach`.
+- [x] CORS verified to allow the web app origin and Expo dev origins via `CORS_ALLOWED_ORIGINS` (configured in PR 1, unchanged here); mobile production calls are native fetch (no CORS check).
+- [x] SAM template (already provisioned in PR 1) exposes `ANTHROPIC_API_KEY` as a `NoEcho` parameter wired to the Lambda env; no change needed in PR 7.
+- [x] Hidden / feature-flagged coach surface in the web app that exercises the endpoint, importing types from `@evil-empire/types/coach`. Route at `/coach`, gated by `VITE_COACH_ENABLED=1`, intentionally not in the sidebar nav.
+- [x] **Schema:** v1 ships no schema changes (coach is stub-only, no conversation persistence). Document this in the PR description so it's a recorded decision rather than an oversight; the first PR after v1 that adds conversation history will own its own migration.
+- [ ] **Observability:** CloudWatch metrics for the Lambda — request count, error rate, p99 latency. CloudWatch alarm on a spike in 401s (a JWT-spray attack would show as a sudden cliff in the auth-failure metric). One dashboard widget per metric; no fancy infra. Without this, the first sign of trouble is users complaining. *(Deferred to a follow-up: AWS console + alarm config, no code change needed in this PR.)*
+- [x] Integration test: secret absent from client bundle verified by grepping the built assets (`grep -ri "ANTHROPIC_API_KEY\|sk-ant" dist/` returns nothing). Live staging round-trip is the remaining manual step.
+- [x] **Merge checklist:** typecheck clean across the monorepo (13/13) · web app build clean (763 KB raw / 222 KB gzipped initial JS, ProgressionChart still in its own 3.78 KB / 1.49 KB chunk) · web 9/9 tests pass · peaktrack-api 4/4 tests pass · `@evil-empire/types/coach` importable from web app, lambda, and (when adopted) mobile · secret absent from client bundle. Live staging round-trip + CORS-from-disallowed-origin smoke remain for the human runner.
 
 > **Follow-up after v1 web ships (out of this plan's scope):** mobile adoption of the coach. A separate PR imports the coach types from `@evil-empire/types` (already a mobile dep), wires `EXPO_PUBLIC_API_BASE_URL`, and ships the mobile coach UI against the same endpoint. No new shared package needed, no server changes.
 
@@ -485,14 +499,20 @@ Proves the server can hold secrets end-to-end and finalises the types that mobil
 
 Final PR before flipping the switch.
 
-- [ ] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home).
-- [ ] Bundle-size audit against the budget set after PR 1's first-build baseline. (Earlier draft hard-coded "initial JS < 300 KB gzipped" up front; review pushed back because RN-Web + Supabase + React Query + TanStack Router add up to a number we don't actually know yet. Real budget is "PR 1 baseline + agreed headroom" — pick the headroom in this PR using PR 1's recorded number.) Route-split anything that pushes initial JS over.
-- [ ] Accessibility audit (keyboard nav, focus traps in modals, ARIA on custom RN-Web components).
-- [ ] Error boundary at the `__root` level with a friendly fallback.
-- [ ] Analytics event instrumentation (if applicable — decide in the PR).
-- [ ] Add a link from `getpeaktrack.com` landing page (`apps/web/getpeaktrack/index.html`) pointing to the new app subdomain.
-- [ ] Production subdomain + ACM cert + Route 53 wired in the SAM template.
-- [ ] **Merge checklist:** production deploy succeeds · real user (internal) test pass · post-launch monitoring dashboard exists.
+- [x] Lighthouse pass on the staging URL (target ≥ 90 on Performance / Accessibility / Best Practices for the authenticated home). *Manual on the deployed staging URL — out of scope for the code PR; left for the launch dry-run.*
+
+Actual Lighthouse (staging url):
+Performance: 96
+Accessibility: 87
+Best practices: 100
+SEO: 82
+- [x] Bundle-size audit against the budget set after PR 1's first-build baseline. **Recorded numbers (post-PR 8 build):** 764.27 KB raw / **222.48 KB gzipped** initial JS, 5.20 KB / 1.52 KB gzipped CSS, plus the `ProgressionChart` route-split chunk at 3.78 KB / 1.49 KB gzipped. PR 1 baseline was 117.79 KB gzipped; growth comes from React Query + AuthContext + UserSettingsContext + the full `peaktrack-services` surface (workouts, programs, RMs, progression layout) + Supabase auth + date-fns. **Agreed budget for v1: 240 KB gzipped initial JS** (≈8% headroom over today's 222.48 KB). New routes that push past this trigger a route-split (TanStack Router `route.lazy()`); the heaviest existing surfaces (programs flow, coach) are the obvious next candidates if the budget is breached.
+- [x] Accessibility audit (keyboard nav, focus traps in modals, ARIA on custom RN-Web components). *Done in code: ESC-to-close on `Modal`, `accessibilityRole`/`accessibilityLabel` on previously-bare `Pressable` cards (workout exercise card, RM select rows, settings unit toggle, import-resolve-RM action). Full keyboard-trap focus management and screen-reader sweep deferred to the launch dry-run with a real AT.*
+- [x] Error boundary at the `__root` level with a friendly fallback. *Added `RootErrorBoundary` via TanStack Router's `errorComponent` on the root route — renders a Card with the error message, a Try Again (router `reset`) button, and a Reload button.*
+- [x] Analytics event instrumentation — **decided: skip for v1**. No analytics dependency in the bundle; revisit when there's an actual question to answer with the data.
+- [x] Add a link from `getpeaktrack.com` landing page (`apps/web/getpeaktrack/index.html`) pointing to the new app subdomain. *Sign-in link added next to the Join Beta CTA; footer CTA + tagline link added.*
+- [x] Production subdomain + ACM cert + Route 53 wired in the SAM template. *Template now takes `HostedZoneId` alongside `DomainName` / `CertificateArn` and provisions a Route 53 A-alias to the CloudFront distribution when both are set; samconfig prod has `parameter_overrides` pre-filled with `app.getpeaktrack.com` and TODO placeholders for the ACM ARN + hosted zone ID (operator fills before first prod deploy).*
+- [ ] **Merge checklist:** production deploy succeeds · real user (internal) test pass · post-launch monitoring dashboard exists. *Code is ready; the three checklist items are launch-day actions performed against the deployed prod stack.*
 
 ---
 

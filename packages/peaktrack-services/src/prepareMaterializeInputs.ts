@@ -16,7 +16,10 @@ export type PrepareMaterializeResult =
 	| { ok: true; exercises: MaterializeExerciseInput[] }
 	| { ok: false; error: string };
 
-export function prepareMaterializeInputs(item: ProgramSessionForDate): PrepareMaterializeResult {
+export function prepareMaterializeInputs(
+	item: ProgramSessionForDate,
+	defaultRestSeconds?: number | null,
+): PrepareMaterializeResult {
 	const missingNames: string[] = [];
 	for (const ex of item.exercises) {
 		const parsed = parseSetInput(ex.raw_input);
@@ -56,7 +59,7 @@ export function prepareMaterializeInputs(item: ProgramSessionForDate): PrepareMa
 			calculatedWeight = parsed.weightMin;
 		}
 
-		const phase = buildPhaseData('', parsed, calculatedWeight, weightRange, false);
+		const phase = buildPhaseData('', parsed, calculatedWeight, weightRange, false, defaultRestSeconds);
 		const { exercise_id: _exerciseId, ...phaseWithoutId } = phase;
 		exercises.push({ name: ex.name, order_index: i, phase: phaseWithoutId });
 	}

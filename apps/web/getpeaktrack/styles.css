@@ -102,6 +102,23 @@ body {
     color: var(--text-primary);
 }
 
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: var(--accent);
+}
+
 .nav-cta {
     background-color: transparent;
     border: 1px solid var(--accent);

@@ -4,13 +4,28 @@ import {
   createRepetitionMaximum as createRmSvc,
   updateRepetitionMaximum as updateRmSvc,
   deleteRepetitionMaximum as deleteRmSvc,
+  fetchCompletedExerciseNameSet,
   type RepetitionMaximum,
 } from '@evil-empire/peaktrack-services';
 
 export const rmKeys = {
   all: ['rms'] as const,
   byUser: (userId: string) => [...rmKeys.all, 'user', userId] as const,
+  completed: (userId: string) => [...rmKeys.all, 'completed', userId] as const,
 };
+
+export function useCompletedExerciseNames(userId: string | undefined) {
+  return useQuery({
+    queryKey: rmKeys.completed(userId ?? ''),
+    enabled: !!userId,
+    queryFn: async (): Promise<Set<string>> => {
+      if (!userId) return new Set();
+      const { data, error } = await fetchCompletedExerciseNameSet(userId);
+      if (error) throw new Error(error);
+      return data ?? new Set();
+    },
+  });
+}
 
 export function useRms(userId: string | undefined) {
   return useQuery({

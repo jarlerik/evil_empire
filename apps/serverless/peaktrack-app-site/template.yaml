@@ -5,15 +5,22 @@ Description: PeakTrack web app hosting — S3 + CloudFront SPA (near-verbatim cl
 Parameters:
   DomainName:
     Type: String
-    Description: Custom domain name (e.g., www.example.com)
+    Description: Custom domain name (e.g., app.getpeaktrack.com)
     Default: ''
   CertificateArn:
     Type: String
     Description: ACM Certificate ARN (must be in us-east-1)
     Default: ''
+  HostedZoneId:
+    Type: String
+    Description: Route 53 hosted zone ID for the apex domain. When set together with DomainName, an alias A record is created pointing the subdomain at the CloudFront distribution.
+    Default: ''
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref DomainName, '']]
+  HasHostedZone: !And
+    - !Condition HasCustomDomain
+    - !Not [!Equals [!Ref HostedZoneId, '']]
 
 Resources:
   WebsiteBucket:
@@ -231,6 +238,21 @@ Resources:
           - ErrorCode: 404
             ResponseCode: 200
             ResponsePagePath: /index.html
+
+  # Route 53 alias for the custom subdomain. Only created when both DomainName
+  # and HostedZoneId are supplied (prod). CloudFront's hosted zone ID is the
+  # well-known constant Z2FDTNDATAQYW2.
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasHostedZone
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
 
 Outputs:
   WebsiteBucketName:

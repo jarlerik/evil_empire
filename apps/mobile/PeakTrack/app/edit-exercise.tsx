@@ -248,6 +248,13 @@ export default function EditExercise() {
 								multiline
 								textAlignVertical="top"
 							/>
+							{settings?.default_rest_seconds != null &&
+								setInput.trim().length > 0 &&
+								!/\d+\s*(s|m|sec|min|seconds?|minutes?)\s*$/i.test(setInput.trim()) && (
+									<Text style={styles.defaultRestHint}>
+										rest: {settings.default_rest_seconds}s (default)
+									</Text>
+								)}
 							<Button
 								title={editingPhaseId ? 'Update' : 'Add'}
 								onPress={handleAddSet}
@@ -332,6 +339,12 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		width: '100%',
 		minHeight: 90,
+	},
+	defaultRestHint: {
+		color: '#888',
+		fontSize: 13,
+		marginTop: 6,
+		fontStyle: 'italic',
 	},
 	headerButtons: {
 		flexDirection: 'row',

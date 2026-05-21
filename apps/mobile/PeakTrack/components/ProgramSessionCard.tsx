@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ProgramSessionForDate } from '@evil-empire/types';
@@ -12,18 +12,21 @@ import {
 import { prepareMaterializeInputs, sessionLabel as buildSessionLabel } from '@evil-empire/peaktrack-services';
 import { colors } from '../styles/common';
 import { usePrograms } from '../contexts/ProgramsContext';
+import { useUserSettings } from '../contexts/UserSettingsContext';
 
 interface ProgramSessionCardProps {
 	item: ProgramSessionForDate;
 	unit?: 'kg' | 'lbs';
-	isMissed?: boolean;
 	isMoveActive?: boolean;
 	onMoveRequest?: () => void;
+	onSkipped?: () => void | Promise<void>;
 }
 
-export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMoveActive = false, onMoveRequest }: ProgramSessionCardProps) {
-	const { materializeSession } = usePrograms();
+export function ProgramSessionCard({ item, unit = 'kg', isMoveActive = false, onMoveRequest, onSkipped }: ProgramSessionCardProps) {
+	const { materializeSession, skipProgramSlot } = usePrograms();
+	const { settings } = useUserSettings();
 	const [starting, setStarting] = useState(false);
+	const [skipping, setSkipping] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	// Check for missing snapshots up-front so we can surface a recovery banner.
@@ -39,7 +42,7 @@ export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMove
 
 	const handleStart = async () => {
 		setError(null);
-		const prep = prepareMaterializeInputs(item);
+		const prep = prepareMaterializeInputs(item, settings?.default_rest_seconds ?? null);
 		if (!prep.ok) {
 			setError(prep.error);
 			return;
@@ -69,13 +72,40 @@ export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMove
 		router.push({ pathname: '/program-detail', params: { programId: item.program.id } });
 	};
 
+	const handleSkipAndPush = () => {
+		Alert.alert(
+			'Skip and push program?',
+			`This skips "${sessionLabel}" and pushes every following unstarted session in "${item.program.name}" one slot forward. Already-completed sessions are not affected.`,
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Skip and push',
+					style: 'destructive',
+					onPress: async () => {
+						setSkipping(true);
+						setError(null);
+						const { error: skipErr } = await skipProgramSlot(item.program.id);
+						setSkipping(false);
+						if (skipErr) {
+							setError(skipErr);
+							return;
+						}
+						if (onSkipped) {
+							await onSkipped();
+						}
+					},
+				},
+			],
+		);
+	};
+
 	return (
 		<View style={styles.card}>
 			<View style={styles.header}>
 				<View style={styles.headerBody}>
 					<Text style={styles.title}>{sessionLabel}</Text>
 				</View>
-				{isMissed && onMoveRequest && (
+				{onMoveRequest && (
 					<Pressable
 						onPress={onMoveRequest}
 						style={styles.moveBtn}
@@ -89,6 +119,19 @@ export function ProgramSessionCard({ item, unit = 'kg', isMissed = false, isMove
 						/>
 					</Pressable>
 				)}
+				<Pressable
+					onPress={handleSkipAndPush}
+					disabled={skipping}
+					style={styles.skipBtn}
+					accessibilityRole="button"
+					accessibilityLabel="Skip and push program"
+				>
+					{skipping ? (
+						<ActivityIndicator size="small" color="#fff" />
+					) : (
+						<Ionicons name="play-skip-forward-outline" size={22} color="#fff" />
+					)}
+				</Pressable>
 				<Pressable
 					onPress={handleStart}
 					disabled={starting || missingNames.length > 0}
@@ -171,6 +214,13 @@ const styles = StyleSheet.create({
 		fontWeight: '600',
 	},
 	moveBtn: {
+		width: 40,
+		height: 40,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: 4,
+	},
+	skipBtn: {
 		width: 40,
 		height: 40,
 		alignItems: 'center',

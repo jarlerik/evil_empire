@@ -20,5 +20,6 @@ export interface UserSettingsRow {
 	weight_unit: 'kg' | 'lbs';
 	user_weight: string;
 	onboarding_completed: boolean;
+	default_rest_seconds: number | null;
 	updated_at?: string;
 }
