@@ -16,8 +16,9 @@ import {
   deleteProgramSession,
   deleteAllProgramSessions,
   upsertProgramRm as upsertProgramRmSvc,
-  resolveSessionsInRange,
+  resolveSessionDates,
   materializeProgramSession as materializeProgramSessionSvc,
+  incrementProgramSlip,
   type MaterializeExerciseInput,
 } from '@evil-empire/peaktrack-services';
 import type {
@@ -240,7 +241,7 @@ export function useProgramSessionsForDateRange(
         parseISO(start),
         parseISO(end),
         {
-          resolveSessionsInRange,
+          resolveSessionDates,
           formatDate: (d) => format(d, 'yyyy-MM-dd'),
         },
       );
@@ -266,6 +267,20 @@ export function useMaterializeProgramSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: workoutKeys.all });
       qc.invalidateQueries({ queryKey: [...programKeys.all, 'sessions-range'] });
+    },
+  });
+}
+
+export function useSkipProgramSlot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (programId: string) => {
+      const { data, error } = await incrementProgramSlip(programId);
+      if (error || !data) throw new Error(error ?? 'Failed to skip program');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: programKeys.all });
     },
   });
 }

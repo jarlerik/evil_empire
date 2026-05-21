@@ -508,6 +508,7 @@ export default function Index() {
 														: { kind: 'session', id: ps.session.id, name: sessionLabel(ps) },
 												)
 											}
+											onSkipped={() => loadData({ showLoader: false })}
 										/>
 									);
 								})}

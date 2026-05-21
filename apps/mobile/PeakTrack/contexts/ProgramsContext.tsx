@@ -5,10 +5,11 @@ import {
 	fetchProgramsByUserId,
 	fetchProgramSessionsForDateRange,
 	materializeProgramSession as materializeRpc,
+	incrementProgramSlip,
 	MaterializeExerciseInput,
 } from '@evil-empire/peaktrack-services';
 import { useAuth } from './AuthContext';
-import { resolveSessionsInRange } from '@evil-empire/peaktrack-services';
+import { resolveSessionDates } from '@evil-empire/peaktrack-services';
 
 interface ProgramsContextType {
 	programs: Program[];
@@ -21,6 +22,7 @@ interface ProgramsContextType {
 		name: string;
 		exercises: MaterializeExerciseInput[];
 	}) => Promise<{ workout_id: string | null; error: string | null }>;
+	skipProgramSlot: (programId: string) => Promise<{ error: string | null }>;
 	invalidateSessionCache: () => void;
 }
 
@@ -86,7 +88,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 				startDate,
 				endDate,
 				{
-					resolveSessionsInRange,
+					resolveSessionDates,
 					formatDate: d => format(d, 'yyyy-MM-dd'),
 				},
 			);
@@ -118,6 +120,21 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 		[],
 	);
 
+	const skipProgramSlot = useCallback(
+		async (programId: string) => {
+			const { data, error } = await incrementProgramSlip(programId);
+			if (error || !data) {
+				return { error: error ?? 'Could not skip program' };
+			}
+			setPrograms(prev =>
+				prev.map(p => (p.id === programId ? { ...p, slip_slots: data.slip_slots } : p)),
+			);
+			sessionCacheRef.current.clear();
+			return { error: null };
+		},
+		[],
+	);
+
 	return (
 		<ProgramsContext.Provider
 			value={{
@@ -126,6 +143,7 @@ export function ProgramsProvider({ children }: { children: React.ReactNode }) {
 				reloadPrograms,
 				fetchSessionsForRange,
 				materializeSession,
+				skipProgramSlot,
 				invalidateSessionCache,
 			}}
 		>

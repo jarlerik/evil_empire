@@ -10,6 +10,7 @@ jest.mock('expo-router', () => ({
 jest.mock('../../contexts/ProgramsContext', () => ({
 	usePrograms: () => ({
 		materializeSession: jest.fn(),
+		skipProgramSlot: jest.fn(),
 	}),
 }));
 
@@ -30,6 +31,7 @@ function makeItem(overrides: Partial<ProgramSessionForDate> = {}): ProgramSessio
 			start_iso_year: 2026,
 			start_iso_week: 16,
 			status: 'active',
+			slip_slots: 0,
 		},
 		session: {
 			id: 'sess-1',

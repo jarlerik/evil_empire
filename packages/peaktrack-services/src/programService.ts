@@ -550,11 +550,20 @@ export async function fetchProgramSessionsForDateRange(
 	startDate: Date,
 	endDate: Date,
 	scheduling: {
-		resolveSessionsInRange: (
-			program: Pick<Program, 'start_iso_year' | 'start_iso_week' | 'duration_weeks'>,
+		resolveSessionDates: (
+			program: Pick<
+				Program,
+				'start_iso_year' | 'start_iso_week' | 'duration_weeks' | 'slip_slots'
+			>,
+			sessions: Array<{ id: string; week_offset: number; day_of_week: number }>,
 			startDate: Date,
 			endDate: Date,
-		) => Array<{ date: Date; week_offset: number; day_of_week: number }>;
+		) => Array<{
+			session_id: string;
+			date: Date;
+			week_offset: number;
+			day_of_week: number;
+		}>;
 		formatDate: (d: Date) => string; // yyyy-MM-dd
 	},
 	preloadedPrograms?: Program[],
@@ -583,40 +592,18 @@ export async function fetchProgramSessionsForDateRange(
 		return { data: [], error: null };
 	}
 
-	// Client-side: for each program, compute which (week_offset, day_of_week)
-	// tuples inside [startDate, endDate] intersect the program window.
-	const tuplesByProgram = new Map<
-		string,
-		Array<{ date: Date; week_offset: number; day_of_week: number }>
-	>();
-	for (const p of programs) {
-		const tuples = scheduling.resolveSessionsInRange(p, startDate, endDate);
-		if (tuples.length > 0) {
-			tuplesByProgram.set(p.id, tuples);
-		}
-	}
+	const activeProgramIds = programs.map(p => p.id);
 
-	const activeProgramIds = Array.from(tuplesByProgram.keys());
-	if (activeProgramIds.length === 0) {
-		return { data: [], error: null };
-	}
-
-	const weekOffsetSet = new Set<number>();
-	const dayOfWeekSet = new Set<number>();
-	for (const tuples of tuplesByProgram.values()) {
-		for (const t of tuples) {
-			weekOffsetSet.add(t.week_offset);
-			dayOfWeekSet.add(t.day_of_week);
-		}
-	}
-
-	// 2. Sessions matching any (week_offset, day_of_week) in the visible range
+	// 2. All sessions for active programs. Pulling the full program-session
+	// set (typically ~10–30 rows per program) lets us derive each program's
+	// cadence on the client and apply slip session-by-session — the IN-list
+	// filter on (week_offset, day_of_week) that the pre-slip version used
+	// can't honor slip because the slipped calendar slot may not match the
+	// session's original (week_offset, day_of_week).
 	const { data: sessions, error: sErr } = await supabase
 		.from('program_sessions')
 		.select('*')
-		.in('program_id', activeProgramIds)
-		.in('week_offset', Array.from(weekOffsetSet))
-		.in('day_of_week', Array.from(dayOfWeekSet));
+		.in('program_id', activeProgramIds);
 
 	if (sErr) {
 		return { data: null, error: sErr.message };
@@ -626,21 +613,50 @@ export async function fetchProgramSessionsForDateRange(
 		return { data: [], error: null };
 	}
 
-	const sessionIds = allSessions.map(s => s.id);
+	const sessionsByProgram = new Map<string, ProgramSession[]>();
+	for (const s of allSessions) {
+		const list = sessionsByProgram.get(s.program_id) ?? [];
+		list.push(s);
+		sessionsByProgram.set(s.program_id, list);
+	}
 
-	// 3-5. Exercises, materialized workout links, and RM snapshots can all
-	// fetch in parallel — they depend only on sessionIds / activeProgramIds
-	// already resolved above.
+	// 3. Per program, compute slipped calendar dates for sessions in range.
+	const datesBySession = new Map<string, Date>();
+	const inRangeSessionIds: string[] = [];
+	for (const p of programs) {
+		const pSessions = sessionsByProgram.get(p.id);
+		if (!pSessions || pSessions.length === 0) {
+			continue;
+		}
+		const resolved = scheduling.resolveSessionDates(
+			p,
+			pSessions,
+			startDate,
+			endDate,
+		);
+		for (const r of resolved) {
+			datesBySession.set(r.session_id, r.date);
+			inRangeSessionIds.push(r.session_id);
+		}
+	}
+
+	if (inRangeSessionIds.length === 0) {
+		return { data: [], error: null };
+	}
+
+	// 4. Exercises, materialized workout links, and RM snapshots can all
+	// fetch in parallel — they depend only on the in-range session ids and
+	// the active program ids already resolved above.
 	const [exercisesRes, materializedRes, rmsRes] = await Promise.all([
 		supabase
 			.from('program_exercises')
 			.select('*')
-			.in('program_session_id', sessionIds)
+			.in('program_session_id', inRangeSessionIds)
 			.order('order_index', { ascending: true }),
 		supabase
 			.from('workouts')
 			.select('id, program_session_id')
-			.in('program_session_id', sessionIds),
+			.in('program_session_id', inRangeSessionIds),
 		supabase
 			.from('program_repetition_maximums')
 			.select('*')
@@ -676,43 +692,77 @@ export async function fetchProgramSessionsForDateRange(
 		rmsByProgram.set(r.program_id, list);
 	}
 
-	// Merge: for each tuple under each program, find the matching session row (if any).
 	const programById = new Map<string, Program>();
 	for (const p of programs) {
 		programById.set(p.id, p);
 	}
-	const sessionByKey = new Map<string, ProgramSession>();
+	const sessionById = new Map<string, ProgramSession>();
 	for (const s of allSessions) {
-		sessionByKey.set(`${s.program_id}|${s.week_offset}|${s.day_of_week}`, s);
+		sessionById.set(s.id, s);
 	}
 
 	const out: ProgramSessionForDate[] = [];
-	for (const [programId, tuples] of tuplesByProgram.entries()) {
-		const program = programById.get(programId);
+	for (const sessionId of inRangeSessionIds) {
+		const session = sessionById.get(sessionId);
+		const date = datesBySession.get(sessionId);
+		if (!session || !date) {
+			continue;
+		}
+		const program = programById.get(session.program_id);
 		if (!program) {
 			continue;
 		}
-		for (const t of tuples) {
-			const session = sessionByKey.get(`${programId}|${t.week_offset}|${t.day_of_week}`);
-			if (!session) {
-				continue; // no row for this slot → no prescription for this day
-			}
-			const sessionExercises = exercisesBySession.get(session.id) ?? [];
-			if (sessionExercises.length === 0) {
-				continue; // session row exists but has no exercises → nothing to show
-			}
-			out.push({
-				program,
-				session,
-				exercises: sessionExercises,
-				rms: rmsByProgram.get(programId) ?? [],
-				date: scheduling.formatDate(t.date),
-				materializedWorkoutId: materializedBySession.get(session.id) ?? null,
-			});
+		const sessionExercises = exercisesBySession.get(session.id) ?? [];
+		if (sessionExercises.length === 0) {
+			continue; // session row exists but has no exercises → nothing to show
 		}
+		out.push({
+			program,
+			session,
+			exercises: sessionExercises,
+			rms: rmsByProgram.get(program.id) ?? [],
+			date: scheduling.formatDate(date),
+			materializedWorkoutId: materializedBySession.get(session.id) ?? null,
+		});
 	}
 
 	return { data: out, error: null };
+}
+
+/**
+ * Increment `programs.slip_slots` by 1. Used by the "skip and push" action
+ * on a virtual program session card. RLS enforces ownership.
+ */
+export async function incrementProgramSlip(
+	programId: string,
+): Promise<ServiceResult<{ slip_slots: number }>> {
+	const supabase = getSupabaseClient();
+	// Two-step (read + write) instead of an atomic UPDATE-with-expression
+	// because PostgREST doesn't expose column-expression updates without an
+	// RPC. Concurrent slip-and-push from two clients would race, but the
+	// outcome (slip += 1 once) is acceptable for the UX — last write wins.
+	const { data: current, error: readErr } = await supabase
+		.from('programs')
+		.select('slip_slots')
+		.eq('id', programId)
+		.maybeSingle();
+	if (readErr) {
+		return { data: null, error: readErr.message };
+	}
+	if (!current) {
+		return { data: null, error: 'Program not found' };
+	}
+	const next = (current.slip_slots ?? 0) + 1;
+	const { data, error } = await supabase
+		.from('programs')
+		.update({ slip_slots: next })
+		.eq('id', programId)
+		.select('slip_slots')
+		.single();
+	if (error) {
+		return { data: null, error: error.message };
+	}
+	return { data: { slip_slots: data.slip_slots }, error: null };
 }
 
 // ============================================================================

@@ -7,6 +7,13 @@ export interface Program {
 	start_iso_year: number | null;
 	start_iso_week: number | null;
 	status: 'draft' | 'active' | 'archived';
+	/**
+	 * Number of cadence slots the program has been pushed forward by user
+	 * "skip and push" actions. Affects virtual session calendar dates only;
+	 * already-materialized workouts are unaffected. See
+	 * `resolveSessionDates` in @evil-empire/peaktrack-services.
+	 */
+	slip_slots: number;
 	created_at?: string;
 	updated_at?: string;
 }
