@@ -24,8 +24,8 @@ import { ProgramSessionForDate } from '@evil-empire/types';
 import { prepareMaterializeInputs, sessionLabel } from '@evil-empire/peaktrack-services';
 
 type PendingMove =
-	| { kind: 'workout'; id: string }
-	| { kind: 'session'; id: string };
+	| { kind: 'workout'; id: string; name: string }
+	| { kind: 'session'; id: string; name: string };
 
 export default function Index() {
 	const [exerciseName, setExerciseName] = useState('');
@@ -65,14 +65,12 @@ export default function Index() {
 		const nextStart = addDays(selectedWeekStart, 7);
 		setSelectedWeekStart(nextStart);
 		setSelectedDate(nextStart);
-		setPendingMove(null);
 	};
 
 	const prevWeek = () => {
 		const prevStart = subDays(selectedWeekStart, 7);
 		setSelectedWeekStart(prevStart);
 		setSelectedDate(prevStart);
-		setPendingMove(null);
 	};
 
 	// Dedupe concurrent loadData calls. useFocusEffect can fire twice on mount
@@ -253,6 +251,9 @@ export default function Index() {
 								delete next[workout.id];
 								return next;
 							});
+							setPendingMove(prev =>
+								prev?.kind === 'workout' && prev.id === workout.id ? null : prev,
+							);
 						}
 					},
 				},
@@ -308,19 +309,6 @@ export default function Index() {
 			handleMoveSession(pendingMove.id, date);
 		}
 	};
-
-	useEffect(() => {
-		if (!pendingMove) {return;}
-		if (pendingMove.kind === 'workout') {
-			const stillPresent = workouts.some(w => w.id === pendingMove.id);
-			if (!stillPresent) {setPendingMove(null);}
-		} else {
-			const stillPresent = programSessions.some(
-				ps => ps.session.id === pendingMove.id && !ps.materializedWorkoutId,
-			);
-			if (!stillPresent) {setPendingMove(null);}
-		}
-	}, [workouts, programSessions, pendingMove]);
 
 	if (authLoading || settingsLoading) {
 		return <LoadScreen />;
@@ -433,14 +421,7 @@ export default function Index() {
 							{pendingMove && (
 								<View style={styles.moveBanner}>
 									<Text style={styles.moveBannerText} numberOfLines={1}>
-										Tap a day to move &ldquo;{
-											pendingMove.kind === 'workout'
-												? (workouts.find(w => w.id === pendingMove.id)?.name ?? 'workout')
-												: (() => {
-													const ps = programSessions.find(p => p.session.id === pendingMove.id);
-													return ps ? sessionLabel(ps) : 'session';
-												})()
-										}&rdquo;
+										Tap a day to move &ldquo;{pendingMove.name}&rdquo;
 									</Text>
 									<Pressable
 										onPress={() => setPendingMove(null)}
@@ -524,7 +505,7 @@ export default function Index() {
 												setPendingMove(prev =>
 													prev?.kind === 'session' && prev.id === ps.session.id
 														? null
-														: { kind: 'session', id: ps.session.id },
+														: { kind: 'session', id: ps.session.id, name: sessionLabel(ps) },
 												)
 											}
 										/>
@@ -592,7 +573,7 @@ export default function Index() {
 									setPendingMove(prev =>
 										prev?.kind === 'workout' && prev.id === actionsWorkout.id
 											? null
-											: { kind: 'workout', id: actionsWorkout.id },
+											: { kind: 'workout', id: actionsWorkout.id, name: actionsWorkout.name },
 									)
 								}
 								onDelete={() => handleDeleteWorkout(actionsWorkout)}
